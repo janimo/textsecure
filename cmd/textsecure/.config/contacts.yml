@@ -1,0 +1,6 @@
+#Add the contacts you want to reference by name on the app command line here
+contacts:
+- name: Bob
+  tel: "+1771111002"
+- name: Eve
+  tel: "+1771111003"

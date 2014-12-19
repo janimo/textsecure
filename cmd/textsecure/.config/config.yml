@@ -1,0 +1,15 @@
+#Put your phone number that will get verified by the server here
+tel: "+1771111001"
+
+#Server URL
+server: https://textsecure-service.whispersystems.org:443
+
+#This is needed for the official servers
+skipTLSCheck: true
+
+#Verification via sms or voice
+verificationType: sms
+
+#The local storage uses password base encryption
+#If not present here, the password will be requested on startup
+storagePassword: password
