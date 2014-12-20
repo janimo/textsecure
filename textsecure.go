@@ -171,8 +171,9 @@ func registerDevice() {
 	}
 	code := requestCode(config.Tel, vt)
 	if code == "" {
-		code = readLine("Enter verification number>")
+		code = readLine("Enter verification number (without the '-')>")
 	}
+	code = strings.Replace(code, "-", "", -1)
 	verifyCode(code)
 	registerPreKeys2()
 	log.Println("Registration done")
