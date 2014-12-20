@@ -557,7 +557,7 @@ func (sc *SessionCipher) SessionDecryptPreKeyWhisperMessage(ciphertext *PreKeyWh
 	if err != nil {
 		return nil, err
 	}
-	if pkid != 0 {
+	if pkid != 0xFFFFFF {
 		sc.PreKeyStore.RemovePreKey(pkid)
 	}
 	sc.SessionStore.StoreSession(sc.RecipientId, sc.DeviceId, sr)
