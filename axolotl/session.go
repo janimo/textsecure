@@ -359,7 +359,7 @@ var NotTrustedError = errors.New("Remote identity not trusted")
 
 func (sb *SessionBuilder) BuildReceiverSession(sr *SessionRecord, pkwm *PreKeyWhisperMessage) (uint32, error) {
 	if pkwm.Version != currentVersion {
-		return 0, fmt.Errorf("Unsupported version", pkwm.Version)
+		return 0, fmt.Errorf("Unsupported version %d", pkwm.Version)
 	}
 	theirIdentityKey := pkwm.IdentityKey
 	if !sb.identityStore.IsTrustedIdentity(sb.recipientId, theirIdentityKey) {
@@ -380,7 +380,7 @@ func (sb *SessionBuilder) BuildReceiverSession(sr *SessionRecord, pkwm *PreKeyWh
 	if pkwm.PreKeyId != 0 {
 		pk, err := sb.preKeyStore.LoadPreKey(pkwm.PreKeyId)
 		if err != nil {
-			return 0, fmt.Errorf("key not found ", pkwm.PreKeyId)
+			return 0, fmt.Errorf("key not found %d", pkwm.PreKeyId)
 		}
 		bob.OurOneTimePreKey = pk.GetKeyPair()
 	}

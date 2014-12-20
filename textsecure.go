@@ -289,7 +289,7 @@ func handleReceivedMessage(msg []byte, f func(string, string)) error {
 		}
 		f(ipms.GetSource(), getMessageBody(b))
 	default:
-		return fmt.Errorf("Not implemented", *ipms.Type)
+		return fmt.Errorf("Not implemented %d", *ipms.Type)
 	}
 
 	return nil
