@@ -76,7 +76,7 @@ var signedKey *axolotl.SignedPreKeyRecord
 
 var lastResortPreKeyId uint32 = 0xFFFFFF
 
-var preKeyBatchSize = 10
+var preKeyBatchSize = 100
 
 func getNextPreKeyId() uint32 {
 	return randId()
