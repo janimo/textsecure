@@ -179,6 +179,17 @@ func registerDevice() {
 	log.Println("Registration done")
 }
 
+func ShowFingerprint(id string){
+  if id == "me" || id == "self" || id == config.Tel{
+    key := textSecureStore.GetIdentityKeyPair()
+    log.Printf("Fingerprint for %s is % 0X", id, key.PublicKey.ECPublicKey.Key() )
+    }else{
+    key := textSecureStore.GetUserIdentityKeyPair(recId(id))
+    log.Printf("Fingerprint for %s is % 0X", id, key.PublicKey.ECPublicKey.Key() )
+    }
+  }
+
+
 func handleReceipt(ipms *textsecure.IncomingPushMessageSignal) {
 	//log.Printf("Receipt %+v\n", ipms)
 }

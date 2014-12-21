@@ -17,6 +17,7 @@ var (
 	to         string
 	message    string
 	attachment string
+	fingerprint string
 )
 
 func init() {
@@ -24,6 +25,7 @@ func init() {
 	flag.StringVar(&to, "to", "", "Contact name to send the message to")
 	flag.StringVar(&message, "message", "", "Single message to send, then exit")
 	flag.StringVar(&attachment, "attachment", "", "File to attach")
+	flag.StringVar(&fingerprint, "fingerprint", "", "Name of contact to get identity key fingerprint")
 }
 
 var (
@@ -77,6 +79,11 @@ func main() {
 			break
 		}
 	}
+	
+	if fingerprint != "" {
+	  textsecure.ShowFingerprint(fingerprint)
+	  return
+	  }
 
 	if to != "" {
 		// Send attachment with optional message then exit
