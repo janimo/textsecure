@@ -9,3 +9,15 @@ The included sample command line app can send and receive messages, but cannot y
 handle attachments or group messages yet, and there are still plenty of bugs left.
 
 The API presented by the package is definitely not final.
+
+# Installation and usage
+
+## Ubuntu 14.10
+
+    aptitude install golang mercurial gccgo-go
+    mkdir ~/go/bin; export GOPATH=~/go; export PATH=$PATH:$GOPATH
+    go get github.com/janimo/textsecure/
+    cd ~/go/src/github.com/janimo/textsecure/cmd
+    go build
+    ./textsecure
+
