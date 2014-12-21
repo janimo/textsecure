@@ -29,6 +29,7 @@ var registrationInfo RegistrationInfo
 // Registration
 
 func requestCode(tel, transport string) string {
+  log.Printf("Registering new phone number: %s", tel)
 	resp, err := transporter.Get(fmt.Sprintf("/v1/accounts/%s/code/%s", transport, tel))
 	if err != nil {
 		log.Fatal(err)
