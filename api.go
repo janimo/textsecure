@@ -212,11 +212,12 @@ func padMessage(msg []byte) []byte {
 }
 
 func stripPadding(msg []byte) []byte {
-	for i := len(msg) - 1; ; i-- {
+	for i := len(msg) - 1; i >= 0; i-- {
 		if msg[i] == 0x80 {
 			return msg[:i]
 		}
 	}
+	return msg
 }
 
 func makePreKeyBundle(tel string) (*axolotl.PreKeyBundle, error) {
