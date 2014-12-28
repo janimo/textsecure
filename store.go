@@ -5,10 +5,7 @@ package textsecure
 
 import (
 	"bytes"
-	"crypto/aes"
-	"crypto/cipher"
 	"crypto/sha1"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -121,42 +118,14 @@ func (s *TextSecureStore) encrypt(plaintext []byte) ([]byte, error) {
 		return plaintext, nil
 	}
 
-	block, err := aes.NewCipher(s.aesKey)
-	if err != nil {
-		return nil, err
-	}
-
-	pad := aes.BlockSize - len(plaintext)%aes.BlockSize
-	plaintext = append(plaintext, bytes.Repeat([]byte{byte(pad)}, pad)...)
-
-	ciphertext := make([]byte, len(plaintext))
-	iv := make([]byte, 16)
-	randBytes(iv)
-
-	mode := cipher.NewCBCEncrypter(block, iv)
-	mode.CryptBlocks(ciphertext, plaintext)
-
-	return append(iv, ciphertext...), nil
+	return aesEncrypt(s.aesKey, plaintext)
 }
 
 func (s *TextSecureStore) decrypt(ciphertext []byte) ([]byte, error) {
 	if s.insecure {
 		return ciphertext, nil
 	}
-	block, err := aes.NewCipher(s.aesKey)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(ciphertext)%aes.BlockSize != 0 {
-		return nil, errors.New("Not multiple of AES blocksize")
-	}
-
-	iv := ciphertext[:aes.BlockSize]
-	mode := cipher.NewCBCDecrypter(block, iv)
-	mode.CryptBlocks(ciphertext, ciphertext)
-	pad := ciphertext[len(ciphertext)-1]
-	return ciphertext[aes.BlockSize : len(ciphertext)-int(pad)], nil
+	return aesDecrypt(s.aesKey, ciphertext)
 }
 
 func (s *TextSecureStore) readFile(path string) ([]byte, error) {
