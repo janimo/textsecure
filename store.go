@@ -197,6 +197,18 @@ func (s *TextSecureStore) GetIdentityKeyPair() *axolotl.IdentityKeyPair {
 	return axolotl.NewIdentityKeyPairFromKeys(b[32:], b[:32])
 }
 
+func (s *TextSecureStore) GetUserIdentityKeyPair(id string) *axolotl.IdentityKeyPair {
+	idkeyfile := filepath.Join(s.identityDir, "remote_"+id)
+	if !exists(idkeyfile) {
+		panic("id key not found")
+	}
+	b, err := s.readFile(idkeyfile)
+	if err != nil {
+		panic(err)
+	}
+	return axolotl.NewIdentityKeyPairFromKeys(b[32:], b[:32])
+}
+
 func (s *TextSecureStore) SetIdentityKeyPair(ikp *axolotl.IdentityKeyPair) {
 	idkeyfile := filepath.Join(s.identityDir, "identity_key")
 	b := make([]byte, 64)

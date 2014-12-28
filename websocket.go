@@ -5,13 +5,13 @@ package textsecure
 
 import (
 	"encoding/base64"
+	"github.com/golang/protobuf/proto"
+	"github.com/janimo/textsecure/protobuf"
+	"golang.org/x/net/websocket"
 	"log"
 	"net/url"
 	"strings"
 	"time"
-	"github.com/golang/protobuf/proto"
-	"github.com/janimo/textsecure/protobuf"
-	"golang.org/x/net/websocket"
 
 	"crypto/tls"
 )
