@@ -5,7 +5,7 @@
 Installation
 ------------
 
-    go get github.com/janimo/textsecure/cmd/textsecure
+    go get github.com/zmanian/textsecure/cmd/textsecure
 
 For more details, including setting up Go, check the [wiki] (https://github.com/janimo/textsecure/wiki/Installation)
 
