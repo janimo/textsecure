@@ -5,61 +5,69 @@ package textsecure
 
 import (
 	"bytes"
-	"crypto/aes"
-	"crypto/cipher"
-	"errors"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"net/http"
+	"strconv"
 )
 
-func encryptAttachment(key, plaintext []byte) ([]byte, error) {
-	block, err := aes.NewCipher(key)
+// getAttachment downloads an encrypted attachment blob from the given URL
+func getAttachment(url string) (io.ReadCloser, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	req.Header.Add("Content-type", "application/octet-stream")
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
 
-	pad := aes.BlockSize - len(plaintext)%aes.BlockSize
-	plaintext = append(plaintext, bytes.Repeat([]byte{byte(pad)}, pad)...)
-
-	ciphertext := make([]byte, len(plaintext))
-	iv := make([]byte, 16)
-	randBytes(iv)
-
-	mode := cipher.NewCBCEncrypter(block, iv)
-	mode.CryptBlocks(ciphertext, plaintext)
-
-	return append(iv, ciphertext...), nil
+	return resp.Body, nil
 }
 
-func decryptAttachment(key, ciphertext []byte) ([]byte, error) {
-	block, err := aes.NewCipher(key)
+// putAttachment uploads an encrypted attachment to the given URL
+func putAttachment(url string, body []byte) error {
+	br := bytes.NewReader(body)
+	req, err := http.NewRequest("PUT", url, br)
 	if err != nil {
-		return nil, err
+		return err
+	}
+	//req.Header.Add("Content-type", "application/octet-stream")
+	req.Header.Add("Content-type", "application/octet-stream")
+	req.Header.Add("Content-length", strconv.Itoa(len(body)))
+	resp, err := http.DefaultClient.Do(req)
+
+	if resp.StatusCode >= 300 {
+		return fmt.Errorf("ERROR %d\n", resp.StatusCode)
 	}
 
-	if len(ciphertext)%aes.BlockSize != 0 {
-		return nil, errors.New("Ciphertext not a multiple of AES blocksize")
-	}
-
-	iv := ciphertext[:aes.BlockSize]
-	mode := cipher.NewCBCDecrypter(block, iv)
-	mode.CryptBlocks(ciphertext, ciphertext)
-	pad := ciphertext[len(ciphertext)-1]
-	return ciphertext[aes.BlockSize : len(ciphertext)-int(pad)], nil
+	return err
 }
 
-func UploadAttachment(path string) *att {
+// uploadAttachment encrypts, authenticates and uploads a given attachment to a location requested from the server
+func uploadAttachment(r io.Reader, ct string) (*att, error) {
 	//combined AES-256 and HMAC-SHA256 key
 	keys := make([]byte, 64)
 	randBytes(keys)
 
-	a := []byte(path)
+	b, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
 
-	e, _ := encryptAttachment(keys[:32], a)
+	e, err := aesEncrypt(keys[:32], b)
+	if err != nil {
+		return nil, err
+	}
 
 	m := appendMAC(keys[32:], e)
 
-	id, location := allocateAttachment()
-
-	transporter.PutBinary(location, m)
-
-	return &att{id, "application/text", keys}
+	id, location, err := allocateAttachment()
+	if err != nil {
+		return nil, err
+	}
+	err = putAttachment(location, m)
+	if err != nil {
+		return nil, err
+	}
+	return &att{id, ct, keys}, nil
 }

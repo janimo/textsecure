@@ -33,6 +33,7 @@ func requestCode(tel, transport string) string {
 	if err != nil {
 		log.Fatal(err)
 	}
+	// unofficial dev transport, useful for development, with no telephony account needed on the server
 	if transport == "dev" {
 		code := make([]byte, 7)
 		_, err = resp.Body.Read(code)
@@ -149,26 +150,26 @@ func confirmReceipt(source string, timestamp uint64) {
 }
 
 // GET /v1/attachments/
-func allocateAttachment() (uint64, string) {
+func allocateAttachment() (uint64, string, error) {
 	resp, err := transporter.Get("/v1/attachments")
 	if err != nil {
-		log.Fatal(err)
+		return 0, "", err
 	}
 	dec := json.NewDecoder(resp.Body)
 	var a JSONAllocation
 	dec.Decode(&a)
-	return a.Id, a.Location
+	return a.Id, a.Location, nil
 }
 
-func getAttachmentLocation(id uint64) string {
+func getAttachmentLocation(id uint64) (string, error) {
 	resp, err := transporter.Get(fmt.Sprintf("/v1/attachments/%d", id))
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 	dec := json.NewDecoder(resp.Body)
 	var a JSONAllocation
 	dec.Decode(&a)
-	return a.Location
+	return a.Location, nil
 }
 
 // Messages
