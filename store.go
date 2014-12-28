@@ -207,9 +207,7 @@ func (s *TextSecureStore) GetUserIdentityKeyPair(id string) *axolotl.IdentityKey
 		panic(err)
 	}
 	return axolotl.NewIdentityKeyPairFromKeys(b[32:], b[:32])
-  }
-
-
+}
 
 func (s *TextSecureStore) SetIdentityKeyPair(ikp *axolotl.IdentityKeyPair) {
 	idkeyfile := filepath.Join(s.identityDir, "identity_key")
@@ -242,8 +240,6 @@ func (s *TextSecureStore) IsTrustedIdentity(id string, key *axolotl.IdentityKey)
 	}
 	return bytes.Equal(b, key.Key()[:])
 }
-
-
 
 // Prekey and signed prekey store
 
