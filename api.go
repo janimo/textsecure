@@ -11,8 +11,8 @@ import (
 	"log"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/janimo/textsecure/axolotl"
-	"github.com/janimo/textsecure/protobuf"
+	"github.com/zmanian/textsecure/axolotl"
+	"github.com/zmanian/textsecure/protobuf"
 )
 
 // Registration holds the data required to be identified by and
@@ -29,6 +29,7 @@ var registrationInfo RegistrationInfo
 // Registration
 
 func requestCode(tel, transport string) string {
+	log.Printf("Registering new phone number: %s", tel)
 	resp, err := transporter.Get(fmt.Sprintf("/v1/accounts/%s/code/%s", transport, tel))
 	if err != nil {
 		log.Fatal(err)

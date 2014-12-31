@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/janimo/textsecure/axolotl"
+	"github.com/zmanian/textsecure/axolotl"
 	"golang.org/x/crypto/pbkdf2"
 )
 
@@ -161,6 +161,18 @@ func (s *TextSecureStore) GetIdentityKeyPair() *axolotl.IdentityKeyPair {
 	idkeyfile := filepath.Join(s.identityDir, "identity_key")
 	b, err := s.readFile(idkeyfile)
 	if err != nil || len(b) != 64 {
+		panic(err)
+	}
+	return axolotl.NewIdentityKeyPairFromKeys(b[32:], b[:32])
+}
+
+func (s *TextSecureStore) GetUserIdentityKeyPair(id string) *axolotl.IdentityKeyPair {
+	idkeyfile := filepath.Join(s.identityDir, "remote_"+id)
+	if !exists(idkeyfile) {
+		panic("id key not found")
+	}
+	b, err := s.readFile(idkeyfile)
+	if err != nil {
 		panic(err)
 	}
 	return axolotl.NewIdentityKeyPairFromKeys(b[32:], b[:32])

@@ -5,9 +5,9 @@
 Installation
 ------------
 
-    go get github.com/janimo/textsecure/cmd/textsecure
+    go get github.com/zmanian/textsecure/cmd/textsecure
 
-For more details, including setting up Go, check the [wiki] (https://github.com/janimo/textsecure/wiki/Installation)
+For more details, including setting up Go, check the [wiki] (https://github.com/zmanian/textsecure/wiki/Installation)
 
 Configuration
 -------------
@@ -26,6 +26,16 @@ This will show the supported command line flags
 
 Running the command without arguments will put it in receiving mode, and once it receives a message it will
 be able to talk to that contact.
+
+Connecting to the staging server
+--------------------------------
+
+Text Secure runs a staging server where pre-production server side features and protocols can be tested.
+
+To use with the testing server change the server in config.yml to https://textsecure-service-staging.whispersystems.org:443
+
+The staging server maintains a seperate key and identifier registration databased from the production server so you will have to re-register. The same identifier can be used on both servers.
+
 
 Discussions
 -----------

@@ -11,8 +11,8 @@ import (
 	"log"
 
 	"github.com/golang/protobuf/proto"
-	protobuf "github.com/janimo/textsecure/axolotl/protobuf"
-	"github.com/janimo/textsecure/curve25519sign"
+	protobuf "github.com/zmanian/textsecure/axolotl/protobuf"
+	"github.com/zmanian/textsecure/curve25519sign"
 )
 
 type SessionState struct {

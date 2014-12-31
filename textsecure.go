@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/golang/protobuf/proto"
 	"io/ioutil"
 	"log"
 	"mime"
@@ -14,10 +15,9 @@ import (
 	"path/filepath"
 	"runtime/debug"
 	"strings"
-	"github.com/golang/protobuf/proto"
 
-	"github.com/janimo/textsecure/axolotl"
-	"github.com/janimo/textsecure/protobuf"
+	"github.com/zmanian/textsecure/axolotl"
+	"github.com/zmanian/textsecure/protobuf"
 )
 
 var (
@@ -145,10 +145,12 @@ func Setup(c *Client) {
 
 	//get password from config file (development only!), if empty read it from the command line
 	password := config.StoragePassword
-	if password == "" {
+	if password == "" && password != "none" {
 		password = readLine("Enter store password (empty for unencrypted store):")
 	}
-
+	if password == "none" {
+		password = ""
+	}
 	setupStore(password)
 
 	if needsRegistration() {
@@ -191,6 +193,16 @@ func registerDevice() {
 	verifyCode(code)
 	registerPreKeys2()
 	log.Println("Registration done")
+}
+
+func ShowFingerprint(id string) {
+	if id == "me" || id == "self" || id == config.Tel {
+		key := textSecureStore.GetIdentityKeyPair()
+		log.Printf("Fingerprint for %s is % 0X", id, key.PublicKey.ECPublicKey.Key())
+	} else {
+		key := textSecureStore.GetUserIdentityKeyPair(recId(id))
+		log.Printf("Fingerprint for %s is % 0X", id, key.PublicKey.ECPublicKey.Key())
+	}
 }
 
 func handleReceipt(ipms *textsecure.IncomingPushMessageSignal) {

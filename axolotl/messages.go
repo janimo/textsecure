@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 
-	protobuf "github.com/janimo/textsecure/axolotl/protobuf"
+	protobuf "github.com/zmanian/textsecure/axolotl/protobuf"
 
 	"github.com/golang/protobuf/proto"
 )
