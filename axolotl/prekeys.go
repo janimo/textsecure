@@ -10,7 +10,7 @@ import (
 	"log"
 
 	"github.com/golang/protobuf/proto"
-	protobuf "github.com/janimo/textsecure/axolotl/protobuf"
+	protobuf "github.com/zmanian/textsecure/axolotl/protobuf"
 )
 
 var maxValue uint32 = 0xFFFFFF

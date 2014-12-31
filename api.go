@@ -11,8 +11,8 @@ import (
 	"log"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/janimo/textsecure/axolotl"
-	"github.com/janimo/textsecure/protobuf"
+	"github.com/zmanian/textsecure/axolotl"
+	"github.com/zmanian/textsecure/protobuf"
 )
 
 // Registration holds the data required to be identified by and

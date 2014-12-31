@@ -7,7 +7,7 @@ Installation
 
     go get github.com/zmanian/textsecure/cmd/textsecure
 
-For more details, including setting up Go, check the [wiki] (https://github.com/janimo/textsecure/wiki/Installation)
+For more details, including setting up Go, check the [wiki] (https://github.com/zmanian/textsecure/wiki/Installation)
 
 Configuration
 -------------

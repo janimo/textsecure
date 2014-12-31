@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/janimo/textsecure/axolotl"
+	"github.com/zmanian/textsecure/axolotl"
 	"golang.org/x/crypto/pbkdf2"
 )
 

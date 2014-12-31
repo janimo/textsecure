@@ -16,8 +16,8 @@ import (
 	"runtime/debug"
 	"strings"
 
-	"github.com/janimo/textsecure/axolotl"
-	"github.com/janimo/textsecure/protobuf"
+	"github.com/zmanian/textsecure/axolotl"
+	"github.com/zmanian/textsecure/protobuf"
 )
 
 var (

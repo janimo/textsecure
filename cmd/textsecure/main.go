@@ -7,7 +7,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/janimo/textsecure"
+	"github.com/zmanian/textsecure"
 )
 
 // Simple command line test app for TextSecure.
