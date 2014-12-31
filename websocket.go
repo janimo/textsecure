@@ -146,16 +146,28 @@ func ListenForMessages() {
 			log.Println("WebSocketMessage unmarshal", err)
 			continue
 		}
-		m, err := base64.StdEncoding.DecodeString(string(wsm.GetRequest().GetBody()))
-		if err != nil {
-			log.Println("WebSocketMessageRequest decode", err)
-			continue
-		}
-		//m := wsm.GetRequest().GetBody()
-		err = handleReceivedMessage(m)
-		if err != nil {
-			log.Println(err)
-			continue
+
+		if config.Server == "https://textsecure-service-staging.whispersystems.org:443" {
+			m := wsm.GetRequest().GetBody()
+
+			err = handleReceivedMessage(m)
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+
+		} else {
+			m, err := base64.StdEncoding.DecodeString(string(wsm.GetRequest().GetBody()))
+			if err != nil {
+				log.Println("WebSocketMessageRequest decode", err)
+				continue
+
+				err = handleReceivedMessage(m)
+				if err != nil {
+					log.Println(err)
+					continue
+				}
+			}
 		}
 		wsc.sendAck(wsm.GetRequest().GetId())
 	}
