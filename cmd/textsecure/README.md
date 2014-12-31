@@ -27,7 +27,8 @@ This will show the supported command line flags
 Running the command without arguments will put it in receiving mode, and once it receives a message it will
 be able to talk to that contact.
 
-Connecting to the staging server.
+Connecting to the staging server
+--------------------------------
 
 Text Secure runs a staging server where pre-production server side features and protocols can be tested.
 
