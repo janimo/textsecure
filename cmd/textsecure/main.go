@@ -42,9 +42,13 @@ var (
 func init() {
 	flag.BoolVar(&echo, "echo", false, "Act as an echo service")
 	flag.StringVar(&to, "to", "", "Contact name to send the message to")
+	flag.StringVar(&to, "t", "", "Contact name to send the message to")
 	flag.StringVar(&message, "message", "", "Single message to send, then exit")
+	flag.StringVar(&message, "m", "", "Single message to send, then exit")
 	flag.StringVar(&attachment, "attachment", "", "File to attach")
+	flag.StringVar(&attachment, "a", "", "File to attach")
 	flag.StringVar(&fingerprint, "fingerprint", "", "Name of contact to get identity key fingerprint")
+	flag.StringVar(&fingerprint, "f", "", "Name of contact to get identity key fingerprint")
 }
 
 var (
