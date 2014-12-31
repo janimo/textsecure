@@ -127,7 +127,7 @@ func (wsc *WSConn) Put(url string, body []byte) (*Response, error) {
 	return nil, nil
 }
 
-func ListenForMessages(f func(string, string)) {
+func ListenForMessages() {
 	wsc := NewWSConn(config.Server+"/v1/websocket", config.Tel, registrationInfo.password, config.SkipTLSCheck)
 
 	go wsc.keepAlive()
@@ -152,7 +152,7 @@ func ListenForMessages(f func(string, string)) {
 			continue
 		}
 		//m := wsm.GetRequest().GetBody()
-		err = handleReceivedMessage(m, f)
+		err = handleReceivedMessage(m)
 		if err != nil {
 			log.Println(err)
 			continue

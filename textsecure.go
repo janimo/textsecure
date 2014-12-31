@@ -10,7 +10,8 @@ import (
 	"github.com/golang/protobuf/proto"
 	"io/ioutil"
 	"log"
-	"net/http"
+	"mime"
+	"os"
 	"path/filepath"
 	"runtime/debug"
 	"strings"
@@ -91,26 +92,39 @@ func needsRegistration() bool {
 
 var identityKey *axolotl.IdentityKeyPair
 
-func SendMessage(tel, msg string) {
+func SendMessage(tel, msg string) error {
 	err := sendMessage(tel, msg)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+	return nil
 }
 
-func SendAttachment(tel string, msg, path string) {
-	a := UploadAttachment(path)
-	err := sendAttachment(tel, msg, a)
+func SendFileAttachment(tel, msg string, path string) error {
+	f, err := os.Open(path)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+
+	ct := mime.TypeByExtension(filepath.Ext(path))
+	a, err := uploadAttachment(f, ct)
+	if err != nil {
+		return err
+	}
+	err = sendAttachment(tel, msg, a)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 type Client struct {
-	RootDir          string
-	ReadLine         func(string) string
-	GetConfig        func() *Config
-	GetLocalContacts func() ([]Contact, error)
+	RootDir           string
+	ReadLine          func(string) string
+	GetConfig         func() *Config
+	GetLocalContacts  func() ([]Contact, error)
+	MessageHandler    func(string, string)
+	AttachmentHandler func(string, []byte)
 }
 
 var client *Client
@@ -199,52 +213,70 @@ func recId(source string) string {
 	return source[1:]
 }
 
-func handleAttachments(pmc *textsecure.PushMessageContent) error {
+func handleAttachments(pmc *textsecure.PushMessageContent) ([][]byte, error) {
 	atts := pmc.GetAttachments()
-	for _, a := range atts {
-		loc := getAttachmentLocation(*a.Id)
-		resp, err := http.Get(loc)
-		if err != nil {
-			return err
-		}
-		defer resp.Body.Close()
+	if atts == nil {
+		return nil, nil
+	}
 
-		b, err := ioutil.ReadAll(resp.Body)
+	all := make([][]byte, len(atts))
+
+	for i, a := range atts {
+		loc, err := getAttachmentLocation(*a.Id)
 		if err != nil {
-			return err
+			return nil, err
+		}
+		r, err := getAttachment(loc)
+		if err != nil {
+			return nil, err
+		}
+		defer r.Close()
+
+		b, err := ioutil.ReadAll(r)
+		if err != nil {
+			return nil, err
 		}
 
 		l := len(b) - 32
 		if !verifyMAC(a.Key[32:], b[:l], b[l:]) {
-			return errors.New("Invalid MAC on attachment")
+			return nil, errors.New("Invalid MAC on attachment")
 		}
 
-		b, err = decryptAttachment(a.Key[:32], b[:l])
+		b, err = aesDecrypt(a.Key[:32], b[:l])
 		if err != nil {
-			return err
+			return nil, err
 		}
+		all[i] = b
 	}
-	return nil
+	return all, nil
 }
 
-func getMessageBody(b []byte) string {
+// handleMessageBody unmarshals the message and calls the client callbacks
+func handleMessageBody(src string, b []byte) error {
 	b = stripPadding(b)
 	pmc := &textsecure.PushMessageContent{}
 	err := proto.Unmarshal(b, pmc)
 	if err != nil {
-		log.Println("Unmarshal Push Message Content: ", err)
-		return ""
+		return err
 	}
-	err = handleAttachments(pmc)
+	atts, err := handleAttachments(pmc)
 	if err != nil {
-		log.Printf("Error getting attachments: %s\n", err)
+		return err
 	}
 
-	return pmc.GetBody()
+	for _, a := range atts {
+		if client.AttachmentHandler != nil {
+			client.AttachmentHandler(src, a)
+		}
+	}
+	if client.MessageHandler != nil {
+		client.MessageHandler(src, pmc.GetBody())
+	}
+	return nil
 }
 
 // Authenticate and decrypt a received message
-func handleReceivedMessage(msg []byte, f func(string, string)) error {
+func handleReceivedMessage(msg []byte) error {
 	defer func() {
 		if err := recover(); err != nil {
 			log.Printf("PANIC: %s\n", err)
@@ -283,7 +315,8 @@ func handleReceivedMessage(msg []byte, f func(string, string)) error {
 		if err != nil {
 			return err
 		}
-		f(ipms.GetSource(), getMessageBody(b))
+		handleMessageBody(ipms.GetSource(), b)
+
 	case textsecure.IncomingPushMessageSignal_PLAINTEXT:
 		pmc := &textsecure.PushMessageContent{}
 		err = proto.Unmarshal(ipms.GetMessage(), pmc)
@@ -299,7 +332,7 @@ func handleReceivedMessage(msg []byte, f func(string, string)) error {
 		if err != nil {
 			return err
 		}
-		f(ipms.GetSource(), getMessageBody(b))
+		handleMessageBody(ipms.GetSource(), b)
 	default:
 		return fmt.Errorf("Not implemented %d", *ipms.Type)
 	}

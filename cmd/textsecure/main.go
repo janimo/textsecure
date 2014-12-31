@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"strings"
 
 	"github.com/janimo/textsecure"
@@ -52,7 +54,10 @@ var (
 
 // echoMessageHandler simply echoes what is was sent
 func echoMessageHandler(source string, message string) {
-	textsecure.SendMessage(source, message)
+	err := textsecure.SendMessage(source, message)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 // conversationLoop sends messages read from the console
@@ -63,6 +68,7 @@ func conversationLoop() {
 			continue
 		}
 		textsecure.SendMessage(activeSession.to, message)
+
 	}
 }
 
@@ -85,15 +91,18 @@ func conversationMessageHandler(source string, message string) {
 
 func main() {
 	flag.Parse()
+	log.SetFlags(0)
 	client := &textsecure.Client{
-		RootDir:  ".",
-		ReadLine: textsecure.ConsoleReadLine,
+		RootDir:        ".",
+		ReadLine:       textsecure.ConsoleReadLine,
+		MessageHandler: conversationMessageHandler,
 	}
 	textsecure.Setup(client)
 
 	// Enter echo mode
 	if echo {
-		textsecure.ListenForMessages(echoMessageHandler)
+		client.MessageHandler = echoMessageHandler
+		textsecure.ListenForMessages()
 	}
 
 	// If "to" matches a contact name then get its phone number, otherwise assume "to" is a phone number
@@ -114,13 +123,27 @@ func main() {
 		activeSession = &sessions[0]
 		// Send attachment with optional message then exit
 		if attachment != "" {
+<<<<<<< HEAD
 			textsecure.SendAttachment(activeSession.to, message, attachment)
+=======
+			err := textsecure.SendFileAttachment(to, message, attachment)
+			if err != nil {
+				log.Fatal(err)
+			}
+>>>>>>> 60709ab5545f8416364c776edfe491e01a2bbbb0
 			return
 		}
 
 		// Send a message then exit
 		if message != "" {
+<<<<<<< HEAD
 			textsecure.SendMessage(activeSession.to, message)
+=======
+			err := textsecure.SendMessage(to, message)
+			if err != nil {
+				log.Fatal(err)
+			}
+>>>>>>> 60709ab5545f8416364c776edfe491e01a2bbbb0
 			return
 		}
 
@@ -128,6 +151,16 @@ func main() {
 		go conversationLoop()
 	}
 
-	textsecure.ListenForMessages(conversationMessageHandler)
+	client.AttachmentHandler = func(src string, b []byte) {
+		f, err := ioutil.TempFile(".", "TextSecure_Attachment")
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		log.Printf("Saving attachment of length %d from %s to %s", len(b), src, f.Name())
+		f.Write(b)
+
+	}
+	textsecure.ListenForMessages()
 
 }
