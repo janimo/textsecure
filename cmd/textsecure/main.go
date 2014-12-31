@@ -67,8 +67,10 @@ func conversationLoop() {
 		if message == "" {
 			continue
 		}
-		textsecure.SendMessage(activeSession.to, message)
-
+		err := textsecure.SendMessage(activeSession.to, message)
+		if err != nil {
+			log.Println(err)
+		}
 	}
 }
 
@@ -123,27 +125,19 @@ func main() {
 		activeSession = &sessions[0]
 		// Send attachment with optional message then exit
 		if attachment != "" {
-<<<<<<< HEAD
-			textsecure.SendAttachment(activeSession.to, message, attachment)
-=======
-			err := textsecure.SendFileAttachment(to, message, attachment)
+			err := textsecure.SendFileAttachment(activeSession.to, message, attachment)
 			if err != nil {
 				log.Fatal(err)
 			}
->>>>>>> 60709ab5545f8416364c776edfe491e01a2bbbb0
 			return
 		}
 
 		// Send a message then exit
 		if message != "" {
-<<<<<<< HEAD
-			textsecure.SendMessage(activeSession.to, message)
-=======
-			err := textsecure.SendMessage(to, message)
+			err := textsecure.SendMessage(activeSession.to, message)
 			if err != nil {
 				log.Fatal(err)
 			}
->>>>>>> 60709ab5545f8416364c776edfe491e01a2bbbb0
 			return
 		}
 
