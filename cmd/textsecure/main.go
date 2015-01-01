@@ -33,14 +33,6 @@ var (
 	blue  = "\x1b[34m"
 )
 
-// echoMessageHandler simply echoes what is was sent
-func echoMessageHandler(source string, message string) {
-	err := textsecure.SendMessage(source, message)
-	if err != nil {
-		log.Println(err)
-	}
-}
-
 // conversationLoop sends messages read from the console
 func conversationLoop() {
 	for {
@@ -55,8 +47,15 @@ func conversationLoop() {
 	}
 }
 
-// conversationMessageHandler prints messages received
-func conversationMessageHandler(source string, message string) {
+func messageHandler(source string, message string) {
+	if echo {
+		err := textsecure.SendMessage(source, message)
+		if err != nil {
+			log.Println(err)
+		}
+		return
+	}
+
 	fmt.Printf("\r                                               %s%s%s\n>", green, message, blue)
 	// if no peer was specified on the command line, start a conversation with the first one contacting us
 	if to == "" {
@@ -65,19 +64,29 @@ func conversationMessageHandler(source string, message string) {
 	}
 }
 
+func attachmentHandler(src string, b []byte) {
+	f, err := ioutil.TempFile(".", "TextSecure_Attachment")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	log.Printf("Saving attachment of length %d from %s to %s", len(b), src, f.Name())
+	f.Write(b)
+
+}
+
 func main() {
 	flag.Parse()
 	log.SetFlags(0)
 	client := &textsecure.Client{
 		RootDir:        ".",
 		ReadLine:       textsecure.ConsoleReadLine,
-		MessageHandler: conversationMessageHandler,
+		MessageHandler: messageHandler,
 	}
 	textsecure.Setup(client)
 
 	// Enter echo mode
 	if echo {
-		client.MessageHandler = echoMessageHandler
 		textsecure.ListenForMessages()
 	}
 
@@ -112,16 +121,7 @@ func main() {
 		go conversationLoop()
 	}
 
-	client.AttachmentHandler = func(src string, b []byte) {
-		f, err := ioutil.TempFile(".", "TextSecure_Attachment")
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		log.Printf("Saving attachment of length %d from %s to %s", len(b), src, f.Name())
-		f.Write(b)
-
-	}
+	client.AttachmentHandler = attachmentHandler
 	textsecure.ListenForMessages()
 
 }
