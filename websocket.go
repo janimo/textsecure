@@ -4,11 +4,11 @@
 package textsecure
 
 import (
-	"encoding/base64"
 	"log"
 	"net/url"
 	"strings"
 	"time"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/janimo/textsecure/protobuf"
 	"golang.org/x/net/websocket"
@@ -146,12 +146,7 @@ func ListenForMessages() {
 			log.Println("WebSocketMessage unmarshal", err)
 			continue
 		}
-		m, err := base64.StdEncoding.DecodeString(string(wsm.GetRequest().GetBody()))
-		if err != nil {
-			log.Println("WebSocketMessageRequest decode", err)
-			continue
-		}
-		//m := wsm.GetRequest().GetBody()
+		m := wsm.GetRequest().GetBody()
 		err = handleReceivedMessage(m)
 		if err != nil {
 			log.Println(err)
