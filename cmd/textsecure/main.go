@@ -47,24 +47,31 @@ func conversationLoop() {
 	}
 }
 
-func messageHandler(source string, message string) {
+func messageHandler(msg *textsecure.Message) {
 	if echo {
-		err := textsecure.SendMessage(source, message)
+		err := textsecure.SendMessage(msg.Source(), msg.Message())
 		if err != nil {
 			log.Println(err)
 		}
 		return
 	}
 
-	fmt.Printf("\r                                               %s%s%s\n>", green, message, blue)
+	if msg.Message() != "" {
+		fmt.Printf("\r                                               %s%s%s\n>", green, msg.Message(), blue)
+	}
+
+	for _, a := range msg.Attachments() {
+		handleAttachment(msg.Source(), a)
+	}
+
 	// if no peer was specified on the command line, start a conversation with the first one contacting us
 	if to == "" {
-		to = source
+		to = msg.Source()
 		go conversationLoop()
 	}
 }
 
-func attachmentHandler(src string, b []byte) {
+func handleAttachment(src string, b []byte) {
 	f, err := ioutil.TempFile(".", "TextSecure_Attachment")
 	if err != nil {
 		log.Println(err)
@@ -121,7 +128,6 @@ func main() {
 		go conversationLoop()
 	}
 
-	client.AttachmentHandler = attachmentHandler
 	textsecure.ListenForMessages()
 
 }

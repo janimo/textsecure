@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"runtime/debug"
 	"strings"
+
 	"github.com/golang/protobuf/proto"
 
 	"github.com/janimo/textsecure/axolotl"
@@ -118,13 +119,37 @@ func SendFileAttachment(tel, msg string, path string) error {
 	return nil
 }
 
+// Message represents a message received from the peer
+// it can optionally include attachments and be sent to a group
+type Message struct {
+	source      string
+	message     string
+	attachments [][]byte
+	group       string
+}
+
+func (m *Message) Source() string {
+	return m.source
+}
+
+func (m *Message) Message() string {
+	return m.message
+}
+
+func (m *Message) Attachments() [][]byte {
+	return m.attachments
+}
+
+func (m *Message) Group() string {
+	return m.group
+}
+
 type Client struct {
-	RootDir           string
-	ReadLine          func(string) string
-	GetConfig         func() *Config
-	GetLocalContacts  func() ([]Contact, error)
-	MessageHandler    func(string, string)
-	AttachmentHandler func(string, []byte)
+	RootDir          string
+	ReadLine         func(string) string
+	GetConfig        func() *Config
+	GetLocalContacts func() ([]Contact, error)
+	MessageHandler   func(*Message)
 }
 
 var client *Client
@@ -252,13 +277,14 @@ func handleMessageBody(src string, b []byte) error {
 		return err
 	}
 
-	for _, a := range atts {
-		if client.AttachmentHandler != nil {
-			client.AttachmentHandler(src, a)
-		}
+	msg := &Message{
+		source:      src,
+		message:     pmc.GetBody(),
+		attachments: atts,
 	}
+
 	if client.MessageHandler != nil {
-		client.MessageHandler(src, pmc.GetBody())
+		client.MessageHandler(msg)
 	}
 	return nil
 }
