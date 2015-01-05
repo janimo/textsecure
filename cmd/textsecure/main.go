@@ -29,6 +29,7 @@ func init() {
 }
 
 var (
+	red   = "\x1b[31m"
 	green = "\x1b[32m"
 	blue  = "\x1b[34m"
 )
@@ -57,7 +58,7 @@ func messageHandler(msg *textsecure.Message) {
 	}
 
 	if msg.Message() != "" {
-		fmt.Printf("\r                                               %s%s%s\n>", green, msg.Message(), blue)
+		fmt.Printf("\r                                               %s%s : %s%s%s\n>", red, getName(msg.Source()), green, msg.Message(), blue)
 	}
 
 	for _, a := range msg.Attachments() {
@@ -82,6 +83,17 @@ func handleAttachment(src string, b []byte) {
 
 }
 
+// getName returns the local contact name corresponding to a phone number,
+// or failing to find a contact the phone number itself
+func getName(tel string) string {
+	if n, ok := telToName[tel]; ok {
+		return n
+	}
+	return tel
+}
+
+var telToName map[string]string
+
 func main() {
 	flag.Parse()
 	log.SetFlags(0)
@@ -97,6 +109,12 @@ func main() {
 		if err != nil {
 			log.Printf("Could not get contacts: %s\n", err)
 		}
+
+		telToName = make(map[string]string)
+		for _, c := range contacts {
+			telToName[c.Tel] = c.Name
+		}
+
 		// If "to" matches a contact name then get its phone number, otherwise assume "to" is a phone number
 		for _, c := range contacts {
 			if strings.EqualFold(c.Name, to) {
