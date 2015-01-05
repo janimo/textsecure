@@ -110,6 +110,7 @@ func generateSignedPreKey() *axolotl.SignedPreKeyRecord {
 }
 
 func generatePreKeyState() {
+	loadPreKeys()
 	preKeys = &PreKeyState{}
 	npkr := len(preKeyRecords)
 	preKeys.PreKeys = make([]*PreKeyEntity, npkr-1)

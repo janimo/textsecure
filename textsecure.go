@@ -189,8 +189,6 @@ func Setup(c *Client) {
 		identityKey = axolotl.GenerateIdentityKeyPair()
 		textSecureStore.SetIdentityKeyPair(identityKey)
 
-		generatePreKeys()
-		loadPreKeys()
 		setupTransporter()
 		err := registerDevice()
 		if err != nil {
@@ -201,12 +199,10 @@ func Setup(c *Client) {
 	registrationInfo.password = textSecureStore.loadHTTPPassword()
 	registrationInfo.signalingKey = textSecureStore.loadHTTPSignalingKey()
 	setupTransporter()
-	loadPreKeys()
 	identityKey = textSecureStore.GetIdentityKeyPair()
 }
 
 func registerDevice() error {
-	generatePreKeyState()
 	vt := config.VerificationType
 	if vt == "" {
 		vt = "sms"
@@ -223,6 +219,8 @@ func registerDevice() error {
 	if err != nil {
 		return err
 	}
+	generatePreKeys()
+	generatePreKeyState()
 	err = registerPreKeys2()
 	if err != nil {
 		return err
