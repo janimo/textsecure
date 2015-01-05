@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"strings"
+    "errors"
 
 	"github.com/janimo/textsecure"
 )
@@ -20,6 +21,8 @@ var (
 	message    string
 	attachment string
 )
+
+var(contacts []textsecure.Contact)
 
 func init() {
 	flag.BoolVar(&echo, "echo", false, "Act as an echo service")
@@ -48,9 +51,12 @@ func conversationLoop() {
 }
 
 func getContactName(sourceTel string) string{
-    contacts, err := textsecure.GetRegisteredContacts()
-    if err != nil {
-        log.Printf("Could not get contacts: %s\n", err)
+    if len(contacts) == 0 {
+        err := errors.New("")
+        contacts, err = textsecure.GetRegisteredContacts()
+        if err != nil {
+            log.Printf("Could not get contacts: %s\n", err)
+        }
     }
     for _, c := range contacts {
         if strings.EqualFold(c.Tel, sourceTel) {
@@ -106,7 +112,8 @@ func main() {
 	textsecure.Setup(client)
 
 	if !echo {
-		contacts, err := textsecure.GetRegisteredContacts()
+        err := errors.New("")
+		contacts, err = textsecure.GetRegisteredContacts()
 		if err != nil {
 			log.Printf("Could not get contacts: %s\n", err)
 		}
