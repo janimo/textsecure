@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"strings"
+    "errors"
 
 	"github.com/janimo/textsecure"
 )
@@ -20,6 +21,8 @@ var (
 	message    string
 	attachment string
 )
+
+var(contacts []textsecure.Contact)
 
 func init() {
 	flag.BoolVar(&echo, "echo", false, "Act as an echo service")
@@ -47,6 +50,22 @@ func conversationLoop() {
 	}
 }
 
+func getContactName(sourceTel string) string{
+    if len(contacts) == 0 {
+        err := errors.New("")
+        contacts, err = textsecure.GetRegisteredContacts()
+        if err != nil {
+            log.Printf("Could not get contacts: %s\n", err)
+        }
+    }
+    for _, c := range contacts {
+        if strings.EqualFold(c.Tel, sourceTel) {
+			return c.Name
+		}
+    }
+    return sourceTel
+}
+
 func messageHandler(msg *textsecure.Message) {
 	if echo {
 		err := textsecure.SendMessage(msg.Source(), msg.Message())
@@ -57,7 +76,7 @@ func messageHandler(msg *textsecure.Message) {
 	}
 
 	if msg.Message() != "" {
-		fmt.Printf("\r                                               %s%s%s\n>", green, msg.Message(), blue)
+        fmt.Printf("\r                                              %s: %s%s%s\n>", getContactName(msg.Source()),green, msg.Message(), blue)
 	}
 
 	for _, a := range msg.Attachments() {
@@ -93,7 +112,8 @@ func main() {
 	textsecure.Setup(client)
 
 	if !echo {
-		contacts, err := textsecure.GetRegisteredContacts()
+        err := errors.New("")
+		contacts, err = textsecure.GetRegisteredContacts()
 		if err != nil {
 			log.Printf("Could not get contacts: %s\n", err)
 		}
