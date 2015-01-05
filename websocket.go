@@ -78,18 +78,10 @@ func (wsc *WSConn) sendRequest(verb, path string, body []byte, id *uint64) {
 	wsc.send(b)
 }
 
-type wsAck struct {
-	Id   uint64 `json:"id"`
-	Type int    `json:"type"`
-}
-
 func (wsc *WSConn) keepAlive() {
 	for {
-		//		wsc.sendRequest("GET", "/v1/keepalive", nil, nil)
-		pingMsg := wsAck{Id: 0, Type: 1}
-		websocket.JSON.Send(wsc.conn, pingMsg)
-
-		time.Sleep(time.Second * 5)
+		wsc.sendRequest("GET", "/v1/keepalive", nil, nil)
+		time.Sleep(time.Second * 15)
 	}
 }
 
