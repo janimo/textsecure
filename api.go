@@ -28,21 +28,21 @@ var registrationInfo RegistrationInfo
 
 // Registration
 
-func requestCode(tel, transport string) string {
+func requestCode(tel, transport string) (string, error) {
 	resp, err := transporter.Get(fmt.Sprintf("/v1/accounts/%s/code/%s", transport, tel))
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 	// unofficial dev transport, useful for development, with no telephony account needed on the server
 	if transport == "dev" {
 		code := make([]byte, 7)
 		_, err = resp.Body.Read(code)
 		if err != nil {
-			log.Fatal(err)
+			return "", err
 		}
-		return string(code[:3]) + string(code[4:])
+		return string(code[:3]) + string(code[4:]), nil
 	}
-	return ""
+	return "", nil
 }
 
 type verificationData struct {
@@ -52,7 +52,7 @@ type verificationData struct {
 	FetchesMessages bool   `json:"fetchesMessages"`
 }
 
-func verifyCode(code string) {
+func verifyCode(code string) error {
 	vd := verificationData{
 		SignalingKey:    base64.StdEncoding.EncodeToString(registrationInfo.signalingKey),
 		SupportsSms:     false,
@@ -61,22 +61,33 @@ func verifyCode(code string) {
 	}
 	body, err := json.Marshal(vd)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-	transporter.PutJSON("/v1/accounts/code/"+code, body)
+	resp, err := transporter.PutJSON("/v1/accounts/code/"+code, body)
+	if err != nil {
+		return err
+	}
+	if resp.isError() {
+		return resp
+	}
+	return nil
 }
 
 // PUT /v2/keys/
-func registerPreKeys2() {
+func registerPreKeys2() error {
 	body, err := json.MarshalIndent(preKeys, "", "")
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	_, err = transporter.PutJSON("/v2/keys/", body)
+	resp, err := transporter.PutJSON("/v2/keys/", body)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+	if resp.isError() {
+		return resp
+	}
+	return nil
 }
 
 // GET /v2/keys/{number}/{device_id}?relay={relay}
@@ -103,11 +114,11 @@ type JSONContact struct {
 
 // GetRegisteredContacts returns the subset of the local contacts
 // that are also registered with the server
-func GetRegisteredContacts() []Contact {
+func GetRegisteredContacts() ([]Contact, error) {
 	lc, err := loadLocalContacts()
 	if err != nil {
-		log.Printf("Coult not get local contacts :%s\n", err)
-		return nil
+		log.Printf("Could not get local contacts :%s\n", err)
+		return nil, err
 	}
 	tokens := make([]string, len(lc))
 	m := make(map[string]Contact)
@@ -121,11 +132,14 @@ func GetRegisteredContacts() []Contact {
 	contacts["contacts"] = tokens
 	body, err := json.MarshalIndent(contacts, "", "    ")
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	resp, err := transporter.PutJSON("/v1/directory/tokens/", body)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
+	}
+	if resp.isError() {
+		return nil, resp
 	}
 	dec := json.NewDecoder(resp.Body)
 	var jc map[string][]JSONContact
@@ -135,7 +149,7 @@ func GetRegisteredContacts() []Contact {
 	for i, c := range jc["contacts"] {
 		lc[i] = m[c.Token]
 	}
-	return lc
+	return lc, nil
 }
 
 // Attachment handling
@@ -182,7 +196,7 @@ type JSONMessage struct {
 	Relay              string `json:"relay,omitempty"`
 }
 
-func canMessage(msg string, a *att) []byte {
+func createMessage(msg string, a *att) ([]byte, error) {
 	pmc := &textsecure.PushMessageContent{}
 	if msg != "" {
 		pmc.Body = &msg
@@ -198,9 +212,9 @@ func canMessage(msg string, a *att) []byte {
 	}
 	b, err := proto.Marshal(pmc)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	return b
+	return padMessage(b), nil
 }
 
 func padMessage(msg []byte) []byte {
@@ -253,8 +267,10 @@ type att struct {
 
 func buildMessage(tel string, msg string, a *att) ([]JSONMessage, error) {
 	devid := uint32(1) //FIXME: support multiple destination devices
-	cannedMsg := canMessage(msg, a)
-	paddedMessage := padMessage(cannedMsg)
+	paddedMessage, err := createMessage(msg, a)
+	if err != nil {
+		return nil, err
+	}
 	recid := recId(tel)
 	if !textSecureStore.ContainsSession(recid, devid) {
 		pkb, err := makePreKeyBundle(tel)
@@ -302,6 +318,9 @@ func sendMessage(tel, msg string) error {
 		textSecureStore.DeleteSession(recId(tel), uint32(1))
 		return errors.New("The remote device is gone (probably reinstalled)")
 	}
+	if resp.isError() {
+		return resp
+	}
 	return nil
 }
 
@@ -317,6 +336,12 @@ func sendAttachment(tel string, msg string, a *att) error {
 	if err != nil {
 		return err
 	}
-	transporter.PutJSON("/v1/messages/"+tel, body)
+	resp, err := transporter.PutJSON("/v1/messages/"+tel, body)
+	if err != nil {
+		return err
+	}
+	if resp.isError() {
+		return resp
+	}
 	return nil
 }

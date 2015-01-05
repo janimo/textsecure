@@ -6,6 +6,7 @@ package textsecure
 import (
 	"bytes"
 	"crypto/tls"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -23,7 +24,11 @@ type Response struct {
 }
 
 func (r *Response) isError() bool {
-	return r.Status != 200 && r.Status != 204
+	return r.Status < 200 || r.Status >= 300
+}
+
+func (r *Response) Error() string {
+	return fmt.Sprintf("Status code %d\n", r.Status)
 }
 
 type Transporter interface {

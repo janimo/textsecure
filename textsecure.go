@@ -192,7 +192,10 @@ func Setup(c *Client) {
 		generatePreKeys()
 		loadPreKeys()
 		setupTransporter()
-		registerDevice()
+		err := registerDevice()
+		if err != nil {
+			log.Fatalf("Coult not register device: %s\n", err)
+		}
 	}
 	registrationInfo.registrationId = textSecureStore.GetLocalRegistrationId()
 	registrationInfo.password = textSecureStore.loadHTTPPassword()
@@ -202,20 +205,30 @@ func Setup(c *Client) {
 	identityKey = textSecureStore.GetIdentityKeyPair()
 }
 
-func registerDevice() {
+func registerDevice() error {
 	generatePreKeyState()
 	vt := config.VerificationType
 	if vt == "" {
 		vt = "sms"
 	}
-	code := requestCode(config.Tel, vt)
+	code, err := requestCode(config.Tel, vt)
+	if err != nil {
+		return err
+	}
 	if code == "" {
 		code = readLine("Enter verification number (without the '-')>")
 	}
 	code = strings.Replace(code, "-", "", -1)
-	verifyCode(code)
-	registerPreKeys2()
+	err = verifyCode(code)
+	if err != nil {
+		return err
+	}
+	err = registerPreKeys2()
+	if err != nil {
+		return err
+	}
 	log.Println("Registration done")
+	return nil
 }
 
 func handleReceipt(ipms *textsecure.IncomingPushMessageSignal) {

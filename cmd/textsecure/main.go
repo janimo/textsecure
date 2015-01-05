@@ -93,7 +93,10 @@ func main() {
 	textsecure.Setup(client)
 
 	if !echo {
-		contacts := textsecure.GetRegisteredContacts()
+		contacts, err := textsecure.GetRegisteredContacts()
+		if err != nil {
+			log.Printf("Could not get contacts: %s\n", err)
+		}
 		// If "to" matches a contact name then get its phone number, otherwise assume "to" is a phone number
 		for _, c := range contacts {
 			if strings.EqualFold(c.Name, to) {
@@ -126,6 +129,8 @@ func main() {
 		}
 	}
 
-	textsecure.ListenForMessages()
-
+	err := textsecure.ListenForMessages()
+	if err != nil {
+		log.Println(err)
+	}
 }
