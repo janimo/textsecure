@@ -92,40 +92,38 @@ func main() {
 	}
 	textsecure.Setup(client)
 
-	// Enter echo mode
-	if echo {
-		textsecure.ListenForMessages()
-	}
-
-	// If "to" matches a contact name then get its phone number, otherwise assume "to" is a phone number
-	for _, c := range textsecure.GetRegisteredContacts() {
-		if strings.EqualFold(c.Name, to) {
-			to = c.Tel
-			break
-		}
-	}
-
-	if to != "" {
-		// Send attachment with optional message then exit
-		if attachment != "" {
-			err := textsecure.SendFileAttachment(to, message, attachment)
-			if err != nil {
-				log.Fatal(err)
+	if !echo {
+		contacts := textsecure.GetRegisteredContacts()
+		// If "to" matches a contact name then get its phone number, otherwise assume "to" is a phone number
+		for _, c := range contacts {
+			if strings.EqualFold(c.Name, to) {
+				to = c.Tel
+				break
 			}
-			return
 		}
 
-		// Send a message then exit
-		if message != "" {
-			err := textsecure.SendMessage(to, message)
-			if err != nil {
-				log.Fatal(err)
+		if to != "" {
+			// Send attachment with optional message then exit
+			if attachment != "" {
+				err := textsecure.SendFileAttachment(to, message, attachment)
+				if err != nil {
+					log.Fatal(err)
+				}
+				return
 			}
-			return
-		}
 
-		// Enter conversation mode
-		go conversationLoop()
+			// Send a message then exit
+			if message != "" {
+				err := textsecure.SendMessage(to, message)
+				if err != nil {
+					log.Fatal(err)
+				}
+				return
+			}
+
+			// Enter conversation mode
+			go conversationLoop()
+		}
 	}
 
 	textsecure.ListenForMessages()
