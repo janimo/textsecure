@@ -12,52 +12,52 @@ import (
 	"github.com/janimo/textsecure/curve25519sign"
 )
 
-type PreKeyEntity struct {
-	Id        uint32 `json:"keyId"`
+type preKeyEntity struct {
+	ID        uint32 `json:"keyId"`
 	PublicKey string `json:"publicKey"`
 }
 
-type SignedPreKeyEntity struct {
-	Id        uint32 `json:"keyId"`
+type signedPreKeyEntity struct {
+	ID        uint32 `json:"keyId"`
 	PublicKey string `json:"publicKey"`
 	Signature string `json:"signature"`
 }
 
-type PreKeyState struct {
+type preKeyState struct {
 	IdentityKey   string              `json:"identityKey"`
-	PreKeys       []*PreKeyEntity     `json:"preKeys"`
-	LastResortKey *PreKeyEntity       `json:"lastResortKey"`
-	SignedPreKey  *SignedPreKeyEntity `json:"signedPreKey"`
+	PreKeys       []*preKeyEntity     `json:"preKeys"`
+	LastResortKey *preKeyEntity       `json:"lastResortKey"`
+	SignedPreKey  *signedPreKeyEntity `json:"signedPreKey"`
 }
 
-type PreKeyResponseItem struct {
+type preKeyResponseItem struct {
 	DeviceID       uint32              `json:"deviceId"`
-	RegistrationId uint32              `json:"registrationId"`
-	SignedPreKey   *SignedPreKeyEntity `json:"signedPreKey"`
-	PreKey         *PreKeyEntity       `json:"preKey"`
+	RegistrationID uint32              `json:"registrationId"`
+	SignedPreKey   *signedPreKeyEntity `json:"signedPreKey"`
+	PreKey         *preKeyEntity       `json:"preKey"`
 }
 
-type PreKeyResponse struct {
+type preKeyResponse struct {
 	IdentityKey string               `json:"identityKey"`
-	Devices     []PreKeyResponseItem `json:"devices"`
+	Devices     []preKeyResponseItem `json:"devices"`
 }
 
-var preKeys *PreKeyState
+var preKeys *preKeyState
 
-func randId() uint32 {
+func randID() uint32 {
 	return randUint32() & 0xffffff
 }
 
-func generatePreKeyEntity(record *axolotl.PreKeyRecord) *PreKeyEntity {
-	entity := &PreKeyEntity{}
-	entity.Id = *record.Pkrs.Id
+func generatepreKeyEntity(record *axolotl.PreKeyRecord) *preKeyEntity {
+	entity := &preKeyEntity{}
+	entity.ID = *record.Pkrs.Id
 	entity.PublicKey = base64EncWithoutPadding(append([]byte{5}, record.Pkrs.PublicKey[:]...))
 	return entity
 }
 
-func generateSignedPreKeyEntity(record *axolotl.SignedPreKeyRecord) *SignedPreKeyEntity {
-	entity := &SignedPreKeyEntity{}
-	entity.Id = *record.Spkrs.Id
+func generateSignedPreKeyEntity(record *axolotl.SignedPreKeyRecord) *signedPreKeyEntity {
+	entity := &signedPreKeyEntity{}
+	entity.ID = *record.Spkrs.Id
 	entity.PublicKey = base64EncWithoutPadding(append([]byte{5}, record.Spkrs.PublicKey[:]...))
 	entity.Signature = base64EncWithoutPadding(record.Spkrs.Signature)
 	return entity
@@ -74,32 +74,32 @@ func generatePreKey(id uint32) *axolotl.PreKeyRecord {
 
 var signedKey *axolotl.SignedPreKeyRecord
 
-var lastResortPreKeyId uint32 = 0xFFFFFF
+var lastResortPreKeyID uint32 = 0xFFFFFF
 
 var preKeyBatchSize = 100
 
-func getNextPreKeyId() uint32 {
-	return randId()
+func getNextPreKeyID() uint32 {
+	return randID()
 }
 
 func generatePreKeys() {
 	os.MkdirAll(textSecureStore.preKeysDir, 0700)
 
-	startId := getNextPreKeyId()
+	startID := getNextPreKeyID()
 	for i := 0; i < preKeyBatchSize; i++ {
-		generatePreKey(startId + uint32(i))
+		generatePreKey(startID + uint32(i))
 	}
-	generatePreKey(lastResortPreKeyId)
+	generatePreKey(lastResortPreKeyID)
 	signedKey = generateSignedPreKey()
 }
 
-func getNextSignedPreKeyId() uint32 {
-	return randId()
+func getNextSignedPreKeyID() uint32 {
+	return randID()
 }
 
 func generateSignedPreKey() *axolotl.SignedPreKeyRecord {
 	kp := axolotl.NewECKeyPair()
-	id := getNextSignedPreKeyId()
+	id := getNextSignedPreKeyID()
 	var random [64]byte
 	randBytes(random[:])
 	priv := identityKey.PrivateKey.Key()
@@ -111,13 +111,13 @@ func generateSignedPreKey() *axolotl.SignedPreKeyRecord {
 
 func generatePreKeyState() {
 	loadPreKeys()
-	preKeys = &PreKeyState{}
+	preKeys = &preKeyState{}
 	npkr := len(preKeyRecords)
-	preKeys.PreKeys = make([]*PreKeyEntity, npkr-1)
-	for i, _ := range preKeys.PreKeys {
-		preKeys.PreKeys[i] = generatePreKeyEntity(preKeyRecords[i])
+	preKeys.PreKeys = make([]*preKeyEntity, npkr-1)
+	for i := range preKeys.PreKeys {
+		preKeys.PreKeys[i] = generatepreKeyEntity(preKeyRecords[i])
 	}
-	preKeys.LastResortKey = generatePreKeyEntity(preKeyRecords[npkr-1])
+	preKeys.LastResortKey = generatepreKeyEntity(preKeyRecords[npkr-1])
 	preKeys.IdentityKey = base64EncWithoutPadding(identityKey.PublicKey.Serialize())
 	preKeys.SignedPreKey = generateSignedPreKeyEntity(signedKey)
 
@@ -130,7 +130,7 @@ func loadPreKeys() {
 		if !fi.IsDir() {
 			preKeyRecords = append(preKeyRecords, &axolotl.PreKeyRecord{}) //FIXME
 			_, fname := filepath.Split(path)
-			id := filenameToId(fname)
+			id := filenameToID(fname)
 			preKeyRecords[count], _ = textSecureStore.LoadPreKey(uint32(id))
 			count++
 		}

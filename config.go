@@ -9,6 +9,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// Config holds application configuration settings
 type Config struct {
 	Tel              string `yaml:"tel"`
 	Server           string `yaml:"server"`

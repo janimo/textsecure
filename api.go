@@ -15,12 +15,12 @@ import (
 	"github.com/janimo/textsecure/protobuf"
 )
 
-// Registration holds the data required to be identified by and
+// RegistrationInfo holds the data required to be identified by and
 // to communicate with the push server.
 // The data is generated once at install time and stored locally.
 type RegistrationInfo struct {
 	password       string
-	registrationId uint32
+	registrationID uint32
 	signalingKey   []byte
 }
 
@@ -28,13 +28,13 @@ var registrationInfo RegistrationInfo
 
 // Registration
 
-func requestCode(tel, transport string) (string, error) {
-	resp, err := transporter.Get(fmt.Sprintf("/v1/accounts/%s/code/%s", transport, tel))
+func requestCode(tel, method string) (string, error) {
+	resp, err := transport.get(fmt.Sprintf("/v1/accounts/%s/code/%s", method, tel))
 	if err != nil {
 		return "", err
 	}
-	// unofficial dev transport, useful for development, with no telephony account needed on the server
-	if transport == "dev" {
+	// unofficial dev method, useful for development, with no telephony account needed on the server
+	if method == "dev" {
 		code := make([]byte, 7)
 		_, err = resp.Body.Read(code)
 		if err != nil {
@@ -47,7 +47,7 @@ func requestCode(tel, transport string) (string, error) {
 
 type verificationData struct {
 	SignalingKey    string `json:"signalingKey"`
-	RegistrationId  uint32 `json:"registrationId"`
+	RegistrationID  uint32 `json:"registrationId"`
 	SupportsSms     bool   `json:"supportSms"`
 	FetchesMessages bool   `json:"fetchesMessages"`
 }
@@ -57,13 +57,13 @@ func verifyCode(code string) error {
 		SignalingKey:    base64.StdEncoding.EncodeToString(registrationInfo.signalingKey),
 		SupportsSms:     false,
 		FetchesMessages: true,
-		RegistrationId:  registrationInfo.registrationId,
+		RegistrationID:  registrationInfo.registrationID,
 	}
 	body, err := json.Marshal(vd)
 	if err != nil {
 		return err
 	}
-	resp, err := transporter.PutJSON("/v1/accounts/code/"+code, body)
+	resp, err := transport.putJSON("/v1/accounts/code/"+code, body)
 	if err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func registerPreKeys2() error {
 		return err
 	}
 
-	resp, err := transporter.PutJSON("/v2/keys/", body)
+	resp, err := transport.putJSON("/v2/keys/", body)
 	if err != nil {
 		return err
 	}
@@ -91,8 +91,8 @@ func registerPreKeys2() error {
 }
 
 // GET /v2/keys/{number}/{device_id}?relay={relay}
-func getPreKeys(tel string) (*PreKeyResponse, error) {
-	resp, err := transporter.Get(fmt.Sprintf("/v2/keys/%s/*", tel))
+func getPreKeys(tel string) (*preKeyResponse, error) {
+	resp, err := transport.get(fmt.Sprintf("/v2/keys/%s/*", tel))
 	if err != nil {
 		return nil, err
 	}
@@ -100,13 +100,13 @@ func getPreKeys(tel string) (*PreKeyResponse, error) {
 		return nil, fmt.Errorf("HTTP error %d\n", resp.Status)
 	}
 	dec := json.NewDecoder(resp.Body)
-	k := &PreKeyResponse{}
+	k := &preKeyResponse{}
 	dec.Decode(k)
 	return k, nil
 }
 
-// JSONContact is the data returned by the server for each registered contact
-type JSONContact struct {
+// jsonContact is the data returned by the server for each registered contact
+type jsonContact struct {
 	Token       string `json:"token"`
 	Relay       string `json:"relay"`
 	SupportsSms bool   `json:"supportsSms"`
@@ -134,7 +134,7 @@ func GetRegisteredContacts() ([]Contact, error) {
 	if err != nil {
 		return nil, err
 	}
-	resp, err := transporter.PutJSON("/v1/directory/tokens/", body)
+	resp, err := transport.putJSON("/v1/directory/tokens/", body)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +142,7 @@ func GetRegisteredContacts() ([]Contact, error) {
 		return nil, resp
 	}
 	dec := json.NewDecoder(resp.Body)
-	var jc map[string][]JSONContact
+	var jc map[string][]jsonContact
 	dec.Decode(&jc)
 
 	lc = make([]Contact, len(jc["contacts"]))
@@ -154,44 +154,44 @@ func GetRegisteredContacts() ([]Contact, error) {
 
 // Attachment handling
 
-type JSONAllocation struct {
-	Id       uint64 `json:"id"`
+type jsonAllocation struct {
+	ID       uint64 `json:"id"`
 	Location string `json:"location"`
 }
 
 func confirmReceipt(source string, timestamp uint64) {
-	transporter.PutJSON(fmt.Sprintf("/v1/receipt/%s/%d", source, timestamp), nil)
+	transport.putJSON(fmt.Sprintf("/v1/receipt/%s/%d", source, timestamp), nil)
 }
 
 // GET /v1/attachments/
 func allocateAttachment() (uint64, string, error) {
-	resp, err := transporter.Get("/v1/attachments")
+	resp, err := transport.get("/v1/attachments")
 	if err != nil {
 		return 0, "", err
 	}
 	dec := json.NewDecoder(resp.Body)
-	var a JSONAllocation
+	var a jsonAllocation
 	dec.Decode(&a)
-	return a.Id, a.Location, nil
+	return a.ID, a.Location, nil
 }
 
 func getAttachmentLocation(id uint64) (string, error) {
-	resp, err := transporter.Get(fmt.Sprintf("/v1/attachments/%d", id))
+	resp, err := transport.get(fmt.Sprintf("/v1/attachments/%d", id))
 	if err != nil {
 		return "", err
 	}
 	dec := json.NewDecoder(resp.Body)
-	var a JSONAllocation
+	var a jsonAllocation
 	dec.Decode(&a)
 	return a.Location, nil
 }
 
 // Messages
 
-type JSONMessage struct {
+type jsonMessage struct {
 	Type               int32  `json:"type"`
-	DestDeviceId       uint32 `json:"destinationDeviceId"`
-	DestRegistrationId uint32 `json:"destinationRegistrationId"`
+	DestDeviceID       uint32 `json:"destinationDeviceId"`
+	DestRegistrationID uint32 `json:"destinationRegistrationId"`
 	Body               string `json:"body"`
 	Relay              string `json:"relay,omitempty"`
 }
@@ -246,9 +246,9 @@ func makePreKeyBundle(tel string) (*axolotl.PreKeyBundle, error) {
 	pkbs := make([]*axolotl.PreKeyBundle, ndev)
 
 	for i, d := range pkr.Devices {
-		pkbs[i], err = axolotl.NewPreKeyBundle(d.RegistrationId, d.DeviceID,
-			d.PreKey.Id, axolotl.NewECPublicKey(decodeKey(d.PreKey.PublicKey)),
-			int32(d.SignedPreKey.Id), axolotl.NewECPublicKey(decodeKey(d.SignedPreKey.PublicKey)),
+		pkbs[i], err = axolotl.NewPreKeyBundle(d.RegistrationID, d.DeviceID,
+			d.PreKey.ID, axolotl.NewECPublicKey(decodeKey(d.PreKey.PublicKey)),
+			int32(d.SignedPreKey.ID), axolotl.NewECPublicKey(decodeKey(d.SignedPreKey.PublicKey)),
 			decodeSignature(d.SignedPreKey.Signature),
 			axolotl.NewIdentityKey(decodeKey(pkr.IdentityKey)))
 		if err != nil {
@@ -265,19 +265,19 @@ type att struct {
 	keys []byte
 }
 
-func buildMessage(tel string, msg string, a *att) ([]JSONMessage, error) {
+func buildMessage(tel string, msg string, a *att) ([]jsonMessage, error) {
 	devid := uint32(1) //FIXME: support multiple destination devices
 	paddedMessage, err := createMessage(msg, a)
 	if err != nil {
 		return nil, err
 	}
-	recid := recId(tel)
+	recid := recID(tel)
 	if !textSecureStore.ContainsSession(recid, devid) {
 		pkb, err := makePreKeyBundle(tel)
 		if err != nil {
 			return nil, err
 		}
-		sb := axolotl.NewSessionBuilder(textSecureStore, textSecureStore, textSecureStore, textSecureStore, recid, pkb.DeviceId)
+		sb := axolotl.NewSessionBuilder(textSecureStore, textSecureStore, textSecureStore, textSecureStore, recid, pkb.DeviceID)
 		err = sb.BuildSenderSession(pkb)
 		if err != nil {
 			return nil, err
@@ -289,10 +289,10 @@ func buildMessage(tel string, msg string, a *att) ([]JSONMessage, error) {
 		return nil, err
 	}
 
-	messages := []JSONMessage{{
+	messages := []jsonMessage{{
 		Type:               messageType,
-		DestDeviceId:       devid,
-		DestRegistrationId: sc.GetRemoteRegistrationId(),
+		DestDeviceID:       devid,
+		DestRegistrationID: sc.GetRemoteRegistrationID(),
 		Body:               base64.StdEncoding.EncodeToString(encryptedMessage),
 	}}
 	return messages, nil
@@ -310,12 +310,12 @@ func sendMessage(tel, msg string) error {
 	if err != nil {
 		return err
 	}
-	resp, err := transporter.PutJSON("/v1/messages/"+tel, body)
+	resp, err := transport.putJSON("/v1/messages/"+tel, body)
 	if err != nil {
 		return err
 	}
 	if resp.Status == 410 {
-		textSecureStore.DeleteSession(recId(tel), uint32(1))
+		textSecureStore.DeleteSession(recID(tel), uint32(1))
 		return errors.New("The remote device is gone (probably reinstalled)")
 	}
 	if resp.isError() {
@@ -336,7 +336,7 @@ func sendAttachment(tel string, msg string, a *att) error {
 	if err != nil {
 		return err
 	}
-	resp, err := transporter.PutJSON("/v1/messages/"+tel, body)
+	resp, err := transport.putJSON("/v1/messages/"+tel, body)
 	if err != nil {
 		return err
 	}

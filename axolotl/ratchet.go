@@ -55,7 +55,7 @@ func NewRootKey(key []byte) *RootKey {
 
 func (r *RootKey) CreateChain(theirRatchetKey *ECPublicKey, ourRatchetKey *ECKeyPair) (*DerivedKeys, error) {
 	var keyMaterial [32]byte
-	CalculateAgreement(&keyMaterial, theirRatchetKey.Key(), ourRatchetKey.PrivateKey.Key())
+	calculateAgreement(&keyMaterial, theirRatchetKey.Key(), ourRatchetKey.PrivateKey.Key())
 	b, err := DeriveSecrets(keyMaterial[:], r.Key[:], []byte("WhisperRatchet"), 64)
 	if err != nil {
 		return nil, err
@@ -96,8 +96,8 @@ func NewMessageKeys(cipherKey, macKey, iv []byte, index uint32) *MessageKeys {
 }
 
 var (
-	MESSAGE_KEY_SEED = []byte{1}
-	CHAIN_KEY_SEED   = []byte{2}
+	messageKeySeed = []byte{1}
+	chainKeySeed   = []byte{2}
 )
 
 func (c *ChainKey) getBaseMaterial(seed []byte) []byte {
@@ -106,15 +106,15 @@ func (c *ChainKey) getBaseMaterial(seed []byte) []byte {
 	return m.Sum(nil)
 }
 
-func (c *ChainKey) GetNextChainKey() *ChainKey {
-	b := c.getBaseMaterial(CHAIN_KEY_SEED)
+func (c *ChainKey) getNextChainKey() *ChainKey {
+	b := c.getBaseMaterial(chainKeySeed)
 	ck := &ChainKey{Index: c.Index + 1}
 	copy(ck.Key[:], b)
 	return ck
 }
 
 func (c *ChainKey) GetMessageKeys() (*MessageKeys, error) {
-	b := c.getBaseMaterial(MESSAGE_KEY_SEED)
+	b := c.getBaseMaterial(messageKeySeed)
 	okm, err := DeriveSecrets(b, nil, []byte("WhisperMessageKeys"), 80)
 	if err != nil {
 		return nil, err
@@ -166,7 +166,7 @@ var diversifier = [32]byte{
 	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
 	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
 
-func CalculateAgreement(result, theirPub, ourPriv *[32]byte) {
+func calculateAgreement(result, theirPub, ourPriv *[32]byte) {
 	curve25519.ScalarMult(result, ourPriv, theirPub)
 }
 
@@ -180,15 +180,15 @@ func InitializeSenderSession(ss *SessionState, version byte, parameters AliceAxo
 	if version >= 3 {
 		result = append(result, diversifier[:]...)
 	}
-	CalculateAgreement(&sharedKey, parameters.TheirSignedPreKey.Key(), parameters.OurIdentityKey.PrivateKey.Key())
+	calculateAgreement(&sharedKey, parameters.TheirSignedPreKey.Key(), parameters.OurIdentityKey.PrivateKey.Key())
 	result = append(result, sharedKey[:]...)
-	CalculateAgreement(&sharedKey, parameters.TheirIdentity.Key(), parameters.OurBaseKey.PrivateKey.Key())
+	calculateAgreement(&sharedKey, parameters.TheirIdentity.Key(), parameters.OurBaseKey.PrivateKey.Key())
 	result = append(result, sharedKey[:]...)
-	CalculateAgreement(&sharedKey, parameters.TheirSignedPreKey.Key(), parameters.OurBaseKey.PrivateKey.Key())
+	calculateAgreement(&sharedKey, parameters.TheirSignedPreKey.Key(), parameters.OurBaseKey.PrivateKey.Key())
 	result = append(result, sharedKey[:]...)
 
 	if version >= 3 && parameters.TheirOneTimePreKey != nil {
-		CalculateAgreement(&sharedKey, parameters.TheirOneTimePreKey.Key(), parameters.OurBaseKey.PrivateKey.Key())
+		calculateAgreement(&sharedKey, parameters.TheirOneTimePreKey.Key(), parameters.OurBaseKey.PrivateKey.Key())
 		result = append(result, sharedKey[:]...)
 	}
 
@@ -203,8 +203,8 @@ func InitializeSenderSession(ss *SessionState, version byte, parameters AliceAxo
 		return err
 	}
 
-	ss.AddReceiverChain(parameters.TheirRatchetKey, &sendingChain.ChainKey)
-	ss.SetSenderChain(sendingRatchetKey, &sendingChain.ChainKey)
+	ss.addReceiverChain(parameters.TheirRatchetKey, &sendingChain.ChainKey)
+	ss.setSenderChain(sendingRatchetKey, &sendingChain.ChainKey)
 	ss.SetRootKey(&sendingChain.RootKey)
 
 	return nil
@@ -219,22 +219,22 @@ func InitializeReceiverSession(ss *SessionState, version byte, parameters BobAxo
 	if version >= 3 {
 		result = append(result, diversifier[:]...)
 	}
-	CalculateAgreement(&sharedKey, parameters.TheirIdentity.Key(), parameters.OurSignedPreKey.PrivateKey.Key())
+	calculateAgreement(&sharedKey, parameters.TheirIdentity.Key(), parameters.OurSignedPreKey.PrivateKey.Key())
 	result = append(result, sharedKey[:]...)
-	CalculateAgreement(&sharedKey, parameters.TheirBaseKey.Key(), parameters.OurIdentityKey.PrivateKey.Key())
+	calculateAgreement(&sharedKey, parameters.TheirBaseKey.Key(), parameters.OurIdentityKey.PrivateKey.Key())
 	result = append(result, sharedKey[:]...)
-	CalculateAgreement(&sharedKey, parameters.TheirBaseKey.Key(), parameters.OurSignedPreKey.PrivateKey.Key())
+	calculateAgreement(&sharedKey, parameters.TheirBaseKey.Key(), parameters.OurSignedPreKey.PrivateKey.Key())
 	result = append(result, sharedKey[:]...)
 
 	if version >= 3 && parameters.OurOneTimePreKey != nil {
-		CalculateAgreement(&sharedKey, parameters.TheirBaseKey.Key(), parameters.OurOneTimePreKey.PrivateKey.Key())
+		calculateAgreement(&sharedKey, parameters.TheirBaseKey.Key(), parameters.OurOneTimePreKey.PrivateKey.Key())
 		result = append(result, sharedKey[:]...)
 	}
 	dk, err := calculateDerivedKeys(version, result)
 	if err != nil {
 		return err
 	}
-	ss.SetSenderChain(parameters.OurRatchetKey, &dk.ChainKey)
+	ss.setSenderChain(parameters.OurRatchetKey, &dk.ChainKey)
 	ss.SetRootKey(&dk.RootKey)
 	return nil
 }

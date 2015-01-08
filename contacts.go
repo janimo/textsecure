@@ -10,12 +10,13 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// Contact contains information about a contact.
 type Contact struct {
 	Name string
 	Tel  string
 }
 
-type YAMLContacts struct {
+type yamlContacts struct {
 	Contacts []Contact
 }
 
@@ -26,7 +27,7 @@ func readContacts(fileName string) ([]Contact, error) {
 		return nil, err
 	}
 
-	contacts := &YAMLContacts{}
+	contacts := &yamlContacts{}
 	err = yaml.Unmarshal(b, contacts)
 	if err != nil {
 		return nil, err

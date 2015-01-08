@@ -19,10 +19,10 @@ import (
 
 //FIXME: too manic panic calls, bubble up errors
 
-// TextSecureStore implements the PreKeyStore, SignedPreKeyStore,
+// store implements the PreKeyStore, SignedPreKeyStore,
 // IdentityStore and SessionStore interfaces from the axolotl package
 // Blobs are encrypted with AES-128 and authenticated with HMAC-SHA1
-type TextSecureStore struct {
+type store struct {
 	preKeysDir       string
 	signedPreKeysDir string
 	identityDir      string
@@ -33,8 +33,8 @@ type TextSecureStore struct {
 	macKey   []byte
 }
 
-func NewTextSecureStore(password, path string) (*TextSecureStore, error) {
-	ts := &TextSecureStore{
+func newStore(password, path string) (*store, error) {
+	ts := &store{
 		preKeysDir:       filepath.Join(path, "prekeys"),
 		signedPreKeysDir: filepath.Join(path, "signed_prekeys"),
 		identityDir:      filepath.Join(path, "identity"),
@@ -81,7 +81,7 @@ func idToFilename(id uint32) string {
 	return fmt.Sprintf("%09d", id)
 }
 
-func filenameToId(fname string) uint32 {
+func filenameToID(fname string) uint32 {
 	var id uint32
 	_, err := fmt.Sscanf(fname, "%d", &id)
 	if err != nil {
@@ -90,7 +90,7 @@ func filenameToId(fname string) uint32 {
 	return uint32(id)
 }
 
-func (s *TextSecureStore) readNumFromFile(path string) uint32 {
+func (s *store) readNumFromFile(path string) uint32 {
 	b, err := s.readFile(path)
 	if err != nil {
 		panic(err)
@@ -102,18 +102,18 @@ func (s *TextSecureStore) readNumFromFile(path string) uint32 {
 	return uint32(num)
 }
 
-func (s *TextSecureStore) writeNumToFile(path string, num uint32) {
+func (s *store) writeNumToFile(path string, num uint32) {
 	b := []byte(strconv.Itoa(int(num)))
 	s.writeFile(path, b)
 }
 
-func (s *TextSecureStore) genKeys(password string, salt []byte, count int) {
+func (s *store) genKeys(password string, salt []byte, count int) {
 	keys := pbkdf2.Key([]byte(password), salt, count, 16+20, sha1.New)
 	s.aesKey = keys[:16]
 	s.macKey = keys[16:]
 }
 
-func (s *TextSecureStore) encrypt(plaintext []byte) ([]byte, error) {
+func (s *store) encrypt(plaintext []byte) ([]byte, error) {
 	if s.insecure {
 		return plaintext, nil
 	}
@@ -121,14 +121,14 @@ func (s *TextSecureStore) encrypt(plaintext []byte) ([]byte, error) {
 	return aesEncrypt(s.aesKey, plaintext)
 }
 
-func (s *TextSecureStore) decrypt(ciphertext []byte) ([]byte, error) {
+func (s *store) decrypt(ciphertext []byte) ([]byte, error) {
 	if s.insecure {
 		return ciphertext, nil
 	}
 	return aesDecrypt(s.aesKey, ciphertext)
 }
 
-func (s *TextSecureStore) readFile(path string) ([]byte, error) {
+func (s *store) readFile(path string) ([]byte, error) {
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -137,7 +137,7 @@ func (s *TextSecureStore) readFile(path string) ([]byte, error) {
 	return b, err
 }
 
-func (s *TextSecureStore) writeFile(path string, b []byte) error {
+func (s *store) writeFile(path string, b []byte) error {
 	b, err := s.encrypt(b)
 	if err != nil {
 		return err
@@ -147,17 +147,17 @@ func (s *TextSecureStore) writeFile(path string, b []byte) error {
 
 // Identity store
 
-func (s *TextSecureStore) GetLocalRegistrationId() uint32 {
+func (s *store) GetLocalRegistrationID() uint32 {
 	regidfile := filepath.Join(s.identityDir, "regid")
 	return s.readNumFromFile(regidfile)
 }
 
-func (s *TextSecureStore) SetLocalRegistrationId(id uint32) {
+func (s *store) SetLocalRegistrationID(id uint32) {
 	regidfile := filepath.Join(s.identityDir, "regid")
 	s.writeNumToFile(regidfile, id)
 }
 
-func (s *TextSecureStore) GetIdentityKeyPair() *axolotl.IdentityKeyPair {
+func (s *store) GetIdentityKeyPair() *axolotl.IdentityKeyPair {
 	idkeyfile := filepath.Join(s.identityDir, "identity_key")
 	b, err := s.readFile(idkeyfile)
 	if err != nil || len(b) != 64 {
@@ -166,7 +166,7 @@ func (s *TextSecureStore) GetIdentityKeyPair() *axolotl.IdentityKeyPair {
 	return axolotl.NewIdentityKeyPairFromKeys(b[32:], b[:32])
 }
 
-func (s *TextSecureStore) SetIdentityKeyPair(ikp *axolotl.IdentityKeyPair) {
+func (s *store) SetIdentityKeyPair(ikp *axolotl.IdentityKeyPair) {
 	idkeyfile := filepath.Join(s.identityDir, "identity_key")
 	b := make([]byte, 64)
 	copy(b, ikp.PublicKey.Key()[:])
@@ -177,7 +177,7 @@ func (s *TextSecureStore) SetIdentityKeyPair(ikp *axolotl.IdentityKeyPair) {
 	}
 }
 
-func (s *TextSecureStore) SaveIdentity(id string, key *axolotl.IdentityKey) {
+func (s *store) SaveIdentity(id string, key *axolotl.IdentityKey) {
 	idkeyfile := filepath.Join(s.identityDir, "remote_"+id)
 	err := s.writeFile(idkeyfile, key.Key()[:])
 	if err != nil {
@@ -185,7 +185,7 @@ func (s *TextSecureStore) SaveIdentity(id string, key *axolotl.IdentityKey) {
 	}
 }
 
-func (s *TextSecureStore) IsTrustedIdentity(id string, key *axolotl.IdentityKey) bool {
+func (s *store) IsTrustedIdentity(id string, key *axolotl.IdentityKey) bool {
 	idkeyfile := filepath.Join(s.identityDir, "remote_"+id)
 	// Trust on first use (TOFU)
 	if !exists(idkeyfile) {
@@ -200,15 +200,15 @@ func (s *TextSecureStore) IsTrustedIdentity(id string, key *axolotl.IdentityKey)
 
 // Prekey and signed prekey store
 
-func (s *TextSecureStore) preKeysFilePath(id uint32) string {
+func (s *store) preKeysFilePath(id uint32) string {
 	return filepath.Join(s.preKeysDir, idToFilename(id))
 }
 
-func (s *TextSecureStore) signedPreKeysFilePath(id uint32) string {
+func (s *store) signedPreKeysFilePath(id uint32) string {
 	return filepath.Join(s.signedPreKeysDir, idToFilename(id))
 }
 
-func (s *TextSecureStore) LoadPreKey(id uint32) (*axolotl.PreKeyRecord, error) {
+func (s *store) LoadPreKey(id uint32) (*axolotl.PreKeyRecord, error) {
 	b, err := s.readFile(s.preKeysFilePath(id))
 	if err != nil {
 		return nil, err
@@ -219,7 +219,7 @@ func (s *TextSecureStore) LoadPreKey(id uint32) (*axolotl.PreKeyRecord, error) {
 	return record, nil
 }
 
-func (s *TextSecureStore) LoadSignedPreKey(id uint32) (*axolotl.SignedPreKeyRecord, error) {
+func (s *store) LoadSignedPreKey(id uint32) (*axolotl.SignedPreKeyRecord, error) {
 	b, err := s.readFile(s.signedPreKeysFilePath(id))
 	if err != nil {
 		return nil, err
@@ -233,13 +233,13 @@ func (s *TextSecureStore) LoadSignedPreKey(id uint32) (*axolotl.SignedPreKeyReco
 	return record, nil
 }
 
-func (s *TextSecureStore) LoadSignedPreKeys() []axolotl.SignedPreKeyRecord {
+func (s *store) LoadSignedPreKeys() []axolotl.SignedPreKeyRecord {
 	keys := []axolotl.SignedPreKeyRecord{}
 	//FIXME
 	return keys
 }
 
-func (s *TextSecureStore) StorePreKey(id uint32, record *axolotl.PreKeyRecord) {
+func (s *store) StorePreKey(id uint32, record *axolotl.PreKeyRecord) {
 	b := record.Serialize()
 	err := s.writeFile(s.preKeysFilePath(id), b)
 	if err != nil {
@@ -247,7 +247,7 @@ func (s *TextSecureStore) StorePreKey(id uint32, record *axolotl.PreKeyRecord) {
 	}
 }
 
-func (s *TextSecureStore) StoreSignedPreKey(id uint32, record *axolotl.SignedPreKeyRecord) {
+func (s *store) StoreSignedPreKey(id uint32, record *axolotl.SignedPreKeyRecord) {
 	b := record.Serialize()
 	err := s.writeFile(s.signedPreKeysFilePath(id), b)
 	if err != nil {
@@ -260,33 +260,33 @@ func exists(path string) bool {
 	return err == nil
 }
 
-func (s *TextSecureStore) valid() bool {
-	return s.ContainsPreKey(lastResortPreKeyId)
+func (s *store) valid() bool {
+	return s.ContainsPreKey(lastResortPreKeyID)
 }
 
-func (s *TextSecureStore) ContainsPreKey(id uint32) bool {
+func (s *store) ContainsPreKey(id uint32) bool {
 	return exists(s.preKeysFilePath(id))
 }
 
-func (s *TextSecureStore) ContainsSignedPreKey(id uint32) bool {
+func (s *store) ContainsSignedPreKey(id uint32) bool {
 	return exists(s.signedPreKeysFilePath(id))
 }
 
-func (s *TextSecureStore) RemovePreKey(id uint32) {
+func (s *store) RemovePreKey(id uint32) {
 	_ = os.Remove(s.preKeysFilePath(id))
 }
 
-func (s *TextSecureStore) RemoveSignedPreKey(id uint32) {
+func (s *store) RemoveSignedPreKey(id uint32) {
 	_ = os.Remove(s.signedPreKeysFilePath(id))
 }
 
 // HTTP API store
-func (s *TextSecureStore) storeHTTPPassword(password string) {
+func (s *store) storeHTTPPassword(password string) {
 	passFile := filepath.Join(s.identityDir, "http_password")
 	s.writeFile(passFile, []byte(password))
 }
 
-func (s *TextSecureStore) loadHTTPPassword() string {
+func (s *store) loadHTTPPassword() string {
 	passFile := filepath.Join(s.identityDir, "http_password")
 	b, err := s.readFile(passFile)
 	if err != nil {
@@ -295,12 +295,12 @@ func (s *TextSecureStore) loadHTTPPassword() string {
 	return string(b)
 }
 
-func (s *TextSecureStore) storeHTTPSignalingKey(key []byte) {
+func (s *store) storeHTTPSignalingKey(key []byte) {
 	keyFile := filepath.Join(s.identityDir, "http_signaling_key")
 	s.writeFile(keyFile, key)
 }
 
-func (s *TextSecureStore) loadHTTPSignalingKey() []byte {
+func (s *store) loadHTTPSignalingKey() []byte {
 	keyFile := filepath.Join(s.identityDir, "http_signaling_key")
 	b, err := s.readFile(keyFile)
 	if err != nil {
@@ -311,11 +311,11 @@ func (s *TextSecureStore) loadHTTPSignalingKey() []byte {
 
 // Session store
 
-func (s *TextSecureStore) sessionFilePath(recipientId string, deviceId uint32) string {
-	return filepath.Join(s.sessionsDir, fmt.Sprintf("%s_%d", recipientId, deviceId))
+func (s *store) sessionFilePath(recipientID string, deviceID uint32) string {
+	return filepath.Join(s.sessionsDir, fmt.Sprintf("%s_%d", recipientID, deviceID))
 }
 
-func (s *TextSecureStore) GetSubDeviceSessions(recipientId string) []uint32 {
+func (s *store) GetSubDeviceSessions(recipientID string) []uint32 {
 	sessions := []uint32{}
 
 	filepath.Walk(s.sessionsDir, func(path string, fi os.FileInfo, err error) error {
@@ -329,8 +329,8 @@ func (s *TextSecureStore) GetSubDeviceSessions(recipientId string) []uint32 {
 	return sessions
 }
 
-func (s *TextSecureStore) LoadSession(recipientId string, deviceId uint32) *axolotl.SessionRecord {
-	sfile := s.sessionFilePath(recipientId, deviceId)
+func (s *store) LoadSession(recipientID string, deviceID uint32) *axolotl.SessionRecord {
+	sfile := s.sessionFilePath(recipientID, deviceID)
 	b, err := s.readFile(sfile)
 	if err != nil {
 		return axolotl.NewSessionRecord()
@@ -340,8 +340,8 @@ func (s *TextSecureStore) LoadSession(recipientId string, deviceId uint32) *axol
 	return record
 }
 
-func (s *TextSecureStore) StoreSession(recipientId string, deviceId uint32, record *axolotl.SessionRecord) {
-	sfile := s.sessionFilePath(recipientId, deviceId)
+func (s *store) StoreSession(recipientID string, deviceID uint32, record *axolotl.SessionRecord) {
+	sfile := s.sessionFilePath(recipientID, deviceID)
 	b := record.Serialize()
 	err := s.writeFile(sfile, b)
 	if err != nil {
@@ -349,28 +349,28 @@ func (s *TextSecureStore) StoreSession(recipientId string, deviceId uint32, reco
 	}
 }
 
-func (s *TextSecureStore) ContainsSession(recipientId string, deviceId uint32) bool {
-	sfile := s.sessionFilePath(recipientId, deviceId)
+func (s *store) ContainsSession(recipientID string, deviceID uint32) bool {
+	sfile := s.sessionFilePath(recipientID, deviceID)
 	return exists(sfile)
 }
 
-func (s *TextSecureStore) DeleteSession(recipientId string, deviceId uint32) {
-	sfile := s.sessionFilePath(recipientId, deviceId)
+func (s *store) DeleteSession(recipientID string, deviceID uint32) {
+	sfile := s.sessionFilePath(recipientID, deviceID)
 	_ = os.Remove(sfile)
 }
 
-func (s *TextSecureStore) DeleteAllSessions(recipientId string) {
-	sessions := s.GetSubDeviceSessions(recipientId)
+func (s *store) DeleteAllSessions(recipientID string) {
+	sessions := s.GetSubDeviceSessions(recipientID)
 	for _, dev := range sessions {
-		_ = os.Remove(s.sessionFilePath(recipientId, dev))
+		_ = os.Remove(s.sessionFilePath(recipientID, dev))
 	}
 }
 
-var textSecureStore *TextSecureStore
+var textSecureStore *store
 
 func setupStore(password string) {
 	var err error
-	textSecureStore, err = NewTextSecureStore(password, storageDir)
+	textSecureStore, err = newStore(password, storageDir)
 	if err != nil {
 		panic(err)
 	}

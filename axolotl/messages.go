@@ -122,9 +122,9 @@ func (wm *WhisperMessage) Serialize() []byte {
 
 type PreKeyWhisperMessage struct {
 	Version        byte
-	RegistrationId uint32
-	PreKeyId       uint32
-	SignedPreKeyId uint32
+	RegistrationID uint32
+	PreKeyID       uint32
+	SignedPreKeyID uint32
 	BaseKey        *ECPublicKey
 	IdentityKey    *IdentityKey
 	Message        *WhisperMessage
@@ -157,9 +157,9 @@ func LoadPreKeyWhisperMessage(serialized []byte) (*PreKeyWhisperMessage, error) 
 	}
 	pkwm := &PreKeyWhisperMessage{
 		Version:        version,
-		RegistrationId: ppkwm.GetRegistrationId(),
-		PreKeyId:       ppkwm.GetPreKeyId(),
-		SignedPreKeyId: ppkwm.GetSignedPreKeyId(),
+		RegistrationID: ppkwm.GetRegistrationId(),
+		PreKeyID:       ppkwm.GetPreKeyId(),
+		SignedPreKeyID: ppkwm.GetSignedPreKeyId(),
 		BaseKey:        NewECPublicKey(ppkwm.GetBaseKey()[1:]),
 		IdentityKey:    NewIdentityKey(ppkwm.GetIdentityKey()[1:]),
 		Message:        wm,
@@ -169,12 +169,12 @@ func LoadPreKeyWhisperMessage(serialized []byte) (*PreKeyWhisperMessage, error) 
 	return pkwm, nil
 }
 
-func NewPreKeyWhisperMessage(messageVersion byte, regid, pkid, spkid uint32, baseKey *ECPublicKey, identityKey *IdentityKey, wm *WhisperMessage) (*PreKeyWhisperMessage, error) {
+func NewPreKeyWhisperMessage(messageVersion byte, registrationID, preKeyID, signedPreKeyID uint32, baseKey *ECPublicKey, identityKey *IdentityKey, wm *WhisperMessage) (*PreKeyWhisperMessage, error) {
 
 	ppkwm := &protobuf.PreKeyWhisperMessage{
-		RegistrationId: &regid,
-		PreKeyId:       &pkid,
-		SignedPreKeyId: &spkid,
+		RegistrationId: &registrationID,
+		PreKeyId:       &preKeyID,
+		SignedPreKeyId: &signedPreKeyID,
 		BaseKey:        baseKey.Serialize(),
 		IdentityKey:    identityKey.Serialize(),
 		Message:        wm.Serialize(),
@@ -188,9 +188,9 @@ func NewPreKeyWhisperMessage(messageVersion byte, regid, pkid, spkid uint32, bas
 	version := makeVersionByte(messageVersion, currentVersion)
 	pkwm := &PreKeyWhisperMessage{
 		Version:        version,
-		RegistrationId: regid,
-		PreKeyId:       pkid,
-		SignedPreKeyId: spkid,
+		RegistrationID: registrationID,
+		PreKeyID:       preKeyID,
+		SignedPreKeyID: signedPreKeyID,
 		BaseKey:        baseKey,
 		IdentityKey:    identityKey,
 		Message:        wm,

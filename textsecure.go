@@ -1,6 +1,7 @@
 // Copyright (c) 2014 Canonical Ltd.
 // Licensed under the GPLv3, see the COPYING file for details.
 
+// Package textsecure implements the TextSecure client protocol.
 package textsecure
 
 import (
@@ -35,7 +36,7 @@ func generatePassword() string {
 }
 
 // Generate a random 14 bit integer
-func generateRegistrationId() uint32 {
+func generateRegistrationID() uint32 {
 	return randUint32() & 0x3fff
 }
 
@@ -93,6 +94,7 @@ func needsRegistration() bool {
 
 var identityKey *axolotl.IdentityKeyPair
 
+// SendMessage sends the given text message to the given contact.
 func SendMessage(tel, msg string) error {
 	err := sendMessage(tel, msg)
 	if err != nil {
@@ -101,6 +103,8 @@ func SendMessage(tel, msg string) error {
 	return nil
 }
 
+// SendFileAttachment sends the contents of a file, associated
+// with an optional message to a given contact.
 func SendFileAttachment(tel, msg string, path string) error {
 	f, err := os.Open(path)
 	if err != nil {
@@ -144,6 +148,7 @@ func (m *Message) Group() string {
 	return m.group
 }
 
+// Client contains application specific data and callbacks.
 type Client struct {
 	RootDir          string
 	ReadLine         func(string) string
@@ -154,6 +159,7 @@ type Client struct {
 
 var client *Client
 
+// Setup initializes the package.
 func Setup(c *Client) {
 	var err error
 
@@ -177,8 +183,8 @@ func Setup(c *Client) {
 	setupStore(password)
 
 	if needsRegistration() {
-		registrationInfo.registrationId = generateRegistrationId()
-		textSecureStore.SetLocalRegistrationId(registrationInfo.registrationId)
+		registrationInfo.registrationID = generateRegistrationID()
+		textSecureStore.SetLocalRegistrationID(registrationInfo.registrationID)
 
 		registrationInfo.password = generatePassword()
 		textSecureStore.storeHTTPPassword(registrationInfo.password)
@@ -195,7 +201,7 @@ func Setup(c *Client) {
 			log.Fatalf("Coult not register device: %s\n", err)
 		}
 	}
-	registrationInfo.registrationId = textSecureStore.GetLocalRegistrationId()
+	registrationInfo.registrationID = textSecureStore.GetLocalRegistrationID()
 	registrationInfo.password = textSecureStore.loadHTTPPassword()
 	registrationInfo.signalingKey = textSecureStore.loadHTTPSignalingKey()
 	setupTransporter()
@@ -233,7 +239,7 @@ func handleReceipt(ipms *textsecure.IncomingPushMessageSignal) {
 	//log.Printf("Receipt %+v\n", ipms)
 }
 
-func recId(source string) string {
+func recID(source string) string {
 	return source[1:]
 }
 
@@ -325,7 +331,7 @@ func handleReceivedMessage(msg []byte) error {
 		return err
 	}
 	//log.Printf("%s %s %d\n", ipms.GetType(), ipms.GetSource(), ipms.GetSourceDevice())
-	recid := recId(ipms.GetSource())
+	recid := recID(ipms.GetSource())
 	sc := axolotl.NewSessionCipher(textSecureStore, textSecureStore, textSecureStore, textSecureStore, recid, ipms.GetSourceDevice())
 	switch *ipms.Type {
 	case textsecure.IncomingPushMessageSignal_RECEIPT:

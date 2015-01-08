@@ -1,5 +1,5 @@
-// Package curve25519sign implements a signature scheme based on Curve25519 keys
-// see https://moderncrypto.org/mail-archive/curves/2014/000205.html
+// Package curve25519sign implements a signature scheme based on Curve25519 keys.
+// See https://moderncrypto.org/mail-archive/curves/2014/000205.html for details.
 package curve25519sign
 
 import (
@@ -63,7 +63,7 @@ func Sign(privateKey *[32]byte, message []byte, random [64]byte) *[64]byte {
 	return signature
 }
 
-// Verify checks whether the message is has a valid signature
+// Verify checks whether the message has a valid signature.
 func Verify(publicKey [32]byte, message []byte, signature *[64]byte) bool {
 
 	publicKey[31] &= 0x7F

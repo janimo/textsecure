@@ -6,7 +6,7 @@ package axolotl
 // IdentityStore provides an interface to identity information
 type IdentityStore interface {
 	GetIdentityKeyPair() *IdentityKeyPair
-	GetLocalRegistrationId() uint32
+	GetLocalRegistrationID() uint32
 	SaveIdentity(string, *IdentityKey)
 	IsTrustedIdentity(string, *IdentityKey) bool
 }

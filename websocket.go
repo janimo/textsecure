@@ -17,12 +17,12 @@ import (
 	"crypto/tls"
 )
 
-type WSConn struct {
+type wsConn struct {
 	conn *websocket.Conn
 	id   uint64
 }
 
-func NewWSConn(originURL, user, pass string, skipTLSCheck bool) (*WSConn, error) {
+func newWSConn(originURL, user, pass string, skipTLSCheck bool) (*wsConn, error) {
 	v := url.Values{}
 	v.Set("login", user)
 	v.Set("password", pass)
@@ -41,14 +41,14 @@ func NewWSConn(originURL, user, pass string, skipTLSCheck bool) (*WSConn, error)
 	if err != nil {
 		return nil, err
 	}
-	return &WSConn{conn: wsc}, nil
+	return &wsConn{conn: wsc}, nil
 }
 
-func (wsc *WSConn) send(b []byte) {
+func (wsc *wsConn) send(b []byte) {
 	websocket.Message.Send(wsc.conn, b)
 }
 
-func (wsc *WSConn) receive() ([]byte, error) {
+func (wsc *wsConn) receive() ([]byte, error) {
 	var b []byte
 	err := websocket.Message.Receive(wsc.conn, &b)
 	if err != nil {
@@ -58,7 +58,7 @@ func (wsc *WSConn) receive() ([]byte, error) {
 	return b, nil
 }
 
-func (wsc *WSConn) sendRequest(verb, path string, body []byte, id *uint64) {
+func (wsc *wsConn) sendRequest(verb, path string, body []byte, id *uint64) {
 	typ := textsecure.WebSocketMessage_REQUEST
 
 	wsm := &textsecure.WebSocketMessage{
@@ -79,14 +79,14 @@ func (wsc *WSConn) sendRequest(verb, path string, body []byte, id *uint64) {
 	wsc.send(b)
 }
 
-func (wsc *WSConn) keepAlive() {
+func (wsc *wsConn) keepAlive() {
 	for {
 		wsc.sendRequest("GET", "/v1/keepalive", nil, nil)
 		time.Sleep(time.Second * 15)
 	}
 }
 
-func (wsc *WSConn) sendAck(id uint64) {
+func (wsc *wsConn) sendAck(id uint64) {
 	typ := textsecure.WebSocketMessage_RESPONSE
 	message := "OK"
 	status := uint32(200)
@@ -107,21 +107,22 @@ func (wsc *WSConn) sendAck(id uint64) {
 	wsc.send(b)
 }
 
-func (wsc *WSConn) Get(url string) (*Response, error) {
+func (wsc *wsConn) get(url string) (*response, error) {
 	wsc.id++
 	wsc.sendRequest("GET", url, nil, &wsc.id)
 	wsc.receive()
 	return nil, nil
 }
 
-func (wsc *WSConn) Put(url string, body []byte) (*Response, error) {
+func (wsc *wsConn) put(url string, body []byte) (*response, error) {
 	wsc.id++
 	wsc.sendRequest("PUT", url, body, &wsc.id)
 	return nil, nil
 }
 
+// ListenForMessages connects to the server and handles incoming websocket messages.
 func ListenForMessages() error {
-	wsc, err := NewWSConn(config.Server+"/v1/websocket", config.Tel, registrationInfo.password, config.SkipTLSCheck)
+	wsc, err := newWSConn(config.Server+"/v1/websocket", config.Tel, registrationInfo.password, config.SkipTLSCheck)
 	if err != nil {
 		return fmt.Errorf("Could not establish websocket connection: %s\n", err)
 	}

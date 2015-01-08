@@ -19,6 +19,7 @@ func randBytes(data []byte) {
 	}
 }
 
+// Decrypt returns the AES-CBC decryption of a ciphertext under a given key.
 func Decrypt(key, ciphertext []byte) []byte {
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -36,6 +37,7 @@ func Decrypt(key, ciphertext []byte) []byte {
 	return ciphertext[aes.BlockSize : len(ciphertext)-int(pad)]
 }
 
+// Encrypt returns the AES-CBC encryption of a plaintext under a given key.
 func Encrypt(key, iv, plaintext []byte) []byte {
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -49,12 +51,13 @@ func Encrypt(key, iv, plaintext []byte) []byte {
 	return ciphertext
 }
 
-// Checks whether a message is correctly authenticated using HMAC-SHA256
+// ValidTruncMAC checks whether a message is correctly authenticated using HMAC-SHA256.
 func ValidTruncMAC(msg, expectedMAC, key []byte) bool {
 	actualMAC := ComputeTruncatedMAC(msg, key, len(expectedMAC))
 	return hmac.Equal(actualMAC, expectedMAC)
 }
 
+// ComputeTruncatedMAC computes a HMAC-SHA256 MAC and returns its prefix of a given size.
 func ComputeTruncatedMAC(msg, key []byte, size int) []byte {
 	m := hmac.New(sha256.New, key)
 	m.Write(msg)

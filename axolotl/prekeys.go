@@ -112,31 +112,29 @@ func (record *SignedPreKeyRecord) GetKeyPair() *ECKeyPair {
 	return MakeECKeyPair(record.Spkrs.GetPrivateKey(), record.Spkrs.GetPublicKey())
 }
 
-var InvalidKeyIdError = errors.New("Invalid PreKey ID")
-
 type PreKeyBundle struct {
-	RegistrationId uint32
-	DeviceId       uint32
+	RegistrationID uint32
+	DeviceID       uint32
 
-	PreKeyId     uint32
+	PreKeyID     uint32
 	PreKeyPublic *ECPublicKey
 
-	SignedPreKeyId        int32
+	SignedPreKeyID        int32
 	SignedPreKeyPublic    *ECPublicKey
 	SignedPreKeySignature [64]byte
 
 	IdentityKey *IdentityKey
 }
 
-func NewPreKeyBundle(registrationId, deviceId, preKeyId uint32, preKey *ECPublicKey,
-	signedPreKeyId int32, signedPreKey *ECPublicKey, signature []byte,
+func NewPreKeyBundle(registrationID, deviceID, preKeyID uint32, preKey *ECPublicKey,
+	signedPreKeyID int32, signedPreKey *ECPublicKey, signature []byte,
 	identityKey *IdentityKey) (*PreKeyBundle, error) {
 	pkb := &PreKeyBundle{
-		RegistrationId:     registrationId,
-		DeviceId:           deviceId,
-		PreKeyId:           preKeyId,
+		RegistrationID:     registrationID,
+		DeviceID:           deviceID,
+		PreKeyID:           preKeyID,
 		PreKeyPublic:       preKey,
-		SignedPreKeyId:     signedPreKeyId,
+		SignedPreKeyID:     signedPreKeyID,
 		SignedPreKeyPublic: signedPreKey,
 		IdentityKey:        identityKey,
 	}

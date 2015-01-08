@@ -17,7 +17,7 @@ type ECPublicKey struct {
 	key [32]byte
 }
 
-const DJB_TYPE = 5
+const djbType = 5
 
 func ensureKeyLength(key []byte) {
 	if len(key) != 32 {
@@ -48,7 +48,7 @@ func (k *ECPublicKey) Key() *[32]byte {
 }
 
 func (k *ECPublicKey) Serialize() []byte {
-	return append([]byte{DJB_TYPE}, k.key[:]...)
+	return append([]byte{djbType}, k.key[:]...)
 }
 
 type ECKeyPair struct {
