@@ -12,7 +12,7 @@ import (
 	"golang.org/x/crypto/hkdf"
 )
 
-type SymmetricAxolotlParameters struct {
+type symmetricAxolotlParameters struct {
 	OurIdentityKey IdentityKeyPair
 	OurBaseKey     ECKeyPair
 	OurRatchetKey  ECKeyPair
@@ -22,7 +22,7 @@ type SymmetricAxolotlParameters struct {
 	TheirRatchetKey ECPublicKey
 }
 
-type AliceAxolotlParameters struct {
+type aliceAxolotlParameters struct {
 	OurIdentityKey *IdentityKeyPair
 	OurBaseKey     *ECKeyPair
 
@@ -32,7 +32,7 @@ type AliceAxolotlParameters struct {
 	TheirRatchetKey    *ECPublicKey
 }
 
-type BobAxolotlParameters struct {
+type bobAxolotlParameters struct {
 	OurIdentityKey   *IdentityKeyPair
 	OurSignedPreKey  *ECKeyPair
 	OurOneTimePreKey *ECKeyPair
@@ -42,52 +42,52 @@ type BobAxolotlParameters struct {
 	TheirIdentity *IdentityKey
 }
 
-type RootKey struct {
+type rootKey struct {
 	Key [32]byte
 }
 
-func NewRootKey(key []byte) *RootKey {
+func newRootKey(key []byte) *rootKey {
 	ensureKeyLength(key)
-	rk := &RootKey{}
+	rk := &rootKey{}
 	copy(rk.Key[:], key)
 	return rk
 }
 
-func (r *RootKey) CreateChain(theirRatchetKey *ECPublicKey, ourRatchetKey *ECKeyPair) (*DerivedKeys, error) {
+func (r *rootKey) createChain(theirRatchetKey *ECPublicKey, ourRatchetKey *ECKeyPair) (*derivedKeys, error) {
 	var keyMaterial [32]byte
 	calculateAgreement(&keyMaterial, theirRatchetKey.Key(), ourRatchetKey.PrivateKey.Key())
-	b, err := DeriveSecrets(keyMaterial[:], r.Key[:], []byte("WhisperRatchet"), 64)
+	b, err := deriveSecrets(keyMaterial[:], r.Key[:], []byte("WhisperRatchet"), 64)
 	if err != nil {
 		return nil, err
 	}
-	dk := &DerivedKeys{}
-	copy(dk.RootKey.Key[:], b[:32])
-	copy(dk.ChainKey.Key[:], b[32:])
-	dk.ChainKey.Index = 0
+	dk := &derivedKeys{}
+	copy(dk.rootKey.Key[:], b[:32])
+	copy(dk.chainKey.Key[:], b[32:])
+	dk.chainKey.Index = 0
 	return dk, nil
 }
 
-type ChainKey struct {
+type chainKey struct {
 	Key   [32]byte
 	Index uint32
 }
 
-func NewChainKey(key []byte, index uint32) *ChainKey {
+func newChainKey(key []byte, index uint32) *chainKey {
 	ensureKeyLength(key)
-	ck := &ChainKey{Index: index}
+	ck := &chainKey{Index: index}
 	copy(ck.Key[:], key)
 	return ck
 }
 
-type MessageKeys struct {
+type messageKeys struct {
 	CipherKey []byte
 	MacKey    []byte
 	Iv        []byte
 	Index     uint32
 }
 
-func NewMessageKeys(cipherKey, macKey, iv []byte, index uint32) *MessageKeys {
-	return &MessageKeys{
+func newMessageKeys(cipherKey, macKey, iv []byte, index uint32) *messageKeys {
+	return &messageKeys{
 		CipherKey: cipherKey,
 		MacKey:    macKey,
 		Iv:        iv,
@@ -100,26 +100,26 @@ var (
 	chainKeySeed   = []byte{2}
 )
 
-func (c *ChainKey) getBaseMaterial(seed []byte) []byte {
+func (c *chainKey) getBaseMaterial(seed []byte) []byte {
 	m := hmac.New(sha256.New, c.Key[:])
 	m.Write(seed)
 	return m.Sum(nil)
 }
 
-func (c *ChainKey) getNextChainKey() *ChainKey {
+func (c *chainKey) getNextChainKey() *chainKey {
 	b := c.getBaseMaterial(chainKeySeed)
-	ck := &ChainKey{Index: c.Index + 1}
+	ck := &chainKey{Index: c.Index + 1}
 	copy(ck.Key[:], b)
 	return ck
 }
 
-func (c *ChainKey) GetMessageKeys() (*MessageKeys, error) {
+func (c *chainKey) getMessageKeys() (*messageKeys, error) {
 	b := c.getBaseMaterial(messageKeySeed)
-	okm, err := DeriveSecrets(b, nil, []byte("WhisperMessageKeys"), 80)
+	okm, err := deriveSecrets(b, nil, []byte("WhisperMessageKeys"), 80)
 	if err != nil {
 		return nil, err
 	}
-	return &MessageKeys{
+	return &messageKeys{
 		CipherKey: okm[:32],
 		MacKey:    okm[32:64],
 		Iv:        okm[64:],
@@ -127,26 +127,26 @@ func (c *ChainKey) GetMessageKeys() (*MessageKeys, error) {
 	}, nil
 }
 
-type DerivedKeys struct {
-	RootKey  RootKey
-	ChainKey ChainKey
+type derivedKeys struct {
+	rootKey  rootKey
+	chainKey chainKey
 }
 
-func calculateDerivedKeys(version byte, keyMaterial []byte) (*DerivedKeys, error) {
-	b, err := DeriveSecrets(keyMaterial, nil, []byte("WhisperText"), 64)
+func calculateDerivedKeys(version byte, keyMaterial []byte) (*derivedKeys, error) {
+	b, err := deriveSecrets(keyMaterial, nil, []byte("WhisperText"), 64)
 	if err != nil {
 		return nil, err
 	}
-	dk := &DerivedKeys{}
-	copy(dk.RootKey.Key[:], b[:32])
-	copy(dk.ChainKey.Key[:], b[32:])
-	dk.ChainKey.Index = 0
+	dk := &derivedKeys{}
+	copy(dk.rootKey.Key[:], b[:32])
+	copy(dk.chainKey.Key[:], b[32:])
+	dk.chainKey.Index = 0
 	return dk, nil
 }
 
-// DeriveSecrets derives the requested number of bytes using HKDF, given
+// deriveSecrets derives the requested number of bytes using HKDF, given
 // the inputKeyMaterial, salt and the info
-func DeriveSecrets(inputKeyMaterial, salt, info []byte, size int) ([]byte, error) {
+func deriveSecrets(inputKeyMaterial, salt, info []byte, size int) ([]byte, error) {
 	hkdf := hkdf.New(sha256.New, inputKeyMaterial, salt, info)
 
 	secrets := make([]byte, size)
@@ -170,10 +170,10 @@ func calculateAgreement(result, theirPub, ourPriv *[32]byte) {
 	curve25519.ScalarMult(result, ourPriv, theirPub)
 }
 
-func InitializeSenderSession(ss *SessionState, version byte, parameters AliceAxolotlParameters) error {
-	ss.SetSessionVersion(uint32(version))
-	ss.SetLocalIdentityPublic(&parameters.OurIdentityKey.PublicKey)
-	ss.SetRemoteIdentityPublic(parameters.TheirIdentity)
+func initializeSenderSession(ss *sessionState, version byte, parameters aliceAxolotlParameters) error {
+	ss.setSessionVersion(uint32(version))
+	ss.setLocalIdentityPublic(&parameters.OurIdentityKey.PublicKey)
+	ss.setRemoteIdentityPublic(parameters.TheirIdentity)
 
 	result := make([]byte, 0, 32*5)
 	var sharedKey [32]byte
@@ -198,22 +198,22 @@ func InitializeSenderSession(ss *SessionState, version byte, parameters AliceAxo
 	}
 
 	sendingRatchetKey := NewECKeyPair()
-	sendingChain, err := dk.RootKey.CreateChain(parameters.TheirRatchetKey, sendingRatchetKey)
+	sendingChain, err := dk.rootKey.createChain(parameters.TheirRatchetKey, sendingRatchetKey)
 	if err != nil {
 		return err
 	}
 
-	ss.addReceiverChain(parameters.TheirRatchetKey, &sendingChain.ChainKey)
-	ss.setSenderChain(sendingRatchetKey, &sendingChain.ChainKey)
-	ss.SetRootKey(&sendingChain.RootKey)
+	ss.addReceiverChain(parameters.TheirRatchetKey, &sendingChain.chainKey)
+	ss.setSenderChain(sendingRatchetKey, &sendingChain.chainKey)
+	ss.setRootKey(&sendingChain.rootKey)
 
 	return nil
 }
 
-func InitializeReceiverSession(ss *SessionState, version byte, parameters BobAxolotlParameters) error {
-	ss.SetSessionVersion(uint32(version))
-	ss.SetLocalIdentityPublic(&parameters.OurIdentityKey.PublicKey)
-	ss.SetRemoteIdentityPublic(parameters.TheirIdentity)
+func initializeReceiverSession(ss *sessionState, version byte, parameters bobAxolotlParameters) error {
+	ss.setSessionVersion(uint32(version))
+	ss.setLocalIdentityPublic(&parameters.OurIdentityKey.PublicKey)
+	ss.setRemoteIdentityPublic(parameters.TheirIdentity)
 	result := make([]byte, 0, 32*5)
 	var sharedKey [32]byte
 	if version >= 3 {
@@ -234,7 +234,7 @@ func InitializeReceiverSession(ss *SessionState, version byte, parameters BobAxo
 	if err != nil {
 		return err
 	}
-	ss.setSenderChain(parameters.OurRatchetKey, &dk.ChainKey)
-	ss.SetRootKey(&dk.RootKey)
+	ss.setSenderChain(parameters.OurRatchetKey, &dk.chainKey)
+	ss.setRootKey(&dk.rootKey)
 	return nil
 }

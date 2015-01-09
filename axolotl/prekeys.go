@@ -50,7 +50,7 @@ func (record *PreKeyRecord) Serialize() []byte {
 	return b
 }
 
-func (record *PreKeyRecord) GetKeyPair() *ECKeyPair {
+func (record *PreKeyRecord) getKeyPair() *ECKeyPair {
 	return MakeECKeyPair(record.Pkrs.GetPrivateKey(), record.Pkrs.GetPublicKey())
 }
 
@@ -108,7 +108,7 @@ func (record *SignedPreKeyRecord) Serialize() []byte {
 	return b
 }
 
-func (record *SignedPreKeyRecord) GetKeyPair() *ECKeyPair {
+func (record *SignedPreKeyRecord) getKeyPair() *ECKeyPair {
 	return MakeECKeyPair(record.Spkrs.GetPrivateKey(), record.Spkrs.GetPublicKey())
 }
 

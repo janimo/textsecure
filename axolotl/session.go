@@ -15,27 +15,27 @@ import (
 	"github.com/janimo/textsecure/curve25519sign"
 )
 
-type SessionState struct {
+type sessionState struct {
 	SS *protobuf.SessionStructure
 }
 
-func NewSessionState(ss *protobuf.SessionStructure) *SessionState {
-	return &SessionState{SS: ss}
+func newSessionState(ss *protobuf.SessionStructure) *sessionState {
+	return &sessionState{SS: ss}
 }
 
-func (ss *SessionState) setAliceBaseKey(key []byte) {
+func (ss *sessionState) setAliceBaseKey(key []byte) {
 	ss.SS.AliceBaseKey = key
 }
 
-func (ss *SessionState) GetAliceBaseKey() []byte {
+func (ss *sessionState) getAliceBaseKey() []byte {
 	return ss.SS.GetAliceBaseKey()
 }
 
-func (ss *SessionState) SetSessionVersion(version uint32) {
+func (ss *sessionState) setSessionVersion(version uint32) {
 	ss.SS.SessionVersion = &version
 }
 
-func (ss *SessionState) GetSessionVersion() uint32 {
+func (ss *sessionState) getSessionVersion() uint32 {
 	version := ss.SS.GetSessionVersion()
 	if version == 0 {
 		version = 2
@@ -43,74 +43,74 @@ func (ss *SessionState) GetSessionVersion() uint32 {
 	return version
 }
 
-func (ss *SessionState) SetPreviousCounter(pc uint32) {
+func (ss *sessionState) setPreviousCounter(pc uint32) {
 	ss.SS.PreviousCounter = &pc
 }
 
-func (ss *SessionState) GetPreviousCounter() uint32 {
+func (ss *sessionState) getPreviousCounter() uint32 {
 	return ss.SS.GetPreviousCounter()
 }
 
-func (ss *SessionState) SetLocalIdentityPublic(key *IdentityKey) {
+func (ss *sessionState) setLocalIdentityPublic(key *IdentityKey) {
 	ss.SS.LocalIdentityPublic = key.Key()[:]
 }
 
-func (ss *SessionState) GetLocalIdentityPublic() *IdentityKey {
+func (ss *sessionState) getLocalIdentityPublic() *IdentityKey {
 	return NewIdentityKey(ss.SS.GetLocalIdentityPublic())
 }
 
-func (ss *SessionState) SetRemoteIdentityPublic(key *IdentityKey) {
+func (ss *sessionState) setRemoteIdentityPublic(key *IdentityKey) {
 	ss.SS.RemoteIdentityPublic = key.Key()[:]
 }
 
-func (ss *SessionState) GetRemoteIdentityPublic() *IdentityKey {
+func (ss *sessionState) getRemoteIdentityPublic() *IdentityKey {
 	return NewIdentityKey(ss.SS.GetRemoteIdentityPublic())
 }
 
-func (ss *SessionState) SetRootKey(rk *RootKey) {
+func (ss *sessionState) setRootKey(rk *rootKey) {
 	ss.SS.RootKey = rk.Key[:]
 }
 
-func (ss *SessionState) GetRootKey() *RootKey {
-	return NewRootKey(ss.SS.GetRootKey())
+func (ss *sessionState) getRootKey() *rootKey {
+	return newRootKey(ss.SS.GetRootKey())
 }
 
-func (ss *SessionState) SetLocalRegistrationID(id uint32) {
+func (ss *sessionState) setLocalRegistrationID(id uint32) {
 	ss.SS.LocalRegistrationId = &id
 }
 
-func (ss *SessionState) GetLocalRegistrationID() uint32 {
+func (ss *sessionState) getLocalRegistrationID() uint32 {
 	return *ss.SS.LocalRegistrationId
 }
 
-func (ss *SessionState) SetRemoteRegistrationID(id uint32) {
+func (ss *sessionState) setRemoteRegistrationID(id uint32) {
 	ss.SS.RemoteRegistrationId = &id
 }
 
-func (ss *SessionState) GetRemoteRegistrationID() uint32 {
+func (ss *sessionState) getRemoteRegistrationID() uint32 {
 	return *ss.SS.RemoteRegistrationId
 }
 
-func (ss *SessionState) getSenderRatchetKey() *ECPublicKey {
+func (ss *sessionState) getSenderRatchetKey() *ECPublicKey {
 	return NewECPublicKey(ss.SS.GetSenderChain().GetSenderRatchetKey())
 }
 
-func (ss *SessionState) getSenderRatchetKeyPair() *ECKeyPair {
+func (ss *sessionState) getSenderRatchetKeyPair() *ECKeyPair {
 	priv := ss.SS.GetSenderChain().GetSenderRatchetKeyPrivate()
 	pub := ss.SS.GetSenderChain().GetSenderRatchetKey()
 	return MakeECKeyPair(priv, pub)
 }
 
-func (ss *SessionState) hasSenderChain() bool {
+func (ss *sessionState) hasSenderChain() bool {
 	return ss.SS.GetSenderChain() != nil
 }
 
-func (ss *SessionState) hasReceiverChain(senderEphemeral *ECPublicKey) bool {
+func (ss *sessionState) hasReceiverChain(senderEphemeral *ECPublicKey) bool {
 	rc, _ := ss.getReceiverChain(senderEphemeral)
 	return rc != nil
 }
 
-func (ss *SessionState) getReceiverChain(key *ECPublicKey) (*protobuf.SessionStructure_Chain, uint32) {
+func (ss *sessionState) getReceiverChain(key *ECPublicKey) (*protobuf.SessionStructure_Chain, uint32) {
 	for i, rc := range ss.SS.ReceiverChains {
 		if bytes.Equal(key.key[:], rc.GetSenderRatchetKey()) {
 			return rc, uint32(i)
@@ -119,16 +119,16 @@ func (ss *SessionState) getReceiverChain(key *ECPublicKey) (*protobuf.SessionStr
 	return nil, 0
 }
 
-func (ss *SessionState) getReceiverChainKey(senderEphemeral *ECPublicKey) *ChainKey {
+func (ss *sessionState) getReceiverChainKey(senderEphemeral *ECPublicKey) *chainKey {
 	rc, _ := ss.getReceiverChain(senderEphemeral)
 	if rc == nil {
 		return nil
 	}
-	return NewChainKey(rc.GetChainKey().Key, *rc.GetChainKey().Index)
+	return newChainKey(rc.GetChainKey().Key, *rc.GetChainKey().Index)
 
 }
 
-func (ss *SessionState) setReceiverChainKey(senderEphemeral *ECPublicKey, chainKey *ChainKey) {
+func (ss *sessionState) setReceiverChainKey(senderEphemeral *ECPublicKey, chainKey *chainKey) {
 	rc, _ := ss.getReceiverChain(senderEphemeral)
 	rc.ChainKey = &protobuf.SessionStructure_Chain_ChainKey{
 		Index: &chainKey.Index,
@@ -136,7 +136,7 @@ func (ss *SessionState) setReceiverChainKey(senderEphemeral *ECPublicKey, chainK
 	}
 }
 
-func (ss *SessionState) addReceiverChain(senderRatchetKey *ECPublicKey, chainKey *ChainKey) {
+func (ss *sessionState) addReceiverChain(senderRatchetKey *ECPublicKey, chainKey *chainKey) {
 	ck := &protobuf.SessionStructure_Chain_ChainKey{Index: &chainKey.Index,
 		Key: chainKey.Key[:],
 	}
@@ -150,7 +150,7 @@ func (ss *SessionState) addReceiverChain(senderRatchetKey *ECPublicKey, chainKey
 	}
 }
 
-func (ss *SessionState) setSenderChain(kp *ECKeyPair, ck *ChainKey) {
+func (ss *sessionState) setSenderChain(kp *ECKeyPair, ck *chainKey) {
 	ss.SS.SenderChain = &protobuf.SessionStructure_Chain{
 		SenderRatchetKey:        kp.PublicKey.Key()[:],
 		SenderRatchetKeyPrivate: kp.PrivateKey.Key()[:],
@@ -161,19 +161,19 @@ func (ss *SessionState) setSenderChain(kp *ECKeyPair, ck *ChainKey) {
 	}
 }
 
-func (ss *SessionState) getSenderChainKey() *ChainKey {
+func (ss *sessionState) getSenderChainKey() *chainKey {
 	ssck := ss.SS.GetSenderChain().GetChainKey()
-	return NewChainKey(ssck.Key, *ssck.Index)
+	return newChainKey(ssck.Key, *ssck.Index)
 }
 
-func (ss *SessionState) setSenderChainKey(ck *ChainKey) {
+func (ss *sessionState) setSenderChainKey(ck *chainKey) {
 	ss.SS.SenderChain.ChainKey = &protobuf.SessionStructure_Chain_ChainKey{
 		Index: &ck.Index,
 		Key:   ck.Key[:],
 	}
 }
 
-func (ss *SessionState) hasMessageKeys(senderEphemeral *ECPublicKey, counter uint32) bool {
+func (ss *sessionState) hasMessageKeys(senderEphemeral *ECPublicKey, counter uint32) bool {
 	rc, _ := ss.getReceiverChain(senderEphemeral)
 	if rc == nil {
 		return false
@@ -186,7 +186,7 @@ func (ss *SessionState) hasMessageKeys(senderEphemeral *ECPublicKey, counter uin
 	return false
 }
 
-func (ss *SessionState) RemoveMessageKeys(senderEphemeral *ECPublicKey, counter uint32) *MessageKeys {
+func (ss *sessionState) removeMessageKeys(senderEphemeral *ECPublicKey, counter uint32) *messageKeys {
 	rc, _ := ss.getReceiverChain(senderEphemeral)
 	if rc == nil {
 		return nil
@@ -200,13 +200,13 @@ func (ss *SessionState) RemoveMessageKeys(senderEphemeral *ECPublicKey, counter 
 				rc.MessageKeys = rc.MessageKeys[:len(rc.MessageKeys)-1]
 			*/
 			rc.MessageKeys = append(rc.MessageKeys[:i], rc.MessageKeys[i+1:]...)
-			return NewMessageKeys(mk.GetCipherKey(), mk.GetMacKey(), mk.GetIv(), mk.GetIndex())
+			return newMessageKeys(mk.GetCipherKey(), mk.GetMacKey(), mk.GetIv(), mk.GetIndex())
 		}
 	}
 	return nil
 }
 
-func (ss *SessionState) SetMessageKeys(senderEphemeral *ECPublicKey, mk *MessageKeys) {
+func (ss *sessionState) setMessageKeys(senderEphemeral *ECPublicKey, mk *messageKeys) {
 	rc, _ := ss.getReceiverChain(senderEphemeral)
 	sscmk := &protobuf.SessionStructure_Chain_MessageKey{
 		CipherKey: mk.CipherKey,
@@ -224,11 +224,11 @@ type unacknowledgedPreKeyMessageItem struct {
 	baseKey        *ECPublicKey
 }
 
-func (ss *SessionState) hasUnacknowledgedPreKeyMessage() bool {
+func (ss *sessionState) hasUnacknowledgedPreKeyMessage() bool {
 	return ss.SS.GetPendingPreKey() != nil
 }
 
-func (ss *SessionState) getUnacknowledgedPreKeyMessageItems() *unacknowledgedPreKeyMessageItem {
+func (ss *sessionState) getUnacknowledgedPreKeyMessageItems() *unacknowledgedPreKeyMessageItem {
 	preKeyID := uint32(0)
 	ppk := ss.SS.GetPendingPreKey()
 
@@ -239,7 +239,7 @@ func (ss *SessionState) getUnacknowledgedPreKeyMessageItems() *unacknowledgedPre
 	return &unacknowledgedPreKeyMessageItem{preKeyID, ppk.GetSignedPreKeyId(), NewECPublicKey(ppk.GetBaseKey()[1:])}
 }
 
-func (ss *SessionState) SetUnacknowledgedPreKeyMessage(preKeyID uint32, signedPreKeyID int32, ourBaseKey *ECPublicKey) {
+func (ss *sessionState) setUnacknowledgedPreKeyMessage(preKeyID uint32, signedPreKeyID int32, ourBaseKey *ECPublicKey) {
 	ssppk := &protobuf.SessionStructure_PendingPreKey{
 		SignedPreKeyId: &signedPreKeyID,
 		BaseKey:        ourBaseKey.Serialize(),
@@ -250,32 +250,35 @@ func (ss *SessionState) SetUnacknowledgedPreKeyMessage(preKeyID uint32, signedPr
 	ss.SS.PendingPreKey = ssppk
 }
 
-func (ss *SessionState) clearUnacknowledgedPreKeyMessage() {
+func (ss *sessionState) clearUnacknowledgedPreKeyMessage() {
 	ss.SS.PendingPreKey = nil
 }
 
-func (ss *SessionState) Serialize() []byte {
+func (ss *sessionState) serialize() []byte {
 	b, err := proto.Marshal(ss.SS)
 	if err != nil {
-		log.Fatal("Cannot marshal SessionState", err)
+		log.Fatal("Cannot marshal sessionState", err)
 	}
 	return b
 }
 
+// SessionRecord represents a session in persistent store.
 type SessionRecord struct {
-	SessionState   *SessionState
-	PreviousStates []*SessionState
+	sessionState   *sessionState
+	PreviousStates []*sessionState
 	Fresh          bool
 }
 
+// NewSessionRecord creates a new SessionRecord object.
 func NewSessionRecord() *SessionRecord {
 	ss := &protobuf.SessionStructure{}
-	record := &SessionRecord{SessionState: &SessionState{ss},
+	record := &SessionRecord{sessionState: &sessionState{ss},
 		Fresh: true,
 	}
 	return record
 }
 
+// LoadSessionRecord creates a SessionRecord object from serialized bytes.
 func LoadSessionRecord(serialized []byte) *SessionRecord {
 	rs := &protobuf.RecordStructure{}
 
@@ -283,16 +286,17 @@ func LoadSessionRecord(serialized []byte) *SessionRecord {
 	if err != nil {
 		log.Fatal("Cannot unmarshal PreKeyRecord", err)
 	}
-	record := &SessionRecord{SessionState: NewSessionState(rs.CurrentSession)}
+	record := &SessionRecord{sessionState: newSessionState(rs.CurrentSession)}
 	for _, s := range rs.PreviousSessions {
-		record.PreviousStates = append(record.PreviousStates, NewSessionState(s))
+		record.PreviousStates = append(record.PreviousStates, newSessionState(s))
 	}
 	return record
 }
 
+// Serialize saves the state of a SessionRecord object to a byte stream.
 func (record *SessionRecord) Serialize() []byte {
 	rs := &protobuf.RecordStructure{}
-	rs.CurrentSession = record.SessionState.SS
+	rs.CurrentSession = record.sessionState.SS
 	for _, s := range record.PreviousStates {
 		rs.PreviousSessions = append(rs.PreviousSessions, s.SS)
 	}
@@ -304,33 +308,32 @@ func (record *SessionRecord) Serialize() []byte {
 }
 
 func (record *SessionRecord) hasSessionState(version uint32, key []byte) bool {
-	if record.SessionState.GetSessionVersion() == version &&
-		bytes.Equal(key, record.SessionState.GetAliceBaseKey()) {
+	if record.sessionState.getSessionVersion() == version &&
+		bytes.Equal(key, record.sessionState.getAliceBaseKey()) {
 		return true
 	}
 	for _, ss := range record.PreviousStates {
-		if ss.GetSessionVersion() == version &&
-			bytes.Equal(key, ss.GetAliceBaseKey()) {
+		if ss.getSessionVersion() == version &&
+			bytes.Equal(key, ss.getAliceBaseKey()) {
 			return true
 		}
 	}
 	return false
 }
 
-func (record *SessionRecord) PromoteState(promotedState *SessionState) {
-	record.PreviousStates = append([]*SessionState{record.SessionState}, record.PreviousStates...)
+func (record *SessionRecord) promoteState(promotedState *sessionState) {
+	record.PreviousStates = append([]*sessionState{record.sessionState}, record.PreviousStates...)
 	if len(record.PreviousStates) > 40 {
 		record.PreviousStates = record.PreviousStates[:len(record.PreviousStates)-1]
 	}
-	record.SessionState = promotedState
+	record.sessionState = promotedState
 }
 
-func (record *SessionRecord) ArchiveCurrentState() {
-	record.PromoteState(NewSessionState(&protobuf.SessionStructure{}))
+func (record *SessionRecord) archiveCurrentState() {
+	record.promoteState(newSessionState(&protobuf.SessionStructure{}))
 }
 
-// SessionBuilder takes care of creating the sessions
-
+// SessionBuilder takes care of creating the sessions.
 type SessionBuilder struct {
 	identityStore     IdentityStore
 	preKeyStore       PreKeyStore
@@ -340,6 +343,7 @@ type SessionBuilder struct {
 	deviceID          uint32
 }
 
+// NewSessionBuilder creates a new session builder object.
 func NewSessionBuilder(identityStore IdentityStore, preKeyStore PreKeyStore, signedPreKeyStore SignedPreKeyStore, sessionStore SessionStore, recipientID string, deviceID uint32) *SessionBuilder {
 	return &SessionBuilder{
 		identityStore:     identityStore,
@@ -355,8 +359,11 @@ func notTrusted(id string) {
 	log.Printf("Identity of remote %s is not trusted, it may have reinstalled\n. For now delete the file .storage/identity/remote_%s to approve.\n", id, id)
 }
 
+// ErrNotTrusted represents the error situation where the peer
+// is using a different identity key than expected.
 var ErrNotTrusted = errors.New("Remote identity not trusted")
 
+// BuildReceiverSession creates a new session from a received PreKeyWhisperMessage.
 func (sb *SessionBuilder) BuildReceiverSession(sr *SessionRecord, pkwm *PreKeyWhisperMessage) (uint32, error) {
 	if pkwm.Version != currentVersion {
 		return 0, fmt.Errorf("Unsupported version %d", pkwm.Version)
@@ -370,37 +377,38 @@ func (sb *SessionBuilder) BuildReceiverSession(sr *SessionRecord, pkwm *PreKeyWh
 		return 0, nil
 	}
 	ourSignedPreKey, _ := sb.signedPreKeyStore.LoadSignedPreKey(pkwm.SignedPreKeyID)
-	bob := BobAxolotlParameters{
+	bob := bobAxolotlParameters{
 		TheirBaseKey:    pkwm.BaseKey,
 		TheirIdentity:   pkwm.IdentityKey,
 		OurIdentityKey:  sb.identityStore.GetIdentityKeyPair(),
-		OurSignedPreKey: ourSignedPreKey.GetKeyPair(),
-		OurRatchetKey:   ourSignedPreKey.GetKeyPair(),
+		OurSignedPreKey: ourSignedPreKey.getKeyPair(),
+		OurRatchetKey:   ourSignedPreKey.getKeyPair(),
 	}
 	if pkwm.PreKeyID != 0 {
 		pk, err := sb.preKeyStore.LoadPreKey(pkwm.PreKeyID)
 		if err != nil {
 			return 0, fmt.Errorf("key not found %d", pkwm.PreKeyID)
 		}
-		bob.OurOneTimePreKey = pk.GetKeyPair()
+		bob.OurOneTimePreKey = pk.getKeyPair()
 	}
 	if !sr.Fresh {
-		sr.ArchiveCurrentState()
+		sr.archiveCurrentState()
 	}
-	err := InitializeReceiverSession(sr.SessionState, pkwm.Version, bob)
+	err := initializeReceiverSession(sr.sessionState, pkwm.Version, bob)
 	if err != nil {
 		return 0, err
 	}
 
-	sr.SessionState.SetLocalRegistrationID(sb.identityStore.GetLocalRegistrationID())
-	sr.SessionState.SetRemoteRegistrationID(pkwm.RegistrationID)
-	sr.SessionState.setAliceBaseKey(pkwm.BaseKey.Serialize())
+	sr.sessionState.setLocalRegistrationID(sb.identityStore.GetLocalRegistrationID())
+	sr.sessionState.setRemoteRegistrationID(pkwm.RegistrationID)
+	sr.sessionState.setAliceBaseKey(pkwm.BaseKey.Serialize())
 
 	sb.identityStore.SaveIdentity(sb.recipientID, theirIdentityKey)
 
 	return pkwm.PreKeyID, nil
 }
 
+// BuildSenderSession creates a new session from a PreKeyBundle
 func (sb *SessionBuilder) BuildSenderSession(pkb *PreKeyBundle) error {
 	theirIdentityKey := pkb.IdentityKey
 	if !sb.identityStore.IsTrustedIdentity(sb.recipientID, theirIdentityKey) {
@@ -418,7 +426,7 @@ func (sb *SessionBuilder) BuildSenderSession(pkb *PreKeyBundle) error {
 	theirOneTimePreKey := pkb.PreKeyPublic
 	theirOneTimePreKeyID := pkb.PreKeyID
 
-	alice := AliceAxolotlParameters{
+	alice := aliceAxolotlParameters{
 		OurBaseKey:         ourBaseKey,
 		OurIdentityKey:     sb.identityStore.GetIdentityKeyPair(),
 		TheirIdentity:      pkb.IdentityKey,
@@ -428,24 +436,25 @@ func (sb *SessionBuilder) BuildSenderSession(pkb *PreKeyBundle) error {
 	}
 
 	if !sr.Fresh {
-		sr.ArchiveCurrentState()
+		sr.archiveCurrentState()
 	}
 
-	err := InitializeSenderSession(sr.SessionState, 3, alice)
+	err := initializeSenderSession(sr.sessionState, 3, alice)
 	if err != nil {
 		return err
 	}
 
-	sr.SessionState.SetUnacknowledgedPreKeyMessage(theirOneTimePreKeyID, pkb.SignedPreKeyID, &ourBaseKey.PublicKey)
-	sr.SessionState.SetLocalRegistrationID(sb.identityStore.GetLocalRegistrationID())
-	sr.SessionState.SetRemoteRegistrationID(pkb.RegistrationID)
-	sr.SessionState.setAliceBaseKey(ourBaseKey.PublicKey.Serialize())
+	sr.sessionState.setUnacknowledgedPreKeyMessage(theirOneTimePreKeyID, pkb.SignedPreKeyID, &ourBaseKey.PublicKey)
+	sr.sessionState.setLocalRegistrationID(sb.identityStore.GetLocalRegistrationID())
+	sr.sessionState.setRemoteRegistrationID(pkb.RegistrationID)
+	sr.sessionState.setAliceBaseKey(ourBaseKey.PublicKey.Serialize())
 
 	sb.sessionStore.StoreSession(sb.recipientID, sb.deviceID, sr)
 	sb.identityStore.SaveIdentity(sb.recipientID, theirIdentityKey)
 	return nil
 }
 
+// SessionCipher represents a peer and its persistent stored session.
 type SessionCipher struct {
 	RecipientID  string
 	DeviceID     uint32
@@ -454,6 +463,7 @@ type SessionCipher struct {
 	Builder      *SessionBuilder
 }
 
+// NewSessionCipher creates a new session cipher.
 func NewSessionCipher(identityStore IdentityStore, preKeyStore PreKeyStore, signedPreKeyStore SignedPreKeyStore, sessionStore SessionStore, recipientID string, deviceID uint32) *SessionCipher {
 	return &SessionCipher{
 		RecipientID:  recipientID,
@@ -464,36 +474,38 @@ func NewSessionCipher(identityStore IdentityStore, preKeyStore PreKeyStore, sign
 	}
 }
 
+// SessionEncryptMessage encrypts a given plaintext in a WhisperMessage or a PreKeyWhisperMessage,
+// depending on whether there a session with the peer exists or needs to be established.
 func (sc *SessionCipher) SessionEncryptMessage(plaintext []byte) ([]byte, int32, error) {
 	sr := sc.SessionStore.LoadSession(sc.RecipientID, sc.DeviceID)
-	ss := sr.SessionState
+	ss := sr.sessionState
 	chainKey := ss.getSenderChainKey()
-	messageKeys, err := chainKey.GetMessageKeys()
+	messageKeys, err := chainKey.getMessageKeys()
 	if err != nil {
 		return nil, 0, err
 	}
 	senderEphemeral := ss.getSenderRatchetKey()
-	previousCounter := ss.GetPreviousCounter()
+	previousCounter := ss.getPreviousCounter()
 	ciphertext := Encrypt(messageKeys.CipherKey, messageKeys.Iv, plaintext)
-	version := ss.GetSessionVersion()
+	version := ss.getSessionVersion()
 
-	wm, err := NewWhisperMessage(byte(version), messageKeys.MacKey, senderEphemeral, chainKey.Index,
-		previousCounter, ciphertext, ss.GetLocalIdentityPublic(), ss.GetRemoteIdentityPublic())
+	wm, err := newWhisperMessage(byte(version), messageKeys.MacKey, senderEphemeral, chainKey.Index,
+		previousCounter, ciphertext, ss.getLocalIdentityPublic(), ss.getRemoteIdentityPublic())
 	if err != nil {
 		return nil, 0, err
 	}
-	msg := wm.Serialize()
+	msg := wm.serialize()
 	msgType := int32(1) // textsecure.IncomingPushMessageSignal_CIPHERTEXT
 
 	if ss.hasUnacknowledgedPreKeyMessage() {
 		items := ss.getUnacknowledgedPreKeyMessageItems()
-		pkwm, err := NewPreKeyWhisperMessage(byte(version), ss.GetLocalRegistrationID(),
+		pkwm, err := newPreKeyWhisperMessage(byte(version), ss.getLocalRegistrationID(),
 			items.preKeyID, uint32(items.signedPreKeyID), items.baseKey,
-			ss.GetLocalIdentityPublic(), wm)
+			ss.getLocalIdentityPublic(), wm)
 		if err != nil {
 			return nil, 0, nil
 		}
-		msg = pkwm.Serialize()
+		msg = pkwm.serialize()
 		msgType = int32(3) // textsecure.IncomingPushMessageSignal_PREKEY_BUNDLE
 	}
 
@@ -503,18 +515,19 @@ func (sc *SessionCipher) SessionEncryptMessage(plaintext []byte) ([]byte, int32,
 	return msg, msgType, nil
 }
 
+// GetRemoteRegistrationID returns the registration ID of the peer.
 func (sc *SessionCipher) GetRemoteRegistrationID() uint32 {
 	sr := sc.SessionStore.LoadSession(sc.RecipientID, sc.DeviceID)
-	return sr.SessionState.GetRemoteRegistrationID()
+	return sr.sessionState.getRemoteRegistrationID()
 }
 
 func (sc *SessionCipher) decrypt(sr *SessionRecord, ciphertext *WhisperMessage) ([]byte, error) {
-	ss := sr.SessionState
+	ss := sr.sessionState
 	if !ss.hasSenderChain() {
 		return nil, errors.New("Uninitialized session")
 	}
-	if uint32(ciphertext.Version) != ss.GetSessionVersion() {
-		return nil, fmt.Errorf("Cipher version %d does not match session version %d", ciphertext.Version, ss.GetSessionVersion())
+	if uint32(ciphertext.Version) != ss.getSessionVersion() {
+		return nil, fmt.Errorf("Cipher version %d does not match session version %d", ciphertext.Version, ss.getSessionVersion())
 	}
 
 	theirEphemeral := ciphertext.RatchetKey
@@ -528,7 +541,7 @@ func (sc *SessionCipher) decrypt(sr *SessionRecord, ciphertext *WhisperMessage) 
 		return nil, err
 	}
 
-	ciphertext.VerifyMAC(ss.GetRemoteIdentityPublic(), ss.GetLocalIdentityPublic(), messageKeys.MacKey)
+	ciphertext.verifyMAC(ss.getRemoteIdentityPublic(), ss.getLocalIdentityPublic(), messageKeys.MacKey)
 
 	plaintext := Decrypt(messageKeys.CipherKey, append(messageKeys.Iv, ciphertext.Ciphertext...))
 
@@ -537,6 +550,7 @@ func (sc *SessionCipher) decrypt(sr *SessionRecord, ciphertext *WhisperMessage) 
 	return plaintext, nil
 }
 
+// SessionDecryptWhisperMessage decrypts an incoming message.
 func (sc *SessionCipher) SessionDecryptWhisperMessage(ciphertext *WhisperMessage) ([]byte, error) {
 	sr := sc.SessionStore.LoadSession(sc.RecipientID, sc.DeviceID)
 	plaintext, err := sc.decrypt(sr, ciphertext)
@@ -547,6 +561,7 @@ func (sc *SessionCipher) SessionDecryptWhisperMessage(ciphertext *WhisperMessage
 	return plaintext, nil
 }
 
+// SessionDecryptPreKeyWhisperMessage decrypts an incoming message.
 func (sc *SessionCipher) SessionDecryptPreKeyWhisperMessage(ciphertext *PreKeyWhisperMessage) ([]byte, error) {
 	sr := sc.SessionStore.LoadSession(sc.RecipientID, sc.DeviceID)
 	pkid, err := sc.Builder.BuildReceiverSession(sr, ciphertext)
@@ -564,39 +579,39 @@ func (sc *SessionCipher) SessionDecryptPreKeyWhisperMessage(ciphertext *PreKeyWh
 	return plaintext, nil
 }
 
-func getOrCreateChainKey(ss *SessionState, theirEphemeral *ECPublicKey) (*ChainKey, error) {
+func getOrCreateChainKey(ss *sessionState, theirEphemeral *ECPublicKey) (*chainKey, error) {
 	if ss.hasReceiverChain(theirEphemeral) {
 		return ss.getReceiverChainKey(theirEphemeral), nil
 	}
 
-	rootKey := ss.GetRootKey()
+	rootKey := ss.getRootKey()
 	ourEphemeral := ss.getSenderRatchetKeyPair()
-	receiverChain, err := rootKey.CreateChain(theirEphemeral, ourEphemeral)
+	receiverChain, err := rootKey.createChain(theirEphemeral, ourEphemeral)
 	if err != nil {
 		return nil, err
 	}
 
 	ourNewEphemeral := NewECKeyPair()
-	senderChain, err := receiverChain.RootKey.CreateChain(theirEphemeral, ourNewEphemeral)
+	senderChain, err := receiverChain.rootKey.createChain(theirEphemeral, ourNewEphemeral)
 	if err != nil {
 		return nil, err
 	}
 
-	ss.SetRootKey(&senderChain.RootKey)
-	ss.addReceiverChain(theirEphemeral, &receiverChain.ChainKey)
+	ss.setRootKey(&senderChain.rootKey)
+	ss.addReceiverChain(theirEphemeral, &receiverChain.chainKey)
 	pc := ss.getSenderChainKey().Index
 	if pc > 0 {
 		pc--
 	}
-	ss.SetPreviousCounter(pc)
-	ss.setSenderChain(ourNewEphemeral, &senderChain.ChainKey)
-	return &receiverChain.ChainKey, nil
+	ss.setPreviousCounter(pc)
+	ss.setSenderChain(ourNewEphemeral, &senderChain.chainKey)
+	return &receiverChain.chainKey, nil
 }
 
-func getOrCreateMessageKeys(ss *SessionState, theirEphemeral *ECPublicKey, chainKey *ChainKey, counter uint32) (*MessageKeys, error) {
+func getOrCreateMessageKeys(ss *sessionState, theirEphemeral *ECPublicKey, chainKey *chainKey, counter uint32) (*messageKeys, error) {
 	if chainKey.Index > counter {
 		if ss.hasMessageKeys(theirEphemeral, counter) {
-			return ss.RemoveMessageKeys(theirEphemeral, counter), nil
+			return ss.removeMessageKeys(theirEphemeral, counter), nil
 		}
 		return nil, fmt.Errorf("Duplicate message: expected %d, got %d", chainKey.Index, counter)
 	}
@@ -604,14 +619,14 @@ func getOrCreateMessageKeys(ss *SessionState, theirEphemeral *ECPublicKey, chain
 		return nil, errors.New("Over 2000 messages in the future")
 	}
 	for chainKey.Index < counter {
-		messageKeys, err := chainKey.GetMessageKeys()
+		messageKeys, err := chainKey.getMessageKeys()
 		if err != nil {
 			return nil, err
 		}
-		ss.SetMessageKeys(theirEphemeral, messageKeys)
+		ss.setMessageKeys(theirEphemeral, messageKeys)
 		chainKey = chainKey.getNextChainKey()
 	}
 
 	ss.setReceiverChainKey(theirEphemeral, chainKey.getNextChainKey())
-	return chainKey.GetMessageKeys()
+	return chainKey.getMessageKeys()
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
+// WhisperMessage represents the encrypted message format used in TextSecure.
 type WhisperMessage struct {
 	Version         byte
 	RatchetKey      *ECPublicKey
@@ -34,6 +35,7 @@ func makeVersionByte(hi, lo byte) byte {
 	return (hi << 4) | lo
 }
 
+// LoadWhisperMessage creates a WhisperMessage from serialized bytes.
 func LoadWhisperMessage(serialized []byte) (*WhisperMessage, error) {
 	version := highBitsToInt(serialized[0])
 	message := serialized[1 : len(serialized)-macLength]
@@ -63,7 +65,7 @@ func LoadWhisperMessage(serialized []byte) (*WhisperMessage, error) {
 	return wm, nil
 }
 
-func NewWhisperMessage(messageVersion byte, macKey []byte, ratchetKey *ECPublicKey,
+func newWhisperMessage(messageVersion byte, macKey []byte, ratchetKey *ECPublicKey,
 	counter, previousCounter uint32, ciphertext []byte,
 	senderIdentity, receiverIdentity *IdentityKey) (*WhisperMessage, error) {
 
@@ -108,7 +110,7 @@ func getMac(version byte, senderIdentity, receiverIdentity *IdentityKey, macKey,
 	return ComputeTruncatedMAC(msg, macKey, macLength)
 }
 
-func (wm *WhisperMessage) VerifyMAC(senderIdentity, receiverIdentity *IdentityKey, macKey []byte) bool {
+func (wm *WhisperMessage) verifyMAC(senderIdentity, receiverIdentity *IdentityKey, macKey []byte) bool {
 	macpos := len(wm.serialized) - macLength
 
 	ourMAC := getMac(wm.Version, senderIdentity, receiverIdentity, macKey, wm.serialized[:macpos])
@@ -116,10 +118,12 @@ func (wm *WhisperMessage) VerifyMAC(senderIdentity, receiverIdentity *IdentityKe
 	return hmac.Equal(ourMAC, theirMAC)
 }
 
-func (wm *WhisperMessage) Serialize() []byte {
+func (wm *WhisperMessage) serialize() []byte {
 	return wm.serialized
 }
 
+// PreKeyWhisperMessage represents a WhisperMessage and additional prekey
+// metadata used for the initial handshake in a conversation.
 type PreKeyWhisperMessage struct {
 	Version        byte
 	RegistrationID uint32
@@ -131,6 +135,7 @@ type PreKeyWhisperMessage struct {
 	serialized     []byte
 }
 
+// LoadPreKeyWhisperMessage creates a PreKeyWhisperMessage from serialized bytes.
 func LoadPreKeyWhisperMessage(serialized []byte) (*PreKeyWhisperMessage, error) {
 	version := highBitsToInt(serialized[0])
 
@@ -169,7 +174,7 @@ func LoadPreKeyWhisperMessage(serialized []byte) (*PreKeyWhisperMessage, error) 
 	return pkwm, nil
 }
 
-func NewPreKeyWhisperMessage(messageVersion byte, registrationID, preKeyID, signedPreKeyID uint32, baseKey *ECPublicKey, identityKey *IdentityKey, wm *WhisperMessage) (*PreKeyWhisperMessage, error) {
+func newPreKeyWhisperMessage(messageVersion byte, registrationID, preKeyID, signedPreKeyID uint32, baseKey *ECPublicKey, identityKey *IdentityKey, wm *WhisperMessage) (*PreKeyWhisperMessage, error) {
 
 	ppkwm := &protobuf.PreKeyWhisperMessage{
 		RegistrationId: &registrationID,
@@ -177,7 +182,7 @@ func NewPreKeyWhisperMessage(messageVersion byte, registrationID, preKeyID, sign
 		SignedPreKeyId: &signedPreKeyID,
 		BaseKey:        baseKey.Serialize(),
 		IdentityKey:    identityKey.Serialize(),
-		Message:        wm.Serialize(),
+		Message:        wm.serialize(),
 	}
 
 	message, err := proto.Marshal(ppkwm)
@@ -199,6 +204,6 @@ func NewPreKeyWhisperMessage(messageVersion byte, registrationID, preKeyID, sign
 	return pkwm, nil
 }
 
-func (pkwm *PreKeyWhisperMessage) Serialize() []byte {
+func (pkwm *PreKeyWhisperMessage) serialize() []byte {
 	return pkwm.serialized
 }
