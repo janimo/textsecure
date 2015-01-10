@@ -75,6 +75,34 @@ func uploadAttachment(r io.Reader, ct string) (*att, error) {
 	return &att{id, ct, keys}, nil
 }
 
+func handleSingleAttachment(a *textsecure.PushMessageContent_AttachmentPointer) ([]byte, error) {
+	loc, err := getAttachmentLocation(*a.Id)
+	if err != nil {
+		return nil, err
+	}
+	r, err := getAttachment(loc)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	b, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+
+	l := len(b) - 32
+	if !verifyMAC(a.Key[32:], b[:l], b[l:]) {
+		return nil, errors.New("Invalid MAC on attachment")
+	}
+
+	b, err = aesDecrypt(a.Key[:32], b[:l])
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+
 func handleAttachments(pmc *textsecure.PushMessageContent) ([][]byte, error) {
 	atts := pmc.GetAttachments()
 	if atts == nil {
@@ -82,33 +110,12 @@ func handleAttachments(pmc *textsecure.PushMessageContent) ([][]byte, error) {
 	}
 
 	all := make([][]byte, len(atts))
-
+	var err error
 	for i, a := range atts {
-		loc, err := getAttachmentLocation(*a.Id)
+		all[i], err = handleSingleAttachment(a)
 		if err != nil {
 			return nil, err
 		}
-		r, err := getAttachment(loc)
-		if err != nil {
-			return nil, err
-		}
-		defer r.Close()
-
-		b, err := ioutil.ReadAll(r)
-		if err != nil {
-			return nil, err
-		}
-
-		l := len(b) - 32
-		if !verifyMAC(a.Key[32:], b[:l], b[l:]) {
-			return nil, errors.New("Invalid MAC on attachment")
-		}
-
-		b, err = aesDecrypt(a.Key[:32], b[:l])
-		if err != nil {
-			return nil, err
-		}
-		all[i] = b
 	}
 	return all, nil
 }
