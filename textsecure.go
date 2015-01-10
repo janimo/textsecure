@@ -8,7 +8,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"mime"
 	"os"
@@ -241,44 +240,6 @@ func handleReceipt(ipms *textsecure.IncomingPushMessageSignal) {
 
 func recID(source string) string {
 	return source[1:]
-}
-
-func handleAttachments(pmc *textsecure.PushMessageContent) ([][]byte, error) {
-	atts := pmc.GetAttachments()
-	if atts == nil {
-		return nil, nil
-	}
-
-	all := make([][]byte, len(atts))
-
-	for i, a := range atts {
-		loc, err := getAttachmentLocation(*a.Id)
-		if err != nil {
-			return nil, err
-		}
-		r, err := getAttachment(loc)
-		if err != nil {
-			return nil, err
-		}
-		defer r.Close()
-
-		b, err := ioutil.ReadAll(r)
-		if err != nil {
-			return nil, err
-		}
-
-		l := len(b) - 32
-		if !verifyMAC(a.Key[32:], b[:l], b[l:]) {
-			return nil, errors.New("Invalid MAC on attachment")
-		}
-
-		b, err = aesDecrypt(a.Key[:32], b[:l])
-		if err != nil {
-			return nil, err
-		}
-		all[i] = b
-	}
-	return all, nil
 }
 
 // handleMessageBody unmarshals the message and calls the client callbacks
