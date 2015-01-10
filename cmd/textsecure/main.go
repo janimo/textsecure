@@ -18,6 +18,7 @@ import (
 var (
 	echo       bool
 	to         string
+	group      bool
 	message    string
 	attachment string
 )
@@ -25,6 +26,7 @@ var (
 func init() {
 	flag.BoolVar(&echo, "echo", false, "Act as an echo service")
 	flag.StringVar(&to, "to", "", "Contact name to send the message to")
+	flag.BoolVar(&group, "group", false, "Destination is a group")
 	flag.StringVar(&message, "message", "", "Single message to send, then exit")
 	flag.StringVar(&attachment, "attachment", "", "File to attach")
 }
@@ -46,13 +48,18 @@ func getStoragePassword() string {
 }
 
 // conversationLoop sends messages read from the console
-func conversationLoop() {
+func conversationLoop(isGroup bool) {
 	for {
 		message := textsecure.ConsoleReadLine(fmt.Sprintf("%s>", blue))
 		if message == "" {
 			continue
 		}
-		err := textsecure.SendMessage(to, message)
+		var err error
+		if isGroup {
+			err = textsecure.SendGroupMessage(to, message)
+		} else {
+			err = textsecure.SendMessage(to, message)
+		}
 		if err != nil {
 			log.Println(err)
 		}
@@ -61,6 +68,10 @@ func conversationLoop() {
 
 func messageHandler(msg *textsecure.Message) {
 	if echo {
+		if msg.Group() != "" {
+			textsecure.SendGroupMessage(msg.Group(), msg.Message())
+			return
+		}
 		err := textsecure.SendMessage(msg.Source(), msg.Message())
 		if err != nil {
 			log.Println(err)
@@ -69,7 +80,7 @@ func messageHandler(msg *textsecure.Message) {
 	}
 
 	if msg.Message() != "" {
-		fmt.Printf("\r                                               %s%s : %s%s%s\n>", red, getName(msg.Source()), green, msg.Message(), blue)
+		fmt.Printf("\r                                               %s%s : %s%s%s\n>", red, pretty(msg), green, msg.Message(), blue)
 	}
 
 	for _, a := range msg.Attachments() {
@@ -79,7 +90,12 @@ func messageHandler(msg *textsecure.Message) {
 	// if no peer was specified on the command line, start a conversation with the first one contacting us
 	if to == "" {
 		to = msg.Source()
-		go conversationLoop()
+		isGroup := false
+		if msg.Group() != "" {
+			isGroup = true
+			to = msg.Group()
+		}
+		go conversationLoop(isGroup)
 	}
 }
 
@@ -92,6 +108,14 @@ func handleAttachment(src string, b []byte) {
 	log.Printf("Saving attachment of length %d from %s to %s", len(b), src, f.Name())
 	f.Write(b)
 
+}
+
+func pretty(msg *textsecure.Message) string {
+	m := getName(msg.Source())
+	if msg.Group() != "" {
+		m = m + "[" + msg.Group() + "]"
+	}
+	return m
 }
 
 // getName returns the local contact name corresponding to a phone number,
@@ -158,7 +182,7 @@ func main() {
 			}
 
 			// Enter conversation mode
-			go conversationLoop()
+			go conversationLoop(false)
 		}
 	}
 
