@@ -307,7 +307,10 @@ func handleReceivedMessage(msg []byte) error {
 		if err != nil {
 			return err
 		}
-		handleMessageBody(ipms.GetSource(), b)
+		err = handleMessageBody(ipms.GetSource(), b)
+		if err != nil {
+			return err
+		}
 
 	case textsecure.IncomingPushMessageSignal_PLAINTEXT:
 		pmc := &textsecure.PushMessageContent{}
@@ -324,7 +327,10 @@ func handleReceivedMessage(msg []byte) error {
 		if err != nil {
 			return err
 		}
-		handleMessageBody(ipms.GetSource(), b)
+		err = handleMessageBody(ipms.GetSource(), b)
+		if err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("Not implemented %d", *ipms.Type)
 	}
