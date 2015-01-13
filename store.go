@@ -19,6 +19,10 @@ import (
 
 //FIXME: too manic panic calls, bubble up errors
 
+var (
+	storageDir string
+)
+
 // store implements the PreKeyStore, SignedPreKeyStore,
 // IdentityStore and SessionStore interfaces from the axolotl package
 // Blobs are encrypted with AES-128 and authenticated with HMAC-SHA1
@@ -28,9 +32,9 @@ type store struct {
 	identityDir      string
 	sessionsDir      string
 
-	insecure bool //If the user-supplied password is empty, the store is unencrypted
-	aesKey   []byte
-	macKey   []byte
+	unencrypted bool
+	aesKey      []byte
+	macKey      []byte
 }
 
 func newStore(password, path string) (*store, error) {
@@ -39,7 +43,7 @@ func newStore(password, path string) (*store, error) {
 		signedPreKeysDir: filepath.Join(path, "signed_prekeys"),
 		identityDir:      filepath.Join(path, "identity"),
 		sessionsDir:      filepath.Join(path, "sessions"),
-		insecure:         password == "",
+		unencrypted:      password == "",
 	}
 
 	// Create dirs in case this is first run
@@ -49,7 +53,7 @@ func newStore(password, path string) (*store, error) {
 	os.MkdirAll(ts.sessionsDir, 0700)
 
 	// If there is a password, generate the keys from it
-	if !ts.insecure {
+	if !ts.unencrypted {
 		salt := make([]byte, 8)
 		saltFile := filepath.Join(path, "salt")
 
@@ -114,7 +118,7 @@ func (s *store) genKeys(password string, salt []byte, count int) {
 }
 
 func (s *store) encrypt(plaintext []byte) ([]byte, error) {
-	if s.insecure {
+	if s.unencrypted {
 		return plaintext, nil
 	}
 
@@ -122,7 +126,7 @@ func (s *store) encrypt(plaintext []byte) ([]byte, error) {
 }
 
 func (s *store) decrypt(ciphertext []byte) ([]byte, error) {
-	if s.insecure {
+	if s.unencrypted {
 		return ciphertext, nil
 	}
 	return aesDecrypt(s.aesKey, ciphertext)
@@ -368,11 +372,25 @@ func (s *store) DeleteAllSessions(recipientID string) {
 
 var textSecureStore *store
 
-func setupStore(password string) {
+func setupStore() error {
 	var err error
-	textSecureStore, err = newStore(password, storageDir)
-	if err != nil {
-		panic(err)
+	storageDir = filepath.Join(client.RootDir, ".storage")
+
+	password := ""
+	if !config.UnencryptedStorage {
+		password = config.StoragePassword
+		if password == "" {
+			if client.GetStoragePassword != nil {
+				password = client.GetStoragePassword()
+			} else {
+				password = readLine("Enter store password (empty for unencrypted storage):")
+			}
+		}
 	}
 
+	textSecureStore, err = newStore(password, storageDir)
+	if err != nil {
+		return err
+	}
+	return nil
 }

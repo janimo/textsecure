@@ -21,12 +21,6 @@ import (
 	"github.com/janimo/textsecure/protobuf"
 )
 
-var (
-	storageDir string
-	configDir  string
-	configFile string
-)
-
 // Generate a random 16 byte string used for HTTP Basic Authentication to the server
 func generatePassword() string {
 	b := make([]byte, 16)
@@ -84,8 +78,6 @@ func decodeSignature(s string) []byte {
 	}
 	return b
 }
-
-var config *Config
 
 func needsRegistration() bool {
 	return !textSecureStore.valid()
@@ -149,37 +141,34 @@ func (m *Message) Group() string {
 
 // Client contains application specific data and callbacks.
 type Client struct {
-	RootDir          string
-	ReadLine         func(string) string
-	GetConfig        func() *Config
-	GetLocalContacts func() ([]Contact, error)
-	MessageHandler   func(*Message)
+	RootDir            string
+	ReadLine           func(string) string
+	GetStoragePassword func() string
+	GetConfig          func() (*Config, error)
+	GetLocalContacts   func() ([]Contact, error)
+	MessageHandler     func(*Message)
 }
 
-var client *Client
+var (
+	config *Config
+	client *Client
+)
 
 // Setup initializes the package.
-func Setup(c *Client) {
+func Setup(c *Client) error {
 	var err error
 
 	client = c
 
-	configDir = filepath.Join(client.RootDir, ".config")
-	storageDir = filepath.Join(client.RootDir, ".storage")
-
-	configFile = filepath.Join(configDir, "config.yml")
-	config, err = readConfig(configFile)
+	config, err = loadConfig()
 	if err != nil {
-		log.Panic(err)
+		return err
 	}
 
-	//get password from config file (development only!), if empty read it from the command line
-	password := config.StoragePassword
-	if password == "" {
-		password = readLine("Enter store password (empty for unencrypted store):")
+	err = setupStore()
+	if err != nil {
+		return err
 	}
-
-	setupStore(password)
 
 	if needsRegistration() {
 		registrationInfo.registrationID = generateRegistrationID()
@@ -197,7 +186,7 @@ func Setup(c *Client) {
 		setupTransporter()
 		err := registerDevice()
 		if err != nil {
-			log.Fatalf("Coult not register device: %s\n", err)
+			return err
 		}
 	}
 	registrationInfo.registrationID = textSecureStore.GetLocalRegistrationID()
@@ -205,6 +194,7 @@ func Setup(c *Client) {
 	registrationInfo.signalingKey = textSecureStore.loadHTTPSignalingKey()
 	setupTransporter()
 	identityKey = textSecureStore.GetIdentityKeyPair()
+	return nil
 }
 
 func registerDevice() error {
