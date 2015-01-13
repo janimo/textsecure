@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/janimo/textsecure"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 // Simple command line test app for TextSecure.
@@ -33,6 +34,16 @@ var (
 	green = "\x1b[32m"
 	blue  = "\x1b[34m"
 )
+
+func getStoragePassword() string {
+	fmt.Printf("Input storage password>")
+	password, err := terminal.ReadPassword(0)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println()
+	return string(password)
+}
 
 // conversationLoop sends messages read from the console
 func conversationLoop() {
@@ -98,11 +109,15 @@ func main() {
 	flag.Parse()
 	log.SetFlags(0)
 	client := &textsecure.Client{
-		RootDir:        ".",
-		ReadLine:       textsecure.ConsoleReadLine,
-		MessageHandler: messageHandler,
+		RootDir:            ".",
+		ReadLine:           textsecure.ConsoleReadLine,
+		GetStoragePassword: getStoragePassword,
+		MessageHandler:     messageHandler,
 	}
-	textsecure.Setup(client)
+	err := textsecure.Setup(client)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	if !echo {
 		contacts, err := textsecure.GetRegisteredContacts()
@@ -147,7 +162,7 @@ func main() {
 		}
 	}
 
-	err := textsecure.ListenForMessages()
+	err = textsecure.ListenForMessages()
 	if err != nil {
 		log.Println(err)
 	}
