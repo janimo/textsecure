@@ -3,7 +3,7 @@
 
 package axolotl
 
-// IdentityStore provides an interface to identity information
+// IdentityStore provides an interface to identity information.
 type IdentityStore interface {
 	GetIdentityKeyPair() *IdentityKeyPair
 	GetLocalRegistrationID() uint32
@@ -11,7 +11,7 @@ type IdentityStore interface {
 	IsTrustedIdentity(string, *IdentityKey) bool
 }
 
-// PreKeyStore provides an interface to accessing the local prekeys
+// PreKeyStore provides an interface to accessing the local prekeys.
 type PreKeyStore interface {
 	LoadPreKey(uint32) (*PreKeyRecord, error)
 	StorePreKey(uint32, *PreKeyRecord)
@@ -19,7 +19,7 @@ type PreKeyStore interface {
 	RemovePreKey(uint32)
 }
 
-// SignedPreKeyStore provides an interface to accessing the local signed prekeys
+// SignedPreKeyStore provides an interface to accessing the local signed prekeys.
 type SignedPreKeyStore interface {
 	LoadSignedPreKey(uint32) (*SignedPreKeyRecord, error)
 	LoadSignedPreKeys() []SignedPreKeyRecord
@@ -28,6 +28,7 @@ type SignedPreKeyStore interface {
 	RemoveSignedPreKey(uint32)
 }
 
+// SessionStore provides an interface to accessing the local session records.
 type SessionStore interface {
 	LoadSession(string, uint32) *SessionRecord
 	GetSubDeviceSessions(string) []uint32

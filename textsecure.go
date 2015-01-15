@@ -114,8 +114,8 @@ func SendFileAttachment(tel, msg string, path string) error {
 	return nil
 }
 
-// Message represents a message received from the peer
-// it can optionally include attachments and be sent to a group
+// Message represents a message received from the peer.
+// It can optionally include attachments and be sent to a group.
 type Message struct {
 	source      string
 	message     string
@@ -123,18 +123,22 @@ type Message struct {
 	group       string
 }
 
+// Source returns the ID of the sender of the message.
 func (m *Message) Source() string {
 	return m.source
 }
 
+// Message returns the message body.
 func (m *Message) Message() string {
 	return m.message
 }
 
+// Attachments returns the list of attachments on the message.
 func (m *Message) Attachments() [][]byte {
 	return m.attachments
 }
 
+// Group returns the group name or empty.
 func (m *Message) Group() string {
 	return m.group
 }
