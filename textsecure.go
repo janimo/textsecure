@@ -87,7 +87,7 @@ var identityKey *axolotl.IdentityKeyPair
 
 // SendMessage sends the given text message to the given contact.
 func SendMessage(tel, msg string) error {
-	err := sendMessage(tel, msg)
+	err := sendMessage(tel, msg, nil, nil)
 	if err != nil {
 		return err
 	}
@@ -107,7 +107,7 @@ func SendFileAttachment(tel, msg string, path string) error {
 	if err != nil {
 		return err
 	}
-	err = sendAttachment(tel, msg, a)
+	err = sendMessage(tel, msg, nil, a)
 	if err != nil {
 		return err
 	}
@@ -245,10 +245,16 @@ func handleMessageBody(src string, b []byte) error {
 		return err
 	}
 
+	gr, err := handleGroups(src, pmc)
+	if err != nil {
+		return err
+	}
+
 	msg := &Message{
 		source:      src,
 		message:     pmc.GetBody(),
 		attachments: atts,
+		group:       gr,
 	}
 
 	if client.MessageHandler != nil {

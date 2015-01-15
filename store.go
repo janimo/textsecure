@@ -392,5 +392,8 @@ func setupStore() error {
 	if err != nil {
 		return err
 	}
+
+	setupGroups()
+
 	return nil
 }
