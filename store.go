@@ -380,11 +380,7 @@ func setupStore() error {
 	if !config.UnencryptedStorage {
 		password = config.StoragePassword
 		if password == "" {
-			if client.GetStoragePassword != nil {
-				password = client.GetStoragePassword()
-			} else {
-				password = readLine("Enter store password (empty for unencrypted storage):")
-			}
+			password = client.GetStoragePassword()
 		}
 	}
 
