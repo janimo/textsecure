@@ -48,35 +48,37 @@ func base64EncWithoutPadding(b []byte) string {
 }
 
 // Base64-decodes a non-padded string
-func base64DecodeNonPadded(s string) []byte {
+func base64DecodeNonPadded(s string) ([]byte, error) {
 	if len(s)%4 != 0 {
 		s = s + strings.Repeat("=", 4-len(s)%4)
 	}
-	b, err := base64.StdEncoding.DecodeString(s)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return b
+	return base64.StdEncoding.DecodeString(s)
 }
 
 func encodeKey(key [32]byte) string {
 	return base64EncWithoutPadding(append([]byte{5}, key[:]...))
 }
 
-func decodeKey(s string) []byte {
-	b := base64DecodeNonPadded(s)
-	if len(b) != 33 || b[0] != 5 {
-		log.Fatal("Public key not formatted correctly")
+func decodeKey(s string) ([]byte, error) {
+	b, err := base64DecodeNonPadded(s)
+	if err != nil {
+		return nil, err
 	}
-	return b[1:]
+	if len(b) != 33 || b[0] != 5 {
+		return nil, errors.New("Public key not formatted correctly")
+	}
+	return b[1:], nil
 }
 
-func decodeSignature(s string) []byte {
-	b := base64DecodeNonPadded(s)
-	if len(b) != 64 {
-		log.Fatal("Signature not 64 bytes")
+func decodeSignature(s string) ([]byte, error) {
+	b, err := base64DecodeNonPadded(s)
+	if err != nil {
+		return nil, err
 	}
-	return b
+	if len(b) != 64 {
+		return nil, errors.New("Signature not 64 bytes")
+	}
+	return b, nil
 }
 
 func needsRegistration() bool {
@@ -185,20 +187,32 @@ func Setup(c *Client) error {
 		textSecureStore.storeHTTPSignalingKey(registrationInfo.signalingKey)
 
 		identityKey = axolotl.GenerateIdentityKeyPair()
-		textSecureStore.SetIdentityKeyPair(identityKey)
+		err := textSecureStore.SetIdentityKeyPair(identityKey)
+		if err != nil {
+			return err
+		}
 
 		setupTransporter()
-		err := registerDevice()
+		err = registerDevice()
 		if err != nil {
 			return err
 		}
 	}
-	registrationInfo.registrationID = textSecureStore.GetLocalRegistrationID()
-	registrationInfo.password = textSecureStore.loadHTTPPassword()
-	registrationInfo.signalingKey = textSecureStore.loadHTTPSignalingKey()
+	registrationInfo.registrationID, err = textSecureStore.GetLocalRegistrationID()
+	if err != nil {
+		return err
+	}
+	registrationInfo.password, err = textSecureStore.loadHTTPPassword()
+	if err != nil {
+		return err
+	}
+	registrationInfo.signalingKey, err = textSecureStore.loadHTTPSignalingKey()
+	if err != nil {
+		return err
+	}
 	setupTransporter()
-	identityKey = textSecureStore.GetIdentityKeyPair()
-	return nil
+	identityKey, err = textSecureStore.GetIdentityKeyPair()
+	return err
 }
 
 func registerDevice() error {
@@ -222,7 +236,10 @@ func registerDevice() error {
 	if err != nil {
 		return err
 	}
-	generatePreKeyState()
+	err = generatePreKeyState()
+	if err != nil {
+		return err
+	}
 	err = registerPreKeys2()
 	if err != nil {
 		return err

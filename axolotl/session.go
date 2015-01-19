@@ -368,11 +368,18 @@ func (sb *SessionBuilder) BuildReceiverSession(sr *SessionRecord, pkwm *PreKeyWh
 	if sr.hasSessionState(uint32(pkwm.Version), pkwm.BaseKey.Serialize()) {
 		return 0, nil
 	}
-	ourSignedPreKey, _ := sb.signedPreKeyStore.LoadSignedPreKey(pkwm.SignedPreKeyID)
+	ourSignedPreKey, err := sb.signedPreKeyStore.LoadSignedPreKey(pkwm.SignedPreKeyID)
+	if err != nil {
+		return 0, err
+	}
+	ourIdentityKey, err := sb.identityStore.GetIdentityKeyPair()
+	if err != nil {
+		return 0, err
+	}
 	bob := bobAxolotlParameters{
 		TheirBaseKey:    pkwm.BaseKey,
 		TheirIdentity:   pkwm.IdentityKey,
-		OurIdentityKey:  sb.identityStore.GetIdentityKeyPair(),
+		OurIdentityKey:  ourIdentityKey,
 		OurSignedPreKey: ourSignedPreKey.getKeyPair(),
 		OurRatchetKey:   ourSignedPreKey.getKeyPair(),
 	}
@@ -386,16 +393,23 @@ func (sb *SessionBuilder) BuildReceiverSession(sr *SessionRecord, pkwm *PreKeyWh
 	if !sr.Fresh {
 		sr.archiveCurrentState()
 	}
-	err := initializeReceiverSession(sr.sessionState, pkwm.Version, bob)
+	err = initializeReceiverSession(sr.sessionState, pkwm.Version, bob)
 	if err != nil {
 		return 0, err
 	}
 
-	sr.sessionState.setLocalRegistrationID(sb.identityStore.GetLocalRegistrationID())
+	regID, err := sb.identityStore.GetLocalRegistrationID()
+	if err != nil {
+		return 0, err
+	}
+	sr.sessionState.setLocalRegistrationID(regID)
 	sr.sessionState.setRemoteRegistrationID(pkwm.RegistrationID)
 	sr.sessionState.setAliceBaseKey(pkwm.BaseKey.Serialize())
 
-	sb.identityStore.SaveIdentity(sb.recipientID, theirIdentityKey)
+	err = sb.identityStore.SaveIdentity(sb.recipientID, theirIdentityKey)
+	if err != nil {
+		return 0, err
+	}
 
 	return pkwm.PreKeyID, nil
 }
@@ -421,9 +435,13 @@ func (sb *SessionBuilder) BuildSenderSession(pkb *PreKeyBundle) error {
 	theirOneTimePreKey := pkb.PreKeyPublic
 	theirOneTimePreKeyID := pkb.PreKeyID
 
+	ourIdentityKey, err := sb.identityStore.GetIdentityKeyPair()
+	if err != nil {
+		return err
+	}
 	alice := aliceAxolotlParameters{
 		OurBaseKey:         ourBaseKey,
-		OurIdentityKey:     sb.identityStore.GetIdentityKeyPair(),
+		OurIdentityKey:     ourIdentityKey,
 		TheirIdentity:      pkb.IdentityKey,
 		TheirSignedPreKey:  theirSignedPreKey,
 		TheirRatchetKey:    theirSignedPreKey,
@@ -440,13 +458,17 @@ func (sb *SessionBuilder) BuildSenderSession(pkb *PreKeyBundle) error {
 	}
 
 	sr.sessionState.setUnacknowledgedPreKeyMessage(theirOneTimePreKeyID, pkb.SignedPreKeyID, &ourBaseKey.PublicKey)
-	sr.sessionState.setLocalRegistrationID(sb.identityStore.GetLocalRegistrationID())
+	regID, err := sb.identityStore.GetLocalRegistrationID()
+	if err != nil {
+		return err
+	}
+	sr.sessionState.setLocalRegistrationID(regID)
 	sr.sessionState.setRemoteRegistrationID(pkb.RegistrationID)
 	sr.sessionState.setAliceBaseKey(ourBaseKey.PublicKey.Serialize())
 
 	sb.sessionStore.StoreSession(sb.recipientID, sb.deviceID, sr)
-	sb.identityStore.SaveIdentity(sb.recipientID, theirIdentityKey)
-	return nil
+	err = sb.identityStore.SaveIdentity(sb.recipientID, theirIdentityKey)
+	return err
 }
 
 // SessionCipher represents a peer and its persistent stored session.

@@ -253,11 +253,30 @@ func makePreKeyBundle(tel string) (*axolotl.PreKeyBundle, error) {
 	pkbs := make([]*axolotl.PreKeyBundle, ndev)
 
 	for i, d := range pkr.Devices {
-		pkbs[i], err = axolotl.NewPreKeyBundle(d.RegistrationID, d.DeviceID,
-			d.PreKey.ID, axolotl.NewECPublicKey(decodeKey(d.PreKey.PublicKey)),
-			int32(d.SignedPreKey.ID), axolotl.NewECPublicKey(decodeKey(d.SignedPreKey.PublicKey)),
-			decodeSignature(d.SignedPreKey.Signature),
-			axolotl.NewIdentityKey(decodeKey(pkr.IdentityKey)))
+		decPK, err := decodeKey(d.PreKey.PublicKey)
+		if err != nil {
+			return nil, err
+		}
+
+		decSPK, err := decodeKey(d.SignedPreKey.PublicKey)
+		if err != nil {
+			return nil, err
+		}
+
+		decSig, err := decodeSignature(d.SignedPreKey.Signature)
+		if err != nil {
+			return nil, err
+		}
+
+		decIK, err := decodeKey(pkr.IdentityKey)
+		if err != nil {
+			return nil, err
+		}
+
+		pkbs[i], err = axolotl.NewPreKeyBundle(
+			d.RegistrationID, d.DeviceID, d.PreKey.ID,
+			axolotl.NewECPublicKey(decPK), int32(d.SignedPreKey.ID), axolotl.NewECPublicKey(decSPK),
+			decSig, axolotl.NewIdentityKey(decIK))
 		if err != nil {
 			return nil, err
 		}

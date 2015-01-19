@@ -17,8 +17,6 @@ import (
 	"golang.org/x/crypto/pbkdf2"
 )
 
-//FIXME: too manic panic calls, bubble up errors
-
 var (
 	storageDir string
 )
@@ -85,25 +83,25 @@ func idToFilename(id uint32) string {
 	return fmt.Sprintf("%09d", id)
 }
 
-func filenameToID(fname string) uint32 {
+func filenameToID(fname string) (uint32, error) {
 	var id uint32
 	_, err := fmt.Sscanf(fname, "%d", &id)
 	if err != nil {
-		panic(err)
+		return 0, err
 	}
-	return uint32(id)
+	return uint32(id), nil
 }
 
-func (s *store) readNumFromFile(path string) uint32 {
+func (s *store) readNumFromFile(path string) (uint32, error) {
 	b, err := s.readFile(path)
 	if err != nil {
-		panic(err)
+		return 0, err
 	}
 	num, err := strconv.Atoi(string(b))
 	if err != nil {
-		panic(err)
+		return 0, err
 	}
-	return uint32(num)
+	return uint32(num), nil
 }
 
 func (s *store) writeNumToFile(path string, num uint32) {
@@ -151,7 +149,7 @@ func (s *store) writeFile(path string, b []byte) error {
 
 // Identity store
 
-func (s *store) GetLocalRegistrationID() uint32 {
+func (s *store) GetLocalRegistrationID() (uint32, error) {
 	regidfile := filepath.Join(s.identityDir, "regid")
 	return s.readNumFromFile(regidfile)
 }
@@ -161,32 +159,29 @@ func (s *store) SetLocalRegistrationID(id uint32) {
 	s.writeNumToFile(regidfile, id)
 }
 
-func (s *store) GetIdentityKeyPair() *axolotl.IdentityKeyPair {
+func (s *store) GetIdentityKeyPair() (*axolotl.IdentityKeyPair, error) {
 	idkeyfile := filepath.Join(s.identityDir, "identity_key")
 	b, err := s.readFile(idkeyfile)
-	if err != nil || len(b) != 64 {
-		panic(err)
+	if err != nil {
+		return nil, err
 	}
-	return axolotl.NewIdentityKeyPairFromKeys(b[32:], b[:32])
+	if len(b) != 64 {
+		return nil, fmt.Errorf("Identity key is %d not 64 bytes long", len(b))
+	}
+	return axolotl.NewIdentityKeyPairFromKeys(b[32:], b[:32]), nil
 }
 
-func (s *store) SetIdentityKeyPair(ikp *axolotl.IdentityKeyPair) {
+func (s *store) SetIdentityKeyPair(ikp *axolotl.IdentityKeyPair) error {
 	idkeyfile := filepath.Join(s.identityDir, "identity_key")
 	b := make([]byte, 64)
 	copy(b, ikp.PublicKey.Key()[:])
 	copy(b[32:], ikp.PrivateKey.Key()[:])
-	err := s.writeFile(idkeyfile, b)
-	if err != nil {
-		panic(err)
-	}
+	return s.writeFile(idkeyfile, b)
 }
 
-func (s *store) SaveIdentity(id string, key *axolotl.IdentityKey) {
+func (s *store) SaveIdentity(id string, key *axolotl.IdentityKey) error {
 	idkeyfile := filepath.Join(s.identityDir, "remote_"+id)
-	err := s.writeFile(idkeyfile, key.Key()[:])
-	if err != nil {
-		panic(err)
-	}
+	return s.writeFile(idkeyfile, key.Key()[:])
 }
 
 func (s *store) IsTrustedIdentity(id string, key *axolotl.IdentityKey) bool {
@@ -293,13 +288,13 @@ func (s *store) storeHTTPPassword(password string) {
 	s.writeFile(passFile, []byte(password))
 }
 
-func (s *store) loadHTTPPassword() string {
+func (s *store) loadHTTPPassword() (string, error) {
 	passFile := filepath.Join(s.identityDir, "http_password")
 	b, err := s.readFile(passFile)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
-	return string(b)
+	return string(b), nil
 }
 
 func (s *store) storeHTTPSignalingKey(key []byte) {
@@ -307,13 +302,13 @@ func (s *store) storeHTTPSignalingKey(key []byte) {
 	s.writeFile(keyFile, key)
 }
 
-func (s *store) loadHTTPSignalingKey() []byte {
+func (s *store) loadHTTPSignalingKey() ([]byte, error) {
 	keyFile := filepath.Join(s.identityDir, "http_signaling_key")
 	b, err := s.readFile(keyFile)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	return b
+	return b, nil
 }
 
 // Session store

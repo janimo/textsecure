@@ -14,7 +14,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
-	"log"
 )
 
 // randBytes returns a sequence of random bytes from the CSPRNG
@@ -29,7 +28,7 @@ func randUint32() uint32 {
 	b := make([]byte, 4)
 	_, err := rand.Read(b)
 	if err != nil {
-		log.Fatal("Cannot read 4 random bytes")
+		panic(err)
 	}
 	return binary.BigEndian.Uint32(b)
 }
