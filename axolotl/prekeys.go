@@ -7,7 +7,6 @@ package axolotl
 
 import (
 	"errors"
-	"log"
 
 	"github.com/golang/protobuf/proto"
 	protobuf "github.com/janimo/textsecure/axolotl/protobuf"
@@ -33,22 +32,22 @@ func NewPreKeyRecord(id uint32, kp *ECKeyPair) *PreKeyRecord {
 }
 
 // LoadPreKeyRecord creates a PreKeyRecord instance from a serialized bytestream
-func LoadPreKeyRecord(serialized []byte) *PreKeyRecord {
+func LoadPreKeyRecord(serialized []byte) (*PreKeyRecord, error) {
 	record := &PreKeyRecord{Pkrs: &protobuf.PreKeyRecordStructure{}}
 	err := proto.Unmarshal(serialized, record.Pkrs)
 	if err != nil {
-		log.Fatal("Cannot unmarshal PreKeyRecord", err)
+		return nil, err
 	}
-	return record
+	return record, nil
 }
 
 // Serialize marshals the prekey into a protobuf.
-func (record *PreKeyRecord) Serialize() []byte {
+func (record *PreKeyRecord) Serialize() ([]byte, error) {
 	b, err := proto.Marshal(record.Pkrs)
 	if err != nil {
-		log.Fatal("Cannot marshal PreKeyRecord", err)
+		return nil, err
 	}
-	return b
+	return b, nil
 }
 
 func (record *PreKeyRecord) getKeyPair() *ECKeyPair {
@@ -102,12 +101,12 @@ func LoadSignedPreKeyRecord(serialized []byte) (*SignedPreKeyRecord, error) {
 }
 
 // Serialize marshals the signed prekey into a protobuf.
-func (record *SignedPreKeyRecord) Serialize() []byte {
+func (record *SignedPreKeyRecord) Serialize() ([]byte, error) {
 	b, err := proto.Marshal(record.Spkrs)
 	if err != nil {
-		log.Fatal("Cannot marshal SignedPreKeyRecord", err)
+		return nil, err
 	}
-	return b
+	return b, nil
 }
 
 func (record *SignedPreKeyRecord) getKeyPair() *ECKeyPair {

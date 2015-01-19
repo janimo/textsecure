@@ -218,7 +218,10 @@ func (s *store) LoadPreKey(id uint32) (*axolotl.PreKeyRecord, error) {
 		return nil, err
 	}
 
-	record := axolotl.LoadPreKeyRecord(b)
+	record, err := axolotl.LoadPreKeyRecord(b)
+	if err != nil {
+		return nil, err
+	}
 
 	return record, nil
 }
@@ -243,20 +246,20 @@ func (s *store) LoadSignedPreKeys() []axolotl.SignedPreKeyRecord {
 	return keys
 }
 
-func (s *store) StorePreKey(id uint32, record *axolotl.PreKeyRecord) {
-	b := record.Serialize()
-	err := s.writeFile(s.preKeysFilePath(id), b)
+func (s *store) StorePreKey(id uint32, record *axolotl.PreKeyRecord) error {
+	b, err := record.Serialize()
 	if err != nil {
-		panic(err)
+		return err
 	}
+	return s.writeFile(s.preKeysFilePath(id), b)
 }
 
-func (s *store) StoreSignedPreKey(id uint32, record *axolotl.SignedPreKeyRecord) {
-	b := record.Serialize()
-	err := s.writeFile(s.signedPreKeysFilePath(id), b)
+func (s *store) StoreSignedPreKey(id uint32, record *axolotl.SignedPreKeyRecord) error {
+	b, err := record.Serialize()
 	if err != nil {
-		panic(err)
+		return err
 	}
+	return s.writeFile(s.signedPreKeysFilePath(id), b)
 }
 
 func exists(path string) bool {
@@ -333,24 +336,27 @@ func (s *store) GetSubDeviceSessions(recipientID string) []uint32 {
 	return sessions
 }
 
-func (s *store) LoadSession(recipientID string, deviceID uint32) *axolotl.SessionRecord {
+func (s *store) LoadSession(recipientID string, deviceID uint32) (*axolotl.SessionRecord, error) {
 	sfile := s.sessionFilePath(recipientID, deviceID)
 	b, err := s.readFile(sfile)
 	if err != nil {
-		return axolotl.NewSessionRecord()
+		return axolotl.NewSessionRecord(), nil
 	}
-	record := axolotl.LoadSessionRecord(b)
+	record, err := axolotl.LoadSessionRecord(b)
+	if err != nil {
+		return nil, err
+	}
 
-	return record
+	return record, nil
 }
 
-func (s *store) StoreSession(recipientID string, deviceID uint32, record *axolotl.SessionRecord) {
+func (s *store) StoreSession(recipientID string, deviceID uint32, record *axolotl.SessionRecord) error {
 	sfile := s.sessionFilePath(recipientID, deviceID)
-	b := record.Serialize()
-	err := s.writeFile(sfile, b)
+	b, err := record.Serialize()
 	if err != nil {
-		panic(err)
+		return err
 	}
+	return s.writeFile(sfile, b)
 }
 
 func (s *store) ContainsSession(recipientID string, deviceID uint32) bool {

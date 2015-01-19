@@ -254,14 +254,6 @@ func (ss *sessionState) clearUnacknowledgedPreKeyMessage() {
 	ss.SS.PendingPreKey = nil
 }
 
-func (ss *sessionState) serialize() []byte {
-	b, err := proto.Marshal(ss.SS)
-	if err != nil {
-		log.Fatal("Cannot marshal sessionState", err)
-	}
-	return b
-}
-
 // SessionRecord represents a session in persistent store.
 type SessionRecord struct {
 	sessionState   *sessionState
@@ -278,23 +270,23 @@ func NewSessionRecord() *SessionRecord {
 	return record
 }
 
-// LoadSessionRecord creates a SessionRecord object from serialized bytes.
-func LoadSessionRecord(serialized []byte) *SessionRecord {
+// LoadSessionRecord creates a SessionRecord object from serialized byte, error) {
+func LoadSessionRecord(serialized []byte) (*SessionRecord, error) {
 	rs := &protobuf.RecordStructure{}
 
 	err := proto.Unmarshal(serialized, rs)
 	if err != nil {
-		log.Fatal("Cannot unmarshal PreKeyRecord", err)
+		return nil, err
 	}
 	record := &SessionRecord{sessionState: newSessionState(rs.CurrentSession)}
 	for _, s := range rs.PreviousSessions {
 		record.PreviousStates = append(record.PreviousStates, newSessionState(s))
 	}
-	return record
+	return record, nil
 }
 
 // Serialize saves the state of a SessionRecord object to a byte stream.
-func (record *SessionRecord) Serialize() []byte {
+func (record *SessionRecord) Serialize() ([]byte, error) {
 	rs := &protobuf.RecordStructure{}
 	rs.CurrentSession = record.sessionState.SS
 	for _, s := range record.PreviousStates {
@@ -302,9 +294,9 @@ func (record *SessionRecord) Serialize() []byte {
 	}
 	b, err := proto.Marshal(rs)
 	if err != nil {
-		log.Fatal("Cannot marshal SessionRecord", err)
+		return nil, err
 	}
-	return b
+	return b, nil
 }
 
 func (record *SessionRecord) hasSessionState(version uint32, key []byte) bool {
@@ -420,7 +412,10 @@ func (sb *SessionBuilder) BuildSenderSession(pkb *PreKeyBundle) error {
 		return errors.New("Invalid signature")
 	}
 
-	sr := sb.sessionStore.LoadSession(sb.recipientID, sb.deviceID)
+	sr, err := sb.sessionStore.LoadSession(sb.recipientID, sb.deviceID)
+	if err != nil {
+		return err
+	}
 	ourBaseKey := NewECKeyPair()
 	theirSignedPreKey := pkb.SignedPreKeyPublic
 	theirOneTimePreKey := pkb.PreKeyPublic
@@ -439,7 +434,7 @@ func (sb *SessionBuilder) BuildSenderSession(pkb *PreKeyBundle) error {
 		sr.archiveCurrentState()
 	}
 
-	err := initializeSenderSession(sr.sessionState, 3, alice)
+	err = initializeSenderSession(sr.sessionState, 3, alice)
 	if err != nil {
 		return err
 	}
@@ -477,7 +472,10 @@ func NewSessionCipher(identityStore IdentityStore, preKeyStore PreKeyStore, sign
 // SessionEncryptMessage encrypts a given plaintext in a WhisperMessage or a PreKeyWhisperMessage,
 // depending on whether there a session with the peer exists or needs to be established.
 func (sc *SessionCipher) SessionEncryptMessage(plaintext []byte) ([]byte, int32, error) {
-	sr := sc.SessionStore.LoadSession(sc.RecipientID, sc.DeviceID)
+	sr, err := sc.SessionStore.LoadSession(sc.RecipientID, sc.DeviceID)
+	if err != nil {
+		return nil, 0, err
+	}
 	ss := sr.sessionState
 	chainKey := ss.getSenderChainKey()
 	messageKeys, err := chainKey.getMessageKeys()
@@ -516,9 +514,12 @@ func (sc *SessionCipher) SessionEncryptMessage(plaintext []byte) ([]byte, int32,
 }
 
 // GetRemoteRegistrationID returns the registration ID of the peer.
-func (sc *SessionCipher) GetRemoteRegistrationID() uint32 {
-	sr := sc.SessionStore.LoadSession(sc.RecipientID, sc.DeviceID)
-	return sr.sessionState.getRemoteRegistrationID()
+func (sc *SessionCipher) GetRemoteRegistrationID() (uint32, error) {
+	sr, err := sc.SessionStore.LoadSession(sc.RecipientID, sc.DeviceID)
+	if err != nil {
+		return 0, err
+	}
+	return sr.sessionState.getRemoteRegistrationID(), nil
 }
 
 func (sc *SessionCipher) decrypt(sr *SessionRecord, ciphertext *WhisperMessage) ([]byte, error) {
@@ -552,7 +553,10 @@ func (sc *SessionCipher) decrypt(sr *SessionRecord, ciphertext *WhisperMessage) 
 
 // SessionDecryptWhisperMessage decrypts an incoming message.
 func (sc *SessionCipher) SessionDecryptWhisperMessage(ciphertext *WhisperMessage) ([]byte, error) {
-	sr := sc.SessionStore.LoadSession(sc.RecipientID, sc.DeviceID)
+	sr, err := sc.SessionStore.LoadSession(sc.RecipientID, sc.DeviceID)
+	if err != nil {
+		return nil, err
+	}
 	plaintext, err := sc.decrypt(sr, ciphertext)
 	if err != nil {
 		return nil, err
@@ -563,7 +567,10 @@ func (sc *SessionCipher) SessionDecryptWhisperMessage(ciphertext *WhisperMessage
 
 // SessionDecryptPreKeyWhisperMessage decrypts an incoming message.
 func (sc *SessionCipher) SessionDecryptPreKeyWhisperMessage(ciphertext *PreKeyWhisperMessage) ([]byte, error) {
-	sr := sc.SessionStore.LoadSession(sc.RecipientID, sc.DeviceID)
+	sr, err := sc.SessionStore.LoadSession(sc.RecipientID, sc.DeviceID)
+	if err != nil {
+		return nil, err
+	}
 	pkid, err := sc.Builder.BuildReceiverSession(sr, ciphertext)
 	if err != nil {
 		return nil, err

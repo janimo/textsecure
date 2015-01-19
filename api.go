@@ -296,10 +296,14 @@ func buildMessage(tel string, msg string, groupID []byte, a *att) ([]jsonMessage
 		return nil, err
 	}
 
+	rrID, err := sc.GetRemoteRegistrationID()
+	if err != nil {
+		return nil, err
+	}
 	messages := []jsonMessage{{
 		Type:               messageType,
 		DestDeviceID:       devid,
-		DestRegistrationID: sc.GetRemoteRegistrationID(),
+		DestRegistrationID: rrID,
 		Body:               base64.StdEncoding.EncodeToString(encryptedMessage),
 	}}
 	return messages, nil

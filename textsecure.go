@@ -218,7 +218,10 @@ func registerDevice() error {
 	if err != nil {
 		return err
 	}
-	generatePreKeys()
+	err = generatePreKeys()
+	if err != nil {
+		return err
+	}
 	generatePreKeyState()
 	err = registerPreKeys2()
 	if err != nil {

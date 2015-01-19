@@ -65,11 +65,11 @@ func generateSignedPreKeyEntity(record *axolotl.SignedPreKeyRecord) *signedPreKe
 
 var preKeyRecords []*axolotl.PreKeyRecord
 
-func generatePreKey(id uint32) *axolotl.PreKeyRecord {
+func generatePreKey(id uint32) error {
 	kp := axolotl.NewECKeyPair()
 	record := axolotl.NewPreKeyRecord(id, kp)
-	textSecureStore.StorePreKey(id, record)
-	return record
+	err := textSecureStore.StorePreKey(id, record)
+	return err
 }
 
 var signedKey *axolotl.SignedPreKeyRecord
@@ -82,15 +82,22 @@ func getNextPreKeyID() uint32 {
 	return randID()
 }
 
-func generatePreKeys() {
+func generatePreKeys() error {
 	os.MkdirAll(textSecureStore.preKeysDir, 0700)
 
 	startID := getNextPreKeyID()
 	for i := 0; i < preKeyBatchSize; i++ {
-		generatePreKey(startID + uint32(i))
+		err := generatePreKey(startID + uint32(i))
+		if err != nil {
+			return err
+		}
 	}
-	generatePreKey(lastResortPreKeyID)
+	err := generatePreKey(lastResortPreKeyID)
+	if err != nil {
+		return err
+	}
 	signedKey = generateSignedPreKey()
+	return nil
 }
 
 func getNextSignedPreKeyID() uint32 {
