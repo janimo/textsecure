@@ -145,12 +145,12 @@ func (m *Message) Group() string {
 
 // Client contains application specific data and callbacks.
 type Client struct {
-	RootDir            string
-	ReadLine           func(string) string
-	GetStoragePassword func() string
-	GetConfig          func() (*Config, error)
-	GetLocalContacts   func() ([]Contact, error)
-	MessageHandler     func(*Message)
+	RootDir             string
+	GetVerificationCode func() string
+	GetStoragePassword  func() string
+	GetConfig           func() (*Config, error)
+	GetLocalContacts    func() ([]Contact, error)
+	MessageHandler      func(*Message)
 }
 
 var (
@@ -211,7 +211,7 @@ func registerDevice() error {
 		return err
 	}
 	if code == "" {
-		code = readLine("Enter verification number (without the '-')>")
+		code = client.GetVerificationCode()
 	}
 	code = strings.Replace(code, "-", "", -1)
 	err = verifyCode(code)

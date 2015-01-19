@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/janimo/textsecure"
@@ -37,6 +39,20 @@ var (
 	blue  = "\x1b[34m"
 )
 
+func readLine(prompt string) string {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print(prompt)
+	text, _, err := reader.ReadLine()
+	if err != nil {
+		log.Fatal("Cannot read line from console: ", err)
+	}
+	return string(text)
+}
+
+func getVerificationCode() string {
+	return readLine("Enter verification code>")
+}
+
 func getStoragePassword() string {
 	fmt.Printf("Input storage password>")
 	password, err := terminal.ReadPassword(0)
@@ -50,7 +66,7 @@ func getStoragePassword() string {
 // conversationLoop sends messages read from the console
 func conversationLoop(isGroup bool) {
 	for {
-		message := textsecure.ConsoleReadLine(fmt.Sprintf("%s>", blue))
+		message := readLine(fmt.Sprintf("%s>", blue))
 		if message == "" {
 			continue
 		}
@@ -133,10 +149,10 @@ func main() {
 	flag.Parse()
 	log.SetFlags(0)
 	client := &textsecure.Client{
-		RootDir:            ".",
-		ReadLine:           textsecure.ConsoleReadLine,
-		GetStoragePassword: getStoragePassword,
-		MessageHandler:     messageHandler,
+		RootDir:             ".",
+		GetVerificationCode: getVerificationCode,
+		GetStoragePassword:  getStoragePassword,
+		MessageHandler:      messageHandler,
 	}
 	err := textsecure.Setup(client)
 	if err != nil {
