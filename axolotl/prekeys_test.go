@@ -4,6 +4,7 @@
 package axolotl
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -34,14 +35,17 @@ func (impks InMemoryPreKeyStore) removePreKey(id uint32) {
 
 func (impks InMemoryPreKeyStore) loadPreKey(id uint32) (*PreKeyRecord, error) {
 	if !impks.containsPreKey(id) {
-		return nil, InvalidKeyIdError
+		return nil, fmt.Errorf("Key %d not found", id)
 	}
-	pkr := LoadPreKeyRecord(impks.s[id])
+	pkr, err := LoadPreKeyRecord(impks.s[id])
+	if err != nil {
+		return nil, err
+	}
 	return pkr, nil
 }
 
 func (impks InMemoryPreKeyStore) storePreKey(id uint32, pkr *PreKeyRecord) {
-	impks.s[id] = pkr.Serialize()
+	impks.s[id], _ = pkr.Serialize()
 }
 
 func TestPreKeyStore(t *testing.T) {
