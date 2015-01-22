@@ -6,6 +6,7 @@ package textsecure
 import (
 	"bytes"
 	"crypto/sha1"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -120,14 +121,27 @@ func (s *store) encrypt(plaintext []byte) ([]byte, error) {
 		return plaintext, nil
 	}
 
-	return aesEncrypt(s.aesKey, plaintext)
+	e, err := aesEncrypt(s.aesKey, plaintext)
+	if err != nil {
+		return nil, err
+	}
+
+	return appendMAC(s.macKey, e), nil
 }
 
 func (s *store) decrypt(ciphertext []byte) ([]byte, error) {
 	if s.unencrypted {
 		return ciphertext, nil
 	}
-	return aesDecrypt(s.aesKey, ciphertext)
+
+	macPos := len(ciphertext) - 32
+
+	if !verifyMAC(s.macKey, ciphertext[:macPos], ciphertext[macPos:]) {
+		return nil, errors.New("Wrong MAC calculated, possibly due to wrong passphrase")
+	}
+
+	return aesDecrypt(s.aesKey, ciphertext[:macPos])
+
 }
 
 func (s *store) readFile(path string) ([]byte, error) {
