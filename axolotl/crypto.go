@@ -10,6 +10,7 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
+	"errors"
 	"io"
 )
 
@@ -20,35 +21,35 @@ func randBytes(data []byte) {
 }
 
 // Decrypt returns the AES-CBC decryption of a ciphertext under a given key.
-func Decrypt(key, ciphertext []byte) []byte {
+func Decrypt(key, ciphertext []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	if len(ciphertext)%aes.BlockSize != 0 {
-		panic("Not multiple of AES blocksize")
+		return nil, errors.New("Not multiple of AES blocksize")
 	}
 
 	iv := ciphertext[:aes.BlockSize]
 	mode := cipher.NewCBCDecrypter(block, iv)
 	mode.CryptBlocks(ciphertext, ciphertext)
 	pad := ciphertext[len(ciphertext)-1]
-	return ciphertext[aes.BlockSize : len(ciphertext)-int(pad)]
+	return ciphertext[aes.BlockSize : len(ciphertext)-int(pad)], nil
 }
 
 // Encrypt returns the AES-CBC encryption of a plaintext under a given key.
-func Encrypt(key, iv, plaintext []byte) []byte {
+func Encrypt(key, iv, plaintext []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	pad := aes.BlockSize - len(plaintext)%aes.BlockSize
 	plaintext = append(plaintext, bytes.Repeat([]byte{byte(pad)}, pad)...)
 	ciphertext := make([]byte, len(plaintext))
 	mode := cipher.NewCBCEncrypter(block, iv)
 	mode.CryptBlocks(ciphertext, plaintext)
-	return ciphertext
+	return ciphertext, nil
 }
 
 // ValidTruncMAC checks whether a message is correctly authenticated using HMAC-SHA256.

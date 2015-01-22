@@ -26,11 +26,11 @@ var (
 )
 
 func TestEncrypt(t *testing.T) {
-	c := Encrypt(key, iv, plaintext)
+	c, _ := Encrypt(key, iv, plaintext)
 	assert.Equal(t, ciphertext, c, "Encrypted ciphertext must match")
 }
 
 func TestDecrypt(t *testing.T) {
-	p := Decrypt(key, append(iv, ciphertext...))
+	p, _ := Decrypt(key, append(iv, ciphertext...))
 	assert.Equal(t, plaintext, p, "Decrypted plaintext must match")
 }

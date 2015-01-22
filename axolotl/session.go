@@ -506,7 +506,10 @@ func (sc *SessionCipher) SessionEncryptMessage(plaintext []byte) ([]byte, int32,
 	}
 	senderEphemeral := ss.getSenderRatchetKey()
 	previousCounter := ss.getPreviousCounter()
-	ciphertext := Encrypt(messageKeys.CipherKey, messageKeys.Iv, plaintext)
+	ciphertext, err := Encrypt(messageKeys.CipherKey, messageKeys.Iv, plaintext)
+	if err != nil {
+		return nil, 0, err
+	}
 	version := ss.getSessionVersion()
 
 	wm, err := newWhisperMessage(byte(version), messageKeys.MacKey, senderEphemeral, chainKey.Index,
@@ -566,7 +569,10 @@ func (sc *SessionCipher) decrypt(sr *SessionRecord, ciphertext *WhisperMessage) 
 
 	ciphertext.verifyMAC(ss.getRemoteIdentityPublic(), ss.getLocalIdentityPublic(), messageKeys.MacKey)
 
-	plaintext := Decrypt(messageKeys.CipherKey, append(messageKeys.Iv, ciphertext.Ciphertext...))
+	plaintext, err := Decrypt(messageKeys.CipherKey, append(messageKeys.Iv, ciphertext.Ciphertext...))
+	if err != nil {
+		return nil, err
+	}
 
 	ss.clearUnacknowledgedPreKeyMessage()
 

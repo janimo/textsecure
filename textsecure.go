@@ -305,9 +305,12 @@ func handleReceivedMessage(msg []byte) error {
 	}
 	ciphertext := msg[1:macpos]
 
-	plaintext := axolotl.Decrypt(aesKey, ciphertext)
+	plaintext, err := axolotl.Decrypt(aesKey, ciphertext)
+	if err != nil {
+		return err
+	}
 	ipms := &textsecure.IncomingPushMessageSignal{}
-	err := proto.Unmarshal(plaintext, ipms)
+	err = proto.Unmarshal(plaintext, ipms)
 	if err != nil {
 		return err
 	}
