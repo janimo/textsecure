@@ -190,7 +190,12 @@ func main() {
 
 			// Send a message then exit
 			if message != "" {
-				err := textsecure.SendMessage(to, message)
+				var err error
+				if group {
+					err = textsecure.SendGroupMessage(to, message)
+				} else {
+					err = textsecure.SendMessage(to, message)
+				}
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -198,7 +203,7 @@ func main() {
 			}
 
 			// Enter conversation mode
-			go conversationLoop(false)
+			go conversationLoop(group)
 		}
 	}
 
