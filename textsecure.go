@@ -87,9 +87,20 @@ func needsRegistration() bool {
 
 var identityKey *axolotl.IdentityKeyPair
 
+type outgoingMessage struct {
+	tel        string
+	msg        string
+	groupID    []byte
+	attachment *att
+}
+
 // SendMessage sends the given text message to the given contact.
 func SendMessage(tel, msg string) error {
-	err := sendMessage(tel, msg, nil, nil)
+	omsg := &outgoingMessage{
+		tel: tel,
+		msg: msg,
+	}
+	err := sendMessage(omsg)
 	if err != nil {
 		return err
 	}
@@ -109,7 +120,12 @@ func SendFileAttachment(tel, msg string, path string) error {
 	if err != nil {
 		return err
 	}
-	err = sendMessage(tel, msg, nil, a)
+	omsg := &outgoingMessage{
+		tel:        tel,
+		msg:        msg,
+		attachment: a,
+	}
+	err = sendMessage(omsg)
 	if err != nil {
 		return err
 	}

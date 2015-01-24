@@ -196,25 +196,25 @@ type jsonMessage struct {
 	Relay              string `json:"relay,omitempty"`
 }
 
-func createMessage(msg string, groupID []byte, a *att) ([]byte, error) {
+func createMessage(msg *outgoingMessage) ([]byte, error) {
 	pmc := &textsecure.PushMessageContent{}
-	if msg != "" {
-		pmc.Body = &msg
+	if msg.msg != "" {
+		pmc.Body = &msg.msg
 	}
-	if a != nil {
+	if msg.attachment != nil {
 		pmc.Attachments = []*textsecure.PushMessageContent_AttachmentPointer{
 			&textsecure.PushMessageContent_AttachmentPointer{
-				Id:          &a.id,
-				ContentType: &a.ct,
-				Key:         a.keys,
+				Id:          &msg.attachment.id,
+				ContentType: &msg.attachment.ct,
+				Key:         msg.attachment.keys,
 			},
 		}
 	}
-	if groupID != nil {
+	if msg.groupID != nil {
 		typ := textsecure.PushMessageContent_GroupContext_DELIVER
 		pmc.Group = &textsecure.PushMessageContent_GroupContext{
 			Type: &typ,
-			Id:   groupID,
+			Id:   msg.groupID,
 		}
 	}
 	b, err := proto.Marshal(pmc)
@@ -291,15 +291,15 @@ type att struct {
 	keys []byte
 }
 
-func buildMessage(tel string, msg string, groupID []byte, a *att) ([]jsonMessage, error) {
+func buildMessage(msg *outgoingMessage) ([]jsonMessage, error) {
 	devid := uint32(1) //FIXME: support multiple destination devices
-	paddedMessage, err := createMessage(msg, groupID, a)
+	paddedMessage, err := createMessage(msg)
 	if err != nil {
 		return nil, err
 	}
-	recid := recID(tel)
+	recid := recID(msg.tel)
 	if !textSecureStore.ContainsSession(recid, devid) {
-		pkb, err := makePreKeyBundle(tel)
+		pkb, err := makePreKeyBundle(msg.tel)
 		if err != nil {
 			return nil, err
 		}
@@ -328,24 +328,24 @@ func buildMessage(tel string, msg string, groupID []byte, a *att) ([]jsonMessage
 	return messages, nil
 }
 
-func sendMessage(tel, msg string, groupID []byte, a *att) error {
+func sendMessage(msg *outgoingMessage) error {
 	m := make(map[string]interface{})
-	bm, err := buildMessage(tel, msg, groupID, a)
+	bm, err := buildMessage(msg)
 	if err != nil {
 		return err
 	}
 	m["messages"] = bm
-	m["destination"] = tel
+	m["destination"] = msg.tel
 	body, err := json.MarshalIndent(m, "", "    ")
 	if err != nil {
 		return err
 	}
-	resp, err := transport.putJSON("/v1/messages/"+tel, body)
+	resp, err := transport.putJSON("/v1/messages/"+msg.tel, body)
 	if err != nil {
 		return err
 	}
 	if resp.Status == 410 {
-		textSecureStore.DeleteSession(recID(tel), uint32(1))
+		textSecureStore.DeleteSession(recID(msg.tel), uint32(1))
 		return errors.New("The remote device is gone (probably reinstalled)")
 	}
 	if resp.isError() {

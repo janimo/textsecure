@@ -175,7 +175,12 @@ func SendGroupMessage(name string, msg string) error {
 	}
 	for _, m := range g.Members {
 		if m != config.Tel {
-			sendMessage(m, msg, g.ID, nil)
+			omsg := &outgoingMessage{
+				tel:     m,
+				msg:     msg,
+				groupID: g.ID,
+			}
+			sendMessage(omsg)
 		}
 	}
 	return nil
