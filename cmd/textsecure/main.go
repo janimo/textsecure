@@ -23,6 +23,8 @@ var (
 	group      bool
 	message    string
 	attachment string
+	newgroup   string
+	leavegroup string
 )
 
 func init() {
@@ -31,6 +33,8 @@ func init() {
 	flag.BoolVar(&group, "group", false, "Destination is a group")
 	flag.StringVar(&message, "message", "", "Single message to send, then exit")
 	flag.StringVar(&attachment, "attachment", "", "File to attach")
+	flag.StringVar(&newgroup, "newgroup", "", "Create a group, the argument has the format 'name:member1:member2'")
+	flag.StringVar(&leavegroup, "leavegroup", "", "Leave a group named by the argument")
 }
 
 var (
@@ -170,6 +174,15 @@ func main() {
 			telToName[c.Tel] = c.Name
 		}
 
+		if newgroup != "" {
+			s := strings.Split(newgroup, ":")
+			textsecure.NewGroup(s[0], s[1:])
+			return
+		}
+		if leavegroup != "" {
+			textsecure.LeaveGroup(leavegroup)
+			return
+		}
 		// If "to" matches a contact name then get its phone number, otherwise assume "to" is a phone number
 		for _, c := range contacts {
 			if strings.EqualFold(c.Name, to) {

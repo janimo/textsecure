@@ -90,7 +90,7 @@ var identityKey *axolotl.IdentityKeyPair
 type outgoingMessage struct {
 	tel        string
 	msg        string
-	groupID    []byte
+	group      *groupMessage
 	attachment *att
 }
 

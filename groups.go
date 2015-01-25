@@ -15,7 +15,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Group holds group metadata
+// Group holds group metadata.
 type Group struct {
 	ID      []byte
 	Name    string
@@ -167,6 +167,13 @@ func handleGroups(src string, pmc *textsecure.PushMessageContent) (string, error
 	return "", nil
 }
 
+type groupMessage struct {
+	id      []byte
+	name    string
+	members []string
+	typ     textsecure.PushMessageContent_GroupContext_Type
+}
+
 // SendGroupMessage sends a text message to a given group.
 func SendGroupMessage(name string, msg string) error {
 	g := groupByName(name)
@@ -176,12 +183,93 @@ func SendGroupMessage(name string, msg string) error {
 	for _, m := range g.Members {
 		if m != config.Tel {
 			omsg := &outgoingMessage{
-				tel:     m,
-				msg:     msg,
-				groupID: g.ID,
+				tel: m,
+				msg: msg,
+				group: &groupMessage{
+					id:  g.ID,
+					typ: textsecure.PushMessageContent_GroupContext_DELIVER,
+				},
 			}
 			sendMessage(omsg)
 		}
 	}
+	return nil
+}
+
+func newGroupID() []byte {
+	id := make([]byte, 10)
+	randBytes(id)
+	return id
+}
+
+func newGroup(name string, members []string) *Group {
+	id := newGroupID()
+	hexid := idToHex(id)
+	groups[hexid] = &Group{
+		ID:      id,
+		Name:    name,
+		Members: append(members, config.Tel),
+	}
+	saveGroup(hexid)
+	return groups[hexid]
+}
+
+// NewGroup creates a group and notifies its members.
+// Our phone number is automatically added to members.
+func NewGroup(name string, members []string) error {
+	g := groupByName(name)
+	if g != nil {
+		return fmt.Errorf("Not creating existing group %s\n", name)
+	}
+
+	g = newGroup(name, members)
+
+	for _, m := range g.Members {
+		if m != config.Tel {
+			omsg := &outgoingMessage{
+				tel: m,
+				group: &groupMessage{
+					id:      g.ID,
+					name:    name,
+					members: g.Members,
+					typ:     textsecure.PushMessageContent_GroupContext_UPDATE,
+				},
+			}
+			sendMessage(omsg)
+		}
+	}
+	return nil
+}
+
+func removeGroup(id []byte) error {
+	hexid := idToHex(id)
+	err := os.Remove(idToPath(hexid))
+	if err != nil {
+		return err
+	}
+	os.Remove(avatarPath(hexid))
+	return nil
+}
+
+// LeaveGroup sends a group quit message to the other members of the given group.
+func LeaveGroup(name string) error {
+	g := groupByName(name)
+	if g == nil {
+		return fmt.Errorf("Inexistent group %s\n", name)
+	}
+
+	for _, m := range g.Members {
+		if m != config.Tel {
+			omsg := &outgoingMessage{
+				tel: m,
+				group: &groupMessage{
+					id:  g.ID,
+					typ: textsecure.PushMessageContent_GroupContext_QUIT,
+				},
+			}
+			sendMessage(omsg)
+		}
+	}
+	removeGroup(g.ID)
 	return nil
 }

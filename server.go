@@ -210,11 +210,12 @@ func createMessage(msg *outgoingMessage) ([]byte, error) {
 			},
 		}
 	}
-	if msg.groupID != nil {
-		typ := textsecure.PushMessageContent_GroupContext_DELIVER
+	if msg.group != nil {
 		pmc.Group = &textsecure.PushMessageContent_GroupContext{
-			Type: &typ,
-			Id:   msg.groupID,
+			Id:      msg.group.id,
+			Type:    &msg.group.typ,
+			Name:    &msg.group.name,
+			Members: msg.group.members,
 		}
 	}
 	b, err := proto.Marshal(pmc)
