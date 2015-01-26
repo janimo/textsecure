@@ -67,6 +67,16 @@ func getStoragePassword() string {
 	return string(password)
 }
 
+func sendMessage(isGroup bool, to, message string) error {
+	var err error
+	if isGroup {
+		err = textsecure.SendGroupMessage(to, message)
+	} else {
+		err = textsecure.SendMessage(to, message)
+	}
+	return err
+}
+
 // conversationLoop sends messages read from the console
 func conversationLoop(isGroup bool) {
 	for {
@@ -74,12 +84,9 @@ func conversationLoop(isGroup bool) {
 		if message == "" {
 			continue
 		}
-		var err error
-		if isGroup {
-			err = textsecure.SendGroupMessage(to, message)
-		} else {
-			err = textsecure.SendMessage(to, message)
-		}
+
+		err := sendMessage(isGroup, to, message)
+
 		if err != nil {
 			log.Println(err)
 		}
@@ -88,11 +95,12 @@ func conversationLoop(isGroup bool) {
 
 func messageHandler(msg *textsecure.Message) {
 	if echo {
-		if msg.Group() != "" {
-			textsecure.SendGroupMessage(msg.Group(), msg.Message())
-			return
+		to := msg.Group()
+		if to == "" {
+			to = msg.Source()
 		}
-		err := textsecure.SendMessage(msg.Source(), msg.Message())
+		err := sendMessage(msg.Group() != "", to, msg.Message())
+
 		if err != nil {
 			log.Println(err)
 		}
@@ -203,12 +211,7 @@ func main() {
 
 			// Send a message then exit
 			if message != "" {
-				var err error
-				if group {
-					err = textsecure.SendGroupMessage(to, message)
-				} else {
-					err = textsecure.SendMessage(to, message)
-				}
+				err := sendMessage(group, to, message)
 				if err != nil {
 					log.Fatal(err)
 				}
