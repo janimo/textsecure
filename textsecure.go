@@ -12,7 +12,6 @@ import (
 	"mime"
 	"os"
 	"path/filepath"
-	"runtime/debug"
 	"strings"
 
 	"github.com/golang/protobuf/proto"
@@ -305,13 +304,6 @@ func handleMessageBody(src string, b []byte) error {
 
 // Authenticate and decrypt a received message
 func handleReceivedMessage(msg []byte) error {
-	defer func() {
-		if err := recover(); err != nil {
-			log.Printf("PANIC: %s\n", err)
-			log.Printf("%s\n", debug.Stack())
-		}
-	}()
-
 	macpos := len(msg) - 10
 	tmac := msg[macpos:]
 	aesKey := registrationInfo.signalingKey[:32]
