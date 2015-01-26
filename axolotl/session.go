@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"log"
 
 	"github.com/golang/protobuf/proto"
 	protobuf "github.com/janimo/textsecure/axolotl/protobuf"
@@ -347,13 +346,15 @@ func NewSessionBuilder(identityStore IdentityStore, preKeyStore PreKeyStore, sig
 	}
 }
 
-func notTrusted(id string) {
-	log.Printf("Identity of remote %s is not trusted, it may have reinstalled\n. For now delete the file .storage/identity/remote_%s to approve.\n", id, id)
+// NotTrustedError represents the error situation where the peer
+// is using a different identity key than expected.
+type NotTrustedError struct {
+	ID string
 }
 
-// ErrNotTrusted represents the error situation where the peer
-// is using a different identity key than expected.
-var ErrNotTrusted = errors.New("Remote identity not trusted")
+func (err NotTrustedError) Error() string {
+	return fmt.Sprintf("Remote identity %s is not trusted", err.ID)
+}
 
 // BuildReceiverSession creates a new session from a received PreKeyWhisperMessage.
 func (sb *SessionBuilder) BuildReceiverSession(sr *SessionRecord, pkwm *PreKeyWhisperMessage) (uint32, error) {
@@ -362,8 +363,7 @@ func (sb *SessionBuilder) BuildReceiverSession(sr *SessionRecord, pkwm *PreKeyWh
 	}
 	theirIdentityKey := pkwm.IdentityKey
 	if !sb.identityStore.IsTrustedIdentity(sb.recipientID, theirIdentityKey) {
-		notTrusted(sb.recipientID)
-		return 0, ErrNotTrusted
+		return 0, NotTrustedError{sb.recipientID}
 	}
 	if sr.hasSessionState(uint32(pkwm.Version), pkwm.BaseKey.Serialize()) {
 		return 0, nil
@@ -418,8 +418,7 @@ func (sb *SessionBuilder) BuildReceiverSession(sr *SessionRecord, pkwm *PreKeyWh
 func (sb *SessionBuilder) BuildSenderSession(pkb *PreKeyBundle) error {
 	theirIdentityKey := pkb.IdentityKey
 	if !sb.identityStore.IsTrustedIdentity(sb.recipientID, theirIdentityKey) {
-		notTrusted(sb.recipientID)
-		return ErrNotTrusted
+		return NotTrustedError{sb.recipientID}
 	}
 	if pkb.SignedPreKeyPublic != nil &&
 		!curve25519sign.Verify(*theirIdentityKey.Key(), pkb.SignedPreKeyPublic.Serialize(), &pkb.SignedPreKeySignature) {

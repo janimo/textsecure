@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/janimo/textsecure"
+	"github.com/janimo/textsecure/axolotl"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -73,6 +74,9 @@ func sendMessage(isGroup bool, to, message string) error {
 		err = textsecure.SendGroupMessage(to, message)
 	} else {
 		err = textsecure.SendMessage(to, message)
+		if nerr, ok := err.(axolotl.NotTrustedError); ok {
+			log.Fatalf("Peer identity not trusted. Remove the file .storage/identity/remote_%s to approve\n", nerr.ID)
+		}
 	}
 	return err
 }
