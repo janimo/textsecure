@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/janimo/textsecure/axolotl"
@@ -117,8 +116,7 @@ type jsonContact struct {
 func GetRegisteredContacts() ([]Contact, error) {
 	lc, err := loadLocalContacts()
 	if err != nil {
-		log.Printf("Could not get local contacts :%s\n", err)
-		return nil, err
+		return nil, fmt.Errorf("Could not get local contacts :%s\n", err)
 	}
 	tokens := make([]string, len(lc))
 	m := make(map[string]Contact)
