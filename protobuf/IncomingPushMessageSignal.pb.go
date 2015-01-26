@@ -197,6 +197,7 @@ type PushMessageContent struct {
 	Attachments      []*PushMessageContent_AttachmentPointer `protobuf:"bytes,2,rep,name=attachments" json:"attachments,omitempty"`
 	Group            *PushMessageContent_GroupContext        `protobuf:"bytes,3,opt,name=group" json:"group,omitempty"`
 	Flags            *uint32                                 `protobuf:"varint,4,opt,name=flags" json:"flags,omitempty"`
+	Sync             *PushMessageContent_SyncMessageContext  `protobuf:"bytes,5,opt,name=sync" json:"sync,omitempty"`
 	XXX_unrecognized []byte                                  `json:"-"`
 }
 
@@ -230,6 +231,13 @@ func (m *PushMessageContent) GetFlags() uint32 {
 		return *m.Flags
 	}
 	return 0
+}
+
+func (m *PushMessageContent) GetSync() *PushMessageContent_SyncMessageContext {
+	if m != nil {
+		return m.Sync
+	}
+	return nil
 }
 
 type PushMessageContent_AttachmentPointer struct {
@@ -310,6 +318,30 @@ func (m *PushMessageContent_GroupContext) GetAvatar() *PushMessageContent_Attach
 		return m.Avatar
 	}
 	return nil
+}
+
+type PushMessageContent_SyncMessageContext struct {
+	Destination      *string `protobuf:"bytes,1,opt,name=destination" json:"destination,omitempty"`
+	Timestamp        *uint64 `protobuf:"varint,2,opt,name=timestamp" json:"timestamp,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *PushMessageContent_SyncMessageContext) Reset()         { *m = PushMessageContent_SyncMessageContext{} }
+func (m *PushMessageContent_SyncMessageContext) String() string { return proto.CompactTextString(m) }
+func (*PushMessageContent_SyncMessageContext) ProtoMessage()    {}
+
+func (m *PushMessageContent_SyncMessageContext) GetDestination() string {
+	if m != nil && m.Destination != nil {
+		return *m.Destination
+	}
+	return ""
+}
+
+func (m *PushMessageContent_SyncMessageContext) GetTimestamp() uint64 {
+	if m != nil && m.Timestamp != nil {
+		return *m.Timestamp
+	}
+	return 0
 }
 
 func init() {
