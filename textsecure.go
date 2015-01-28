@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 
@@ -138,6 +139,7 @@ type Message struct {
 	message     string
 	attachments [][]byte
 	group       string
+	timestamp   uint64
 }
 
 // Source returns the ID of the sender of the message.
@@ -158,6 +160,11 @@ func (m *Message) Attachments() [][]byte {
 // Group returns the group name or empty.
 func (m *Message) Group() string {
 	return m.group
+}
+
+// Timestamp returns the timestamp of the message
+func (m *Message) Timestamp() time.Time {
+	return time.Unix(int64(m.timestamp/1000), 0)
 }
 
 // Client contains application specific data and callbacks.
@@ -272,7 +279,7 @@ func recID(source string) string {
 }
 
 // handleMessageBody unmarshals the message and calls the client callbacks
-func handleMessageBody(src string, b []byte) error {
+func handleMessageBody(src string, timestamp uint64, b []byte) error {
 	b = stripPadding(b)
 	pmc := &textsecure.PushMessageContent{}
 	err := proto.Unmarshal(b, pmc)
@@ -294,6 +301,7 @@ func handleMessageBody(src string, b []byte) error {
 		message:     pmc.GetBody(),
 		attachments: atts,
 		group:       gr,
+		timestamp:   timestamp,
 	}
 
 	if client.MessageHandler != nil {
@@ -338,7 +346,7 @@ func handleReceivedMessage(msg []byte) error {
 		if err != nil {
 			return err
 		}
-		err = handleMessageBody(ipms.GetSource(), b)
+		err = handleMessageBody(ipms.GetSource(), ipms.GetTimestamp(), b)
 		if err != nil {
 			return err
 		}
@@ -358,7 +366,7 @@ func handleReceivedMessage(msg []byte) error {
 		if err != nil {
 			return err
 		}
-		err = handleMessageBody(ipms.GetSource(), b)
+		err = handleMessageBody(ipms.GetSource(), ipms.GetTimestamp(), b)
 		if err != nil {
 			return err
 		}
