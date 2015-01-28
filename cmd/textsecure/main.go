@@ -39,9 +39,10 @@ func init() {
 }
 
 var (
-	red   = "\x1b[31m"
-	green = "\x1b[32m"
-	blue  = "\x1b[34m"
+	red    = "\x1b[31m"
+	green  = "\x1b[32m"
+	yellow = "\x1b[33m"
+	blue   = "\x1b[34m"
 )
 
 func readLine(prompt string) string {
@@ -112,7 +113,7 @@ func messageHandler(msg *textsecure.Message) {
 	}
 
 	if msg.Message() != "" {
-		fmt.Printf("\r                                               %s%s : %s%s%s\n>", red, pretty(msg), green, msg.Message(), blue)
+		fmt.Printf("\r                                               %s%s\n>", pretty(msg), blue)
 	}
 
 	for _, a := range msg.Attachments() {
@@ -142,12 +143,19 @@ func handleAttachment(src string, b []byte) {
 
 }
 
+var timeFormat = "Mon 03:04"
+
+func timestamp(msg *textsecure.Message) string {
+	t := msg.Timestamp()
+	return t.Format(timeFormat)
+}
+
 func pretty(msg *textsecure.Message) string {
-	m := getName(msg.Source())
+	src := getName(msg.Source())
 	if msg.Group() != "" {
-		m = m + "[" + msg.Group() + "]"
+		src = src + "[" + msg.Group() + "]"
 	}
-	return m
+	return fmt.Sprintf("%s%s %s%s %s%s", yellow, timestamp(msg), red, src, green, msg.Message())
 }
 
 // getName returns the local contact name corresponding to a phone number,
