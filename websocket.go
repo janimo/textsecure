@@ -126,7 +126,7 @@ func (wsc *wsConn) put(url string, body []byte) (*response, error) {
 
 // ListenForMessages connects to the server and handles incoming websocket messages.
 func ListenForMessages() error {
-	wsc, err := newWSConn(config.Server+"/v1/websocket", config.Tel, registrationInfo.password, config.SkipTLSCheck)
+	wsc, err := newWSConn(config.Server+"/v1/websocket/", config.Tel, registrationInfo.password, config.SkipTLSCheck)
 	if err != nil {
 		return fmt.Errorf("Could not establish websocket connection: %s\n", err)
 	}
