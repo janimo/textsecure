@@ -21,6 +21,7 @@ type Config struct {
 	Server             string `yaml:"server"`             // The TextSecure server URL
 	SkipTLSCheck       bool   `yaml:"skipTLSCheck"`       // Allow self-signed TLS certificates for the server
 	VerificationType   string `yaml:"verificationType"`   // Code verification method during registration (SMS/VOICE/DEV)
+	StorageDir         string `yaml:"storageDir"`         // Directory for the persistent storage
 	UnencryptedStorage bool   `yaml:"unencryptedStorage"` // Whether to store plaintext keys and session state (only for development)
 	StoragePassword    string `yaml:"storagePassword"`    // Password to the storage
 }

@@ -79,7 +79,7 @@ func loadGroup(path string) error {
 
 // setupGroups reads all groups' state from storage.
 func setupGroups() {
-	groupDir = filepath.Join(storageDir, "groups")
+	groupDir = filepath.Join(config.StorageDir, "groups")
 	os.MkdirAll(groupDir, 0700)
 	filepath.Walk(groupDir, func(path string, fi os.FileInfo, err error) error {
 		if !fi.IsDir() {

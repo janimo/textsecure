@@ -18,10 +18,6 @@ import (
 	"golang.org/x/crypto/pbkdf2"
 )
 
-var (
-	storageDir string
-)
-
 // store implements the PreKeyStore, SignedPreKeyStore,
 // IdentityStore and SessionStore interfaces from the axolotl package
 // Blobs are encrypted with AES-128 and authenticated with HMAC-SHA1
@@ -389,7 +385,10 @@ var textSecureStore *store
 
 func setupStore() error {
 	var err error
-	storageDir = filepath.Join(client.RootDir, ".storage")
+
+	if config.StorageDir == "" {
+		config.StorageDir = ".storage"
+	}
 
 	password := ""
 	if !config.UnencryptedStorage {
@@ -399,7 +398,7 @@ func setupStore() error {
 		}
 	}
 
-	textSecureStore, err = newStore(password, storageDir)
+	textSecureStore, err = newStore(password, config.StorageDir)
 	if err != nil {
 		return err
 	}
