@@ -4,15 +4,10 @@
 package textsecure
 
 import (
+	"errors"
 	"io/ioutil"
-	"path/filepath"
 
 	"gopkg.in/yaml.v2"
-)
-
-var (
-	configDir  string
-	configFile string
 )
 
 // Config holds application configuration settings
@@ -26,8 +21,8 @@ type Config struct {
 	StoragePassword    string `yaml:"storagePassword"`    // Password to the storage
 }
 
-// readConfig reads a YAML config file
-func readConfig(fileName string) (*Config, error) {
+// ReadConfig reads a YAML config file
+func ReadConfig(fileName string) (*Config, error) {
 	b, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		return nil, err
@@ -45,12 +40,5 @@ func loadConfig() (*Config, error) {
 	if client.GetConfig != nil {
 		return client.GetConfig()
 	}
-
-	configDir = filepath.Join(client.RootDir, ".config")
-	configFile = filepath.Join(configDir, "config.yml")
-	config, err := readConfig(configFile)
-	if err != nil {
-		return nil, err
-	}
-	return config, nil
+	return nil, errors.New("Provide Client.GetConfig")
 }

@@ -169,7 +169,6 @@ func (m *Message) Timestamp() time.Time {
 
 // Client contains application specific data and callbacks.
 type Client struct {
-	RootDir             string
 	GetVerificationCode func() string
 	GetStoragePassword  func() string
 	GetConfig           func() (*Config, error)

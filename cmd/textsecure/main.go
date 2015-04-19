@@ -69,6 +69,14 @@ func getStoragePassword() string {
 	return string(password)
 }
 
+func getConfig() (*textsecure.Config, error) {
+	return textsecure.ReadConfig(".config/config.yml")
+}
+
+func getLocalContacts() ([]textsecure.Contact, error) {
+	return textsecure.ReadContacts(".config/contacts.yml")
+}
+
 func sendMessage(isGroup bool, to, message string) error {
 	var err error
 	if isGroup {
@@ -173,7 +181,8 @@ func main() {
 	flag.Parse()
 	log.SetFlags(0)
 	client := &textsecure.Client{
-		RootDir:             ".",
+		GetConfig:           getConfig,
+		GetLocalContacts:    getLocalContacts,
 		GetVerificationCode: getVerificationCode,
 		GetStoragePassword:  getStoragePassword,
 		MessageHandler:      messageHandler,

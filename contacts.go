@@ -4,8 +4,8 @@
 package textsecure
 
 import (
+	"errors"
 	"io/ioutil"
-	"path/filepath"
 
 	"gopkg.in/yaml.v2"
 )
@@ -20,8 +20,8 @@ type yamlContacts struct {
 	Contacts []Contact
 }
 
-// readContacts reads a YAML contacts file
-func readContacts(fileName string) ([]Contact, error) {
+// ReadContacts reads a YAML contacts file
+func ReadContacts(fileName string) ([]Contact, error) {
 	b, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		return nil, err
@@ -36,18 +36,8 @@ func readContacts(fileName string) ([]Contact, error) {
 }
 
 func loadLocalContacts() ([]Contact, error) {
-	var contacts []Contact
-	var err error
 	if client.GetLocalContacts != nil {
-		contacts, err = client.GetLocalContacts()
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		contacts, err = readContacts(filepath.Join(configDir, "contacts.yml"))
-		if err != nil {
-			return nil, err
-		}
+		return client.GetLocalContacts()
 	}
-	return contacts, nil
+	return nil, errors.New("Provide Client.GetLocalContacts")
 }
