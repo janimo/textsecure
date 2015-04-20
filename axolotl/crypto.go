@@ -35,6 +35,9 @@ func Decrypt(key, ciphertext []byte) ([]byte, error) {
 	mode := cipher.NewCBCDecrypter(block, iv)
 	mode.CryptBlocks(ciphertext, ciphertext)
 	pad := ciphertext[len(ciphertext)-1]
+	if pad > aes.BlockSize {
+		return nil, errors.New("Pad value larger than AES blocksize")
+	}
 	return ciphertext[aes.BlockSize : len(ciphertext)-int(pad)], nil
 }
 
