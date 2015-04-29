@@ -8,7 +8,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"log"
 	"mime"
 	"os"
 	"path/filepath"
@@ -174,6 +173,7 @@ type Client struct {
 	GetConfig           func() (*Config, error)
 	GetLocalContacts    func() ([]Contact, error)
 	MessageHandler      func(*Message)
+	RegistrationDone    func()
 }
 
 var (
@@ -265,7 +265,9 @@ func registerDevice() error {
 	if err != nil {
 		return err
 	}
-	log.Println("Registration done")
+	if client.RegistrationDone != nil {
+		client.RegistrationDone()
+	}
 	return nil
 }
 

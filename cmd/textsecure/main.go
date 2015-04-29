@@ -175,6 +175,10 @@ func getName(tel string) string {
 	return tel
 }
 
+func registrationDone() {
+	log.Println("Registration done.")
+}
+
 var telToName map[string]string
 
 func main() {
@@ -186,6 +190,7 @@ func main() {
 		GetVerificationCode: getVerificationCode,
 		GetStoragePassword:  getStoragePassword,
 		MessageHandler:      messageHandler,
+		RegistrationDone:    registrationDone,
 	}
 	err := textsecure.Setup(client)
 	if err != nil {
