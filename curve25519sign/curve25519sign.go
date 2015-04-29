@@ -1,3 +1,6 @@
+// Copyright (c) 2014 Canonical Ltd.
+// Licensed under the GPLv3, see the COPYING file for details.
+
 // Package curve25519sign implements a signature scheme based on Curve25519 keys.
 // See https://moderncrypto.org/mail-archive/curves/2014/000205.html for details.
 package curve25519sign
