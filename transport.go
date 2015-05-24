@@ -51,6 +51,9 @@ func newHTTPTransporter(baseURL, user, pass string, skipTLSCheck bool) *httpTran
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		}
 	}
+	client.Transport = &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+	}
 
 	return &httpTransporter{baseURL, user, pass, client}
 }
