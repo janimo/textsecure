@@ -5,7 +5,11 @@ package textsecure
 
 import (
 	"fmt"
+	"io"
 	"log"
+	"net"
+	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"strings"
 	"time"
@@ -20,6 +24,35 @@ import (
 type wsConn struct {
 	conn *websocket.Conn
 	id   uint64
+}
+
+// set up a tunnel via HTTP CONNECT
+// see https://gist.github.com/madmo/8548738
+func httpConnect(host, wsurl string) (io.ReadWriteCloser, error) {
+	p, err := net.Dial("tcp", host)
+	if err != nil {
+		return nil, err
+	}
+
+	turl, err := url.Parse(wsurl)
+	if err != nil {
+		return nil, err
+	}
+
+	req := http.Request{
+		Method: "CONNECT",
+		URL:    &url.URL{},
+		Host:   turl.Host,
+	}
+
+	cc := httputil.NewClientConn(p, nil)
+	cc.Do(&req)
+	if err != nil && err != httputil.ErrPersistEOF {
+		return nil, err
+	}
+
+	rwc, _ := cc.Hijack()
+	return rwc, nil
 }
 
 func newWSConn(originURL, user, pass string, skipTLSCheck bool) (*wsConn, error) {
@@ -37,9 +70,30 @@ func newWSConn(originURL, user, pass string, skipTLSCheck bool) (*wsConn, error)
 		wsConfig.TlsConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 
-	wsc, err := websocket.DialConfig(wsConfig)
+	var wsc *websocket.Conn
+
+	req := http.Request{
+		URL: &url.URL{},
+	}
+
+	proxyURL, err := http.ProxyFromEnvironment(&req)
 	if err != nil {
 		return nil, err
+	}
+	if proxyURL == nil {
+		wsc, err = websocket.DialConfig(wsConfig)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		rwc, err := httpConnect(proxyURL.Host, wsURL)
+		if err != nil {
+			return nil, err
+		}
+		wsc, err = websocket.NewClient(wsConfig, rwc)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return &wsConn{conn: wsc}, nil
 }
