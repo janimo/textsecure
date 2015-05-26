@@ -261,7 +261,7 @@ func registerDevice() error {
 	if err != nil {
 		return err
 	}
-	err = registerPreKeys2()
+	err = registerPreKeys()
 	if err != nil {
 		return err
 	}

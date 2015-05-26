@@ -73,7 +73,7 @@ func verifyCode(code string) error {
 }
 
 // PUT /v2/keys/
-func registerPreKeys2() error {
+func registerPreKeys() error {
 	body, err := json.MarshalIndent(preKeys, "", "")
 	if err != nil {
 		return err
