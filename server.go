@@ -157,10 +157,6 @@ type jsonAllocation struct {
 	Location string `json:"location"`
 }
 
-func confirmReceipt(source string, timestamp uint64) {
-	transport.putJSON(fmt.Sprintf("/v1/receipt/%s/%d", source, timestamp), nil)
-}
-
 // GET /v1/attachments/
 func allocateAttachment() (uint64, string, error) {
 	resp, err := transport.get("/v1/attachments")
