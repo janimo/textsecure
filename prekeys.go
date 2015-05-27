@@ -51,14 +51,14 @@ func randID() uint32 {
 func generatepreKeyEntity(record *axolotl.PreKeyRecord) *preKeyEntity {
 	entity := &preKeyEntity{}
 	entity.ID = *record.Pkrs.Id
-	entity.PublicKey = base64EncWithoutPadding(append([]byte{5}, record.Pkrs.PublicKey[:]...))
+	entity.PublicKey = encodeKey(record.Pkrs.PublicKey)
 	return entity
 }
 
 func generateSignedPreKeyEntity(record *axolotl.SignedPreKeyRecord) *signedPreKeyEntity {
 	entity := &signedPreKeyEntity{}
 	entity.ID = *record.Spkrs.Id
-	entity.PublicKey = base64EncWithoutPadding(append([]byte{5}, record.Spkrs.PublicKey[:]...))
+	entity.PublicKey = encodeKey(record.Spkrs.PublicKey)
 	entity.Signature = base64EncWithoutPadding(record.Spkrs.Signature)
 	return entity
 }

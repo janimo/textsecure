@@ -54,7 +54,7 @@ func base64DecodeNonPadded(s string) ([]byte, error) {
 	return base64.StdEncoding.DecodeString(s)
 }
 
-func encodeKey(key [32]byte) string {
+func encodeKey(key []byte) string {
 	return base64EncWithoutPadding(append([]byte{5}, key[:]...))
 }
 
