@@ -34,7 +34,6 @@ func putAttachment(url string, body []byte) error {
 	if err != nil {
 		return err
 	}
-	//req.Header.Add("Content-type", "application/octet-stream")
 	req.Header.Add("Content-type", "application/octet-stream")
 	req.Header.Add("Content-length", strconv.Itoa(len(body)))
 	resp, err := http.DefaultClient.Do(req)
