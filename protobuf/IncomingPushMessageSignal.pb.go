@@ -20,7 +20,6 @@ const (
 	IncomingPushMessageSignal_CIPHERTEXT    IncomingPushMessageSignal_Type = 1
 	IncomingPushMessageSignal_KEY_EXCHANGE  IncomingPushMessageSignal_Type = 2
 	IncomingPushMessageSignal_PREKEY_BUNDLE IncomingPushMessageSignal_Type = 3
-	IncomingPushMessageSignal_PLAINTEXT     IncomingPushMessageSignal_Type = 4
 	IncomingPushMessageSignal_RECEIPT       IncomingPushMessageSignal_Type = 5
 )
 
@@ -29,7 +28,6 @@ var IncomingPushMessageSignal_Type_name = map[int32]string{
 	1: "CIPHERTEXT",
 	2: "KEY_EXCHANGE",
 	3: "PREKEY_BUNDLE",
-	4: "PLAINTEXT",
 	5: "RECEIPT",
 }
 var IncomingPushMessageSignal_Type_value = map[string]int32{
@@ -37,7 +35,6 @@ var IncomingPushMessageSignal_Type_value = map[string]int32{
 	"CIPHERTEXT":    1,
 	"KEY_EXCHANGE":  2,
 	"PREKEY_BUNDLE": 3,
-	"PLAINTEXT":     4,
 	"RECEIPT":       5,
 }
 

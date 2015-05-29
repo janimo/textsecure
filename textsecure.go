@@ -352,12 +352,6 @@ func handleReceivedMessage(msg []byte) error {
 			return err
 		}
 
-	case textsecure.IncomingPushMessageSignal_PLAINTEXT:
-		pmc := &textsecure.PushMessageContent{}
-		err = proto.Unmarshal(ipms.GetMessage(), pmc)
-		if err != nil {
-			return err
-		}
 	case textsecure.IncomingPushMessageSignal_PREKEY_BUNDLE:
 		pkwm, err := axolotl.LoadPreKeyWhisperMessage(ipms.GetMessage())
 		if err != nil {
