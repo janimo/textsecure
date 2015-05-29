@@ -165,19 +165,6 @@ func (wsc *wsConn) sendAck(id uint64) error {
 	return nil
 }
 
-func (wsc *wsConn) get(url string) (*response, error) {
-	wsc.id++
-	wsc.sendRequest("GET", url, nil, &wsc.id)
-	wsc.receive()
-	return nil, nil
-}
-
-func (wsc *wsConn) put(url string, body []byte) (*response, error) {
-	wsc.id++
-	wsc.sendRequest("PUT", url, body, &wsc.id)
-	return nil, nil
-}
-
 // ListenForMessages connects to the server and handles incoming websocket messages.
 func ListenForMessages() error {
 	wsc, err := newWSConn(config.Server+"/v1/websocket/", config.Tel, registrationInfo.password, config.SkipTLSCheck)
