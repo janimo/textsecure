@@ -67,7 +67,7 @@ func newWSConn(originURL, user, pass string, skipTLSCheck bool) (*wsConn, error)
 	if err != nil {
 		return nil, err
 	}
-	if config.SkipTLSCheck {
+	if skipTLSCheck {
 		wsConfig.TlsConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 
