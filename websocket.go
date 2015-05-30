@@ -28,8 +28,14 @@ type wsConn struct {
 
 // set up a tunnel via HTTP CONNECT
 // see https://gist.github.com/madmo/8548738
-func httpConnect(host, wsurl string) (io.ReadWriteCloser, error) {
-	p, err := net.Dial("tcp", host)
+func httpConnect(host, wsurl string, wsConfig *websocket.Config) (io.ReadWriteCloser, error) {
+	var p net.Conn
+	var err error
+	if strings.HasPrefix(wsurl, "wss") {
+		p, err = tls.Dial("tcp", host, wsConfig.TlsConfig)
+	} else {
+		p, err = net.Dial("tcp", host)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +92,7 @@ func newWSConn(originURL, user, pass string, skipTLSCheck bool) (*wsConn, error)
 			return nil, err
 		}
 	} else {
-		rwc, err := httpConnect(proxyURL.Host, wsURL)
+		rwc, err := httpConnect(proxyURL.Host, wsURL, wsConfig)
 		if err != nil {
 			return nil, err
 		}
