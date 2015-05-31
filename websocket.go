@@ -28,13 +28,7 @@ type wsConn struct {
 // set up a tunnel via HTTP CONNECT
 // see https://gist.github.com/madmo/8548738
 func httpConnect(proxy string, wsConfig *websocket.Config) (net.Conn, error) {
-	var p net.Conn
-	var err error
-	if wsConfig.Location.Scheme == "wss" {
-		p, err = tls.Dial("tcp", proxy, wsConfig.TlsConfig)
-	} else {
-		p, err = net.Dial("tcp", proxy)
-	}
+	p, err := net.Dial("tcp", proxy)
 	if err != nil {
 		return nil, err
 	}
@@ -90,6 +84,10 @@ func newWSConn(originURL, user, pass string, skipTLSCheck bool) (*wsConn, error)
 		if err != nil {
 			return nil, err
 		}
+		if wsConfig.Location.Scheme == "wss" {
+			conn = tls.Client(conn, wsConfig.TlsConfig)
+		}
+
 		wsc, err = websocket.NewClient(wsConfig, conn)
 		if err != nil {
 			return nil, err
