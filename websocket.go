@@ -5,7 +5,6 @@ package textsecure
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"net/http"
@@ -28,7 +27,7 @@ type wsConn struct {
 
 // set up a tunnel via HTTP CONNECT
 // see https://gist.github.com/madmo/8548738
-func httpConnect(proxy string, wsConfig *websocket.Config) (io.ReadWriteCloser, error) {
+func httpConnect(proxy string, wsConfig *websocket.Config) (net.Conn, error) {
 	var p net.Conn
 	var err error
 	if wsConfig.Location.Scheme == "wss" {
@@ -52,8 +51,8 @@ func httpConnect(proxy string, wsConfig *websocket.Config) (io.ReadWriteCloser, 
 		return nil, err
 	}
 
-	rwc, _ := cc.Hijack()
-	return rwc, nil
+	conn, _ := cc.Hijack()
+	return conn, nil
 }
 
 func newWSConn(originURL, user, pass string, skipTLSCheck bool) (*wsConn, error) {
@@ -87,11 +86,11 @@ func newWSConn(originURL, user, pass string, skipTLSCheck bool) (*wsConn, error)
 			return nil, err
 		}
 	} else {
-		rwc, err := httpConnect(proxyURL.Host, wsConfig)
+		conn, err := httpConnect(proxyURL.Host, wsConfig)
 		if err != nil {
 			return nil, err
 		}
-		wsc, err = websocket.NewClient(wsConfig, rwc)
+		wsc, err = websocket.NewClient(wsConfig, conn)
 		if err != nil {
 			return nil, err
 		}
