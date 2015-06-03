@@ -10,6 +10,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 )
 
 var transport transporter
@@ -44,16 +45,26 @@ type httpTransporter struct {
 	client  *http.Client
 }
 
+func getProxy(req *http.Request) (*url.URL, error) {
+	if config.ProxyServer != "" {
+		u, err := url.Parse(config.ProxyServer)
+		if err == nil {
+			return u, nil
+		}
+	}
+	return http.ProxyFromEnvironment(req)
+}
+
 func newHTTPTransporter(baseURL, user, pass string, skipTLSCheck bool) *httpTransporter {
 	client := &http.Client{}
 	if skipTLSCheck {
 		client.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			Proxy:           http.ProxyFromEnvironment,
+			Proxy:           getProxy,
 		}
 	} else {
 		client.Transport = &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
+			Proxy: getProxy,
 		}
 	}
 

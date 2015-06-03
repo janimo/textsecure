@@ -14,6 +14,7 @@ import (
 type Config struct {
 	Tel                string `yaml:"tel"`                // Our telephone number
 	Server             string `yaml:"server"`             // The TextSecure server URL
+	ProxyServer        string `yaml:"proxy"`              // HTTP Proxy URL if one is being used
 	SkipTLSCheck       bool   `yaml:"skipTLSCheck"`       // Allow self-signed TLS certificates for the server
 	VerificationType   string `yaml:"verificationType"`   // Code verification method during registration (SMS/VOICE/DEV)
 	StorageDir         string `yaml:"storageDir"`         // Directory for the persistent storage

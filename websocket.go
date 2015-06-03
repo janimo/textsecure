@@ -70,7 +70,7 @@ func newWSConn(originURL, user, pass string, skipTLSCheck bool) (*wsConn, error)
 		URL: &url.URL{},
 	}
 
-	proxyURL, err := http.ProxyFromEnvironment(&req)
+	proxyURL, err := getProxy(&req)
 	if err != nil {
 		return nil, err
 	}
