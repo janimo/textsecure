@@ -8,9 +8,11 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
+	"os"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 var transport transporter
@@ -71,6 +73,20 @@ func newHTTPTransporter(baseURL, user, pass string, skipTLSCheck bool) *httpTran
 	return &httpTransporter{baseURL, user, pass, client}
 }
 
+func init() {
+	loglevel := os.Getenv("TEXTSECURE_LOGLEVEL")
+
+	println(loglevel)
+	switch loglevel {
+	case "DEBUG":
+		log.SetLevel(log.DebugLevel)
+	case "WARN":
+		log.SetLevel(log.WarnLevel)
+	default:
+		log.SetLevel(log.InfoLevel)
+	}
+}
+
 func (ht *httpTransporter) get(url string) (*response, error) {
 	req, err := http.NewRequest("GET", ht.baseURL+url, nil)
 	req.SetBasicAuth(ht.user, ht.pass)
@@ -81,9 +97,7 @@ func (ht *httpTransporter) get(url string) (*response, error) {
 		r.Body = resp.Body
 	}
 
-	if r.isError() {
-		log.Printf("GET %s %d\n", url, r.Status)
-	}
+	log.Debugf("GET %s %d\n", url, r.Status)
 
 	return r, err
 }
@@ -100,9 +114,7 @@ func (ht *httpTransporter) put(url string, body []byte, ct string) (*response, e
 		r.Body = resp.Body
 	}
 
-	if r.isError() {
-		log.Printf("PUT %s %d\n", url, r.Status)
-	}
+	log.Debugf("PUT %s %d\n", url, r.Status)
 
 	return r, err
 }
