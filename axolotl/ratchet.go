@@ -12,16 +12,6 @@ import (
 	"golang.org/x/crypto/hkdf"
 )
 
-type symmetricAxolotlParameters struct {
-	OurIdentityKey IdentityKeyPair
-	OurBaseKey     ECKeyPair
-	OurRatchetKey  ECKeyPair
-
-	TheirIdentity   IdentityKey
-	TheirBaseKey    ECPublicKey
-	TheirRatchetKey ECPublicKey
-}
-
 type aliceAxolotlParameters struct {
 	OurIdentityKey *IdentityKeyPair
 	OurBaseKey     *ECKeyPair
