@@ -5,7 +5,6 @@ package textsecure
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -18,6 +17,8 @@ import (
 	"golang.org/x/net/websocket"
 
 	"crypto/tls"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 type wsConn struct {
