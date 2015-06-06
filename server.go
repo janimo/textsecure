@@ -14,6 +14,26 @@ import (
 	"github.com/janimo/textsecure/protobuf"
 )
 
+var (
+	createAccountPath = "/v1/accounts/%/code/%s"
+	verifyAccountPath = "/v1/accounts/code/%s"
+
+	prekeyMetadataPath = "/v2/keys/"
+	prekeyPath         = "/v2/keys/%s"
+	prekeyDevicePath   = "/v2/keys/%s/%s"
+	signedPrekeyPath   = "/v2/keys/signed"
+
+	provisioningCodePath    = "/v1/devices/provisioning/code"
+	provisioningMessagePath = "/v1/provisioning/%s"
+
+	directoryTokensPath    = "/v1/directory/tokens"
+	directoryVerifyPath    = "/v1/directory/%s"
+	messagePath            = "/v1/messages/%s"
+	acknowledgeMessagePath = "/v1/messages/%s/%d"
+	receiptPath            = "/v1/receipt/%s/%d"
+	attachmentPath         = "/v1/attachments/%s"
+)
+
 // RegistrationInfo holds the data required to be identified by and
 // to communicate with the push server.
 // The data is generated once at install time and stored locally.
