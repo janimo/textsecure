@@ -136,7 +136,7 @@ func (wsc *wsConn) keepAlive() {
 	for {
 		err := wsc.sendRequest("GET", "/v1/keepalive", nil, nil)
 		if err != nil {
-			log.Println(err)
+			log.Error(err)
 		}
 		time.Sleep(time.Second * 15)
 	}
@@ -176,7 +176,7 @@ func ListenForMessages() error {
 	for {
 		bmsg, err := wsc.receive()
 		if err != nil {
-			log.Println(err)
+			log.Error(err)
 			time.Sleep(3 * time.Second)
 			continue
 		}
@@ -184,18 +184,18 @@ func ListenForMessages() error {
 		wsm := &textsecure.WebSocketMessage{}
 		err = proto.Unmarshal(bmsg, wsm)
 		if err != nil {
-			log.Println(err)
+			log.Error(err)
 			continue
 		}
 		m := wsm.GetRequest().GetBody()
 		err = handleReceivedMessage(m)
 		if err != nil {
-			log.Println(err)
+			log.Error(err)
 			continue
 		}
 		err = wsc.sendAck(wsm.GetRequest().GetId())
 		if err != nil {
-			log.Println(err)
+			log.Error(err)
 		}
 	}
 }
