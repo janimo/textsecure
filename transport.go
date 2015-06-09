@@ -18,7 +18,7 @@ import (
 var transport transporter
 
 func setupTransporter() {
-	transport = newHTTPTransporter(config.Server, config.Tel, registrationInfo.password, config.SkipTLSCheck)
+	transport = newHTTPTransporter(config.Server, config.Tel, registrationInfo.password)
 }
 
 type response struct {
@@ -57,17 +57,12 @@ func getProxy(req *http.Request) (*url.URL, error) {
 	return http.ProxyFromEnvironment(req)
 }
 
-func newHTTPTransporter(baseURL, user, pass string, skipTLSCheck bool) *httpTransporter {
-	client := &http.Client{}
-	if skipTLSCheck {
-		client.Transport = &http.Transport{
+func newHTTPTransporter(baseURL, user, pass string) *httpTransporter {
+	client := &http.Client{
+		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			Proxy:           getProxy,
-		}
-	} else {
-		client.Transport = &http.Transport{
-			Proxy: getProxy,
-		}
+		},
 	}
 
 	return &httpTransporter{baseURL, user, pass, client}

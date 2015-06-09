@@ -50,7 +50,7 @@ func httpConnect(proxy string, wsConfig *websocket.Config) (net.Conn, error) {
 	return conn, nil
 }
 
-func newWSConn(originURL, user, pass string, skipTLSCheck bool) (*wsConn, error) {
+func newWSConn(originURL, user, pass string) (*wsConn, error) {
 	v := url.Values{}
 	v.Set("login", user)
 	v.Set("password", pass)
@@ -61,9 +61,7 @@ func newWSConn(originURL, user, pass string, skipTLSCheck bool) (*wsConn, error)
 	if err != nil {
 		return nil, err
 	}
-	if skipTLSCheck {
-		wsConfig.TlsConfig = &tls.Config{InsecureSkipVerify: true}
-	}
+	wsConfig.TlsConfig = &tls.Config{InsecureSkipVerify: true}
 
 	var wsc *websocket.Conn
 
@@ -166,7 +164,7 @@ func (wsc *wsConn) sendAck(id uint64) error {
 
 // ListenForMessages connects to the server and handles incoming websocket messages.
 func ListenForMessages() error {
-	wsc, err := newWSConn(config.Server+"/v1/websocket/", config.Tel, registrationInfo.password, config.SkipTLSCheck)
+	wsc, err := newWSConn(config.Server+"/v1/websocket/", config.Tel, registrationInfo.password)
 	if err != nil {
 		return fmt.Errorf("Could not establish websocket connection: %s\n", err)
 	}
