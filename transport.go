@@ -70,8 +70,14 @@ func newHTTPTransporter(baseURL, user, pass string) *httpTransporter {
 
 func (ht *httpTransporter) get(url string) (*response, error) {
 	req, err := http.NewRequest("GET", ht.baseURL+url, nil)
+	if err != nil {
+		return nil, err
+	}
 	req.SetBasicAuth(ht.user, ht.pass)
 	resp, err := ht.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
 	r := &response{}
 	if resp != nil {
 		r.Status = resp.StatusCode
@@ -86,9 +92,15 @@ func (ht *httpTransporter) get(url string) (*response, error) {
 func (ht *httpTransporter) put(url string, body []byte, ct string) (*response, error) {
 	br := bytes.NewReader(body)
 	req, err := http.NewRequest("PUT", ht.baseURL+url, br)
+	if err != nil {
+		return nil, err
+	}
 	req.Header.Add("Content-type", ct)
 	req.SetBasicAuth(ht.user, ht.pass)
 	resp, err := ht.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
 	r := &response{}
 	if resp != nil {
 		r.Status = resp.StatusCode
