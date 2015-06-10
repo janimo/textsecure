@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	createAccountPath = "/v1/accounts/%/code/%s"
+	createAccountPath = "/v1/accounts/%s/code/%s"
 	verifyAccountPath = "/v1/accounts/code/%s"
 
 	prekeyMetadataPath = "/v2/keys/"
@@ -48,7 +48,7 @@ var registrationInfo RegistrationInfo
 // Registration
 
 func requestCode(tel, method string) (string, error) {
-	resp, err := transport.get(fmt.Sprintf("/v1/accounts/%s/code/%s", method, tel))
+	resp, err := transport.get(fmt.Sprintf(createAccountPath, method, tel))
 	if err != nil {
 		return "", err
 	}
@@ -82,7 +82,7 @@ func verifyCode(code string) error {
 	if err != nil {
 		return err
 	}
-	resp, err := transport.putJSON("/v1/accounts/code/"+code, body)
+	resp, err := transport.putJSON(fmt.Sprintf(verifyAccountPath, code), body)
 	if err != nil {
 		return err
 	}
@@ -99,7 +99,7 @@ func registerPreKeys() error {
 		return err
 	}
 
-	resp, err := transport.putJSON("/v2/keys/", body)
+	resp, err := transport.putJSON(prekeyMetadataPath, body)
 	if err != nil {
 		return err
 	}
@@ -111,7 +111,7 @@ func registerPreKeys() error {
 
 // GET /v2/keys/{number}/{device_id}?relay={relay}
 func getPreKeys(tel string) (*preKeyResponse, error) {
-	resp, err := transport.get(fmt.Sprintf("/v2/keys/%s/*", tel))
+	resp, err := transport.get(fmt.Sprintf(prekeyDevicePath, tel, "*"))
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +152,7 @@ func GetRegisteredContacts() ([]Contact, error) {
 	if err != nil {
 		return nil, err
 	}
-	resp, err := transport.putJSON("/v1/directory/tokens/", body)
+	resp, err := transport.putJSON(directoryTokensPath, body)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +179,7 @@ type jsonAllocation struct {
 
 // GET /v1/attachments/
 func allocateAttachment() (uint64, string, error) {
-	resp, err := transport.get("/v1/attachments")
+	resp, err := transport.get(fmt.Sprintf(attachmentPath, ""))
 	if err != nil {
 		return 0, "", err
 	}
@@ -190,7 +190,7 @@ func allocateAttachment() (uint64, string, error) {
 }
 
 func getAttachmentLocation(id uint64) (string, error) {
-	resp, err := transport.get(fmt.Sprintf("/v1/attachments/%d", id))
+	resp, err := transport.get(fmt.Sprintf(attachmentPath, id))
 	if err != nil {
 		return "", err
 	}
@@ -355,7 +355,7 @@ func sendMessage(msg *outgoingMessage) error {
 	if err != nil {
 		return err
 	}
-	resp, err := transport.putJSON("/v1/messages/"+msg.tel, body)
+	resp, err := transport.putJSON(fmt.Sprintf(messagePath, msg.tel), body)
 	if err != nil {
 		return err
 	}
