@@ -61,7 +61,7 @@ func newWSConn(originURL, user, pass string) (*wsConn, error) {
 	if err != nil {
 		return nil, err
 	}
-	wsConfig.TlsConfig = &tls.Config{InsecureSkipVerify: true}
+	wsConfig.TlsConfig = &tls.Config{RootCAs: rootCA}
 
 	var wsc *websocket.Conn
 

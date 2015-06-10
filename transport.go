@@ -17,6 +17,7 @@ import (
 var transport transporter
 
 func setupTransporter() {
+	setupCA()
 	transport = newHTTPTransporter(config.Server, config.Tel, registrationInfo.password)
 }
 
@@ -59,7 +60,7 @@ func getProxy(req *http.Request) (*url.URL, error) {
 func newHTTPTransporter(baseURL, user, pass string) *httpTransporter {
 	client := &http.Client{
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			TLSClientConfig: &tls.Config{RootCAs: rootCA},
 			Proxy:           getProxy,
 		},
 	}
