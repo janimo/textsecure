@@ -2,6 +2,7 @@ package textsecure
 
 import (
 	"crypto/x509"
+	"io/ioutil"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -35,8 +36,18 @@ ELNgQPodR38zoCMuA8gHZfZYYoZ7D7Q1wNUiVHcxuFrEeBaYJbLErwLV
 var rootCA *x509.CertPool
 
 func setupCA() {
+	pem := []byte(rootPEM)
+	if config.RootCA != "" && exists(config.RootCA) {
+		b, err := ioutil.ReadFile(config.RootCA)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		pem = b
+	}
+
 	rootCA = x509.NewCertPool()
-	if !rootCA.AppendCertsFromPEM([]byte(rootPEM)) {
+	if !rootCA.AppendCertsFromPEM(pem) {
 		log.Error("Cannot load PEM")
 	}
 }
