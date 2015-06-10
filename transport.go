@@ -10,7 +10,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -66,20 +65,6 @@ func newHTTPTransporter(baseURL, user, pass string) *httpTransporter {
 	}
 
 	return &httpTransporter{baseURL, user, pass, client}
-}
-
-func init() {
-	loglevel := os.Getenv("TEXTSECURE_LOGLEVEL")
-
-	println(loglevel)
-	switch loglevel {
-	case "DEBUG":
-		log.SetLevel(log.DebugLevel)
-	case "WARN":
-		log.SetLevel(log.WarnLevel)
-	default:
-		log.SetLevel(log.InfoLevel)
-	}
 }
 
 func (ht *httpTransporter) get(url string) (*response, error) {

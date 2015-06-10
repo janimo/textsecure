@@ -16,6 +16,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/janimo/textsecure/axolotl"
 	"github.com/janimo/textsecure/protobuf"
 )
@@ -180,6 +181,20 @@ var (
 	config *Config
 	client *Client
 )
+
+func init() {
+	loglevel := os.Getenv("TEXTSECURE_LOGLEVEL")
+
+	println(loglevel)
+	switch loglevel {
+	case "DEBUG":
+		log.SetLevel(log.DebugLevel)
+	case "WARN":
+		log.SetLevel(log.WarnLevel)
+	default:
+		log.SetLevel(log.InfoLevel)
+	}
+}
 
 // Setup initializes the package.
 func Setup(c *Client) error {
