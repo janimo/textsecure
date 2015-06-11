@@ -386,10 +386,6 @@ var textSecureStore *store
 func setupStore() error {
 	var err error
 
-	if config.StorageDir == "" {
-		config.StorageDir = ".storage"
-	}
-
 	password := ""
 	if !config.UnencryptedStorage {
 		password = config.StoragePassword

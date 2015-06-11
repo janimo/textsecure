@@ -4,7 +4,6 @@
 package textsecure
 
 import (
-	"errors"
 	"io/ioutil"
 
 	"gopkg.in/yaml.v2"
@@ -37,9 +36,26 @@ func ReadConfig(fileName string) (*Config, error) {
 	return cfg, nil
 }
 
+// loadConfig gets the config via the client and makes sure
+// that for unset values sane defaults are used
 func loadConfig() (*Config, error) {
-	if client.GetConfig != nil {
-		return client.GetConfig()
+	cfg, err := client.GetConfig()
+
+	if err != nil {
+		return nil, err
 	}
-	return nil, errors.New("Provide Client.GetConfig")
+
+	if cfg.Server == "" {
+		cfg.Server = "https://textsecure-service.whispersystems.org:443"
+	}
+
+	if cfg.VerificationType == "" {
+		cfg.VerificationType = "sms"
+	}
+
+	if cfg.StorageDir == "" {
+		cfg.StorageDir = ".storage"
+	}
+
+	return cfg, nil
 }

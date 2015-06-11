@@ -252,11 +252,7 @@ func Setup(c *Client) error {
 }
 
 func registerDevice() error {
-	vt := config.VerificationType
-	if vt == "" {
-		vt = "sms"
-	}
-	code, err := requestCode(config.Tel, vt)
+	code, err := requestCode(config.Tel, config.VerificationType)
 	if err != nil {
 		return err
 	}
