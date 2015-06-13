@@ -169,6 +169,7 @@ func (m *Message) Timestamp() time.Time {
 
 // Client contains application specific data and callbacks.
 type Client struct {
+	GetPhoneNumber      func() string
 	GetVerificationCode func() string
 	GetStoragePassword  func() string
 	GetConfig           func() (*Config, error)
@@ -252,6 +253,9 @@ func Setup(c *Client) error {
 }
 
 func registerDevice() error {
+	if config.Tel == "" {
+		config.Tel = client.GetPhoneNumber()
+	}
 	code, err := requestCode(config.Tel, config.VerificationType)
 	if err != nil {
 		return err
