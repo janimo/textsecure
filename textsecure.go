@@ -260,7 +260,7 @@ func registerDevice() error {
 	if err != nil {
 		return err
 	}
-	if code == "" {
+	if config.VerificationType != "dev" {
 		code = client.GetVerificationCode()
 	}
 	err = verifyCode(code)
