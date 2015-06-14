@@ -263,7 +263,6 @@ func registerDevice() error {
 	if code == "" {
 		code = client.GetVerificationCode()
 	}
-	code = strings.Replace(code, "-", "", -1)
 	err = verifyCode(code)
 	if err != nil {
 		return err

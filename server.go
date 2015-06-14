@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/janimo/textsecure/axolotl"
@@ -72,6 +73,7 @@ type verificationData struct {
 }
 
 func verifyCode(code string) error {
+	code = strings.Replace(code, "-", "", -1)
 	vd := verificationData{
 		SignalingKey:    base64.StdEncoding.EncodeToString(registrationInfo.signalingKey),
 		SupportsSms:     false,
