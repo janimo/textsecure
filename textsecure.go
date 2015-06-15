@@ -229,7 +229,6 @@ func Setup(c *Client) error {
 			return err
 		}
 
-		setupTransporter()
 		err = registerDevice()
 		if err != nil {
 			return err
@@ -256,6 +255,7 @@ func registerDevice() error {
 	if config.Tel == "" {
 		config.Tel = client.GetPhoneNumber()
 	}
+	setupTransporter()
 	code, err := requestCode(config.Tel, config.VerificationType)
 	if err != nil {
 		return err
