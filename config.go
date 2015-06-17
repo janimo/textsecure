@@ -36,6 +36,15 @@ func ReadConfig(fileName string) (*Config, error) {
 	return cfg, nil
 }
 
+// WriteConfig saves a config to a file
+func WriteConfig(filename string, cfg *Config) error {
+	b, err := yaml.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(filename, b, 0600)
+}
+
 // loadConfig gets the config via the client and makes sure
 // that for unset values sane defaults are used
 func loadConfig() (*Config, error) {
