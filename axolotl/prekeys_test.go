@@ -10,9 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TODO: pointer receivers?
-// TODO: use plain map or map in struct?
-
 // An in-memory implementation of the prekey store, useful for testing
 type InMemoryPreKeyStore struct {
 	s map[uint32][]byte
