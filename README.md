@@ -4,7 +4,7 @@ This is a Go package implementing the TextSecure **push data** (i.e. not encrypt
 
 The included sample command line app can send and receive text messages and attachments and supports group chat.
 
-** The API presented by the package is subject to change. **
+**The API presented by the package is subject to change.**
 
 Installation
 ------------
@@ -18,13 +18,13 @@ For more details, including setting up Go, check the [wiki] (https://github.com/
 Configuration
 -------------
 
-Copy .config to a directory and modify it, then run the tool from that directory.
+Copy cmd/textsecure/.config to a directory and modify it, then run the tool from that directory.
 It will create .storage to hold all the protocol state. Removing that dir and running the tool again will trigger a reregistration with the server.
 
 Usage
 -----
 
-** Do not run multiple instances of the app from the same directory, it (and the server) can get confused **
+**Do not run multiple instances of the app from the same directory, it (and the server) can get confused**
 
 This will show the supported command line flags
 
