@@ -4,8 +4,8 @@ tel: "+1771111001"
 #Server URL
 server: https://textsecure-service.whispersystems.org:443
 
-#This is needed for the official servers
-skipTLSCheck: true
+#proxy URL if you use one
+#proxy: http://host:8080
 
 #Verification via sms or voice
 verificationType: sms
