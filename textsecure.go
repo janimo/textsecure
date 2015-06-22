@@ -186,7 +186,6 @@ var (
 func init() {
 	loglevel := os.Getenv("TEXTSECURE_LOGLEVEL")
 
-	println(loglevel)
 	switch loglevel {
 	case "DEBUG":
 		log.SetLevel(log.DebugLevel)
