@@ -183,16 +183,25 @@ var (
 	client *Client
 )
 
-func init() {
-	loglevel := os.Getenv("TEXTSECURE_LOGLEVEL")
+// setupLogging sets the logging verbosity level based on configuration
+// and environment variables
+func setupLogging() {
+	loglevel := config.LogLevel
+	if loglevel == "" {
+		loglevel = os.Getenv("TEXTSECURE_LOGLEVEL")
+	}
 
-	switch loglevel {
+	switch strings.ToUpper(loglevel) {
 	case "DEBUG":
 		log.SetLevel(log.DebugLevel)
+	case "INFO":
+		log.SetLevel(log.InfoLevel)
 	case "WARN":
 		log.SetLevel(log.WarnLevel)
+	case "ERROR":
+		log.SetLevel(log.ErrorLevel)
 	default:
-		log.SetLevel(log.InfoLevel)
+		log.SetLevel(log.ErrorLevel)
 	}
 }
 
@@ -207,6 +216,7 @@ func Setup(c *Client) error {
 		return err
 	}
 
+	setupLogging()
 	err = setupStore()
 	if err != nil {
 		return err

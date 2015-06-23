@@ -19,6 +19,7 @@ type Config struct {
 	StorageDir         string `yaml:"storageDir"`         // Directory for the persistent storage
 	UnencryptedStorage bool   `yaml:"unencryptedStorage"` // Whether to store plaintext keys and session state (only for development)
 	StoragePassword    string `yaml:"storagePassword"`    // Password to the storage
+	LogLevel           string `yaml:"loglevel"`           // Verbosity of the logging messages
 }
 
 // ReadConfig reads a YAML config file
