@@ -213,13 +213,13 @@ type jsonMessage struct {
 }
 
 func createMessage(msg *outgoingMessage) ([]byte, error) {
-	pmc := &textsecure.PushMessageContent{}
+	pmc := &textsecure.DataMessage{}
 	if msg.msg != "" {
 		pmc.Body = &msg.msg
 	}
 	if msg.attachment != nil {
-		pmc.Attachments = []*textsecure.PushMessageContent_AttachmentPointer{
-			&textsecure.PushMessageContent_AttachmentPointer{
+		pmc.Attachments = []*textsecure.AttachmentPointer{
+			&textsecure.AttachmentPointer{
 				Id:          &msg.attachment.id,
 				ContentType: &msg.attachment.ct,
 				Key:         msg.attachment.keys,
@@ -227,7 +227,7 @@ func createMessage(msg *outgoingMessage) ([]byte, error) {
 		}
 	}
 	if msg.group != nil {
-		pmc.Group = &textsecure.PushMessageContent_GroupContext{
+		pmc.Group = &textsecure.GroupContext{
 			Id:      msg.group.id,
 			Type:    &msg.group.typ,
 			Name:    &msg.group.name,

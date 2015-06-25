@@ -109,7 +109,7 @@ func removeMember(tel string, members []string) []string {
 }
 
 // updateGroup updates a group's state based on an incoming message.
-func updateGroup(gr *textsecure.PushMessageContent_GroupContext) error {
+func updateGroup(gr *textsecure.GroupContext) error {
 	hexid := idToHex(gr.GetId())
 
 	if av := gr.GetAvatar(); av != nil {
@@ -141,7 +141,7 @@ func quitGroup(src string, hexid string) error {
 }
 
 // handleGroups is the main entry point for handling the group metadata on messages.
-func handleGroups(src string, pmc *textsecure.PushMessageContent) (string, error) {
+func handleGroups(src string, pmc *textsecure.DataMessage) (string, error) {
 	gr := pmc.GetGroup()
 	if gr == nil {
 		return "", nil
@@ -149,16 +149,16 @@ func handleGroups(src string, pmc *textsecure.PushMessageContent) (string, error
 	hexid := idToHex(gr.GetId())
 
 	switch gr.GetType() {
-	case textsecure.PushMessageContent_GroupContext_UPDATE:
+	case textsecure.GroupContext_UPDATE:
 		if err := updateGroup(gr); err != nil {
 			return "", err
 		}
-	case textsecure.PushMessageContent_GroupContext_DELIVER:
+	case textsecure.GroupContext_DELIVER:
 		if g, ok := groups[hexid]; ok {
 			return g.Name, nil
 		}
 		return "", fmt.Errorf("Unknown group ID %s\n", hexid)
-	case textsecure.PushMessageContent_GroupContext_QUIT:
+	case textsecure.GroupContext_QUIT:
 		if err := quitGroup(src, hexid); err != nil {
 			return "", err
 		}
@@ -171,7 +171,7 @@ type groupMessage struct {
 	id      []byte
 	name    string
 	members []string
-	typ     textsecure.PushMessageContent_GroupContext_Type
+	typ     textsecure.GroupContext_Type
 }
 
 // SendGroupMessage sends a text message to a given group.
@@ -187,7 +187,7 @@ func SendGroupMessage(name string, msg string) error {
 				msg: msg,
 				group: &groupMessage{
 					id:  g.ID,
-					typ: textsecure.PushMessageContent_GroupContext_DELIVER,
+					typ: textsecure.GroupContext_DELIVER,
 				},
 			}
 			sendMessage(omsg)
@@ -232,7 +232,7 @@ func NewGroup(name string, members []string) error {
 					id:      g.ID,
 					name:    name,
 					members: g.Members,
-					typ:     textsecure.PushMessageContent_GroupContext_UPDATE,
+					typ:     textsecure.GroupContext_UPDATE,
 				},
 			}
 			sendMessage(omsg)
@@ -264,7 +264,7 @@ func LeaveGroup(name string) error {
 				tel: m,
 				group: &groupMessage{
 					id:  g.ID,
-					typ: textsecure.PushMessageContent_GroupContext_QUIT,
+					typ: textsecure.GroupContext_QUIT,
 				},
 			}
 			sendMessage(omsg)

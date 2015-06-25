@@ -294,7 +294,7 @@ func registerDevice() error {
 	return nil
 }
 
-func handleReceipt(ipms *textsecure.IncomingPushMessageSignal) {
+func handleReceipt(ipms *textsecure.Envelope) {
 	//log.Printf("Receipt %+v\n", ipms)
 }
 
@@ -305,7 +305,7 @@ func recID(source string) string {
 // handleMessageBody unmarshals the message and calls the client callbacks
 func handleMessageBody(src string, timestamp uint64, b []byte) error {
 	b = stripPadding(b)
-	pmc := &textsecure.PushMessageContent{}
+	pmc := &textsecure.DataMessage{}
 	err := proto.Unmarshal(b, pmc)
 	if err != nil {
 		return err
@@ -349,7 +349,7 @@ func handleReceivedMessage(msg []byte) error {
 	if err != nil {
 		return err
 	}
-	ipms := &textsecure.IncomingPushMessageSignal{}
+	ipms := &textsecure.Envelope{}
 	err = proto.Unmarshal(plaintext, ipms)
 	if err != nil {
 		return err
@@ -358,11 +358,11 @@ func handleReceivedMessage(msg []byte) error {
 	recid := recID(ipms.GetSource())
 	sc := axolotl.NewSessionCipher(textSecureStore, textSecureStore, textSecureStore, textSecureStore, recid, ipms.GetSourceDevice())
 	switch *ipms.Type {
-	case textsecure.IncomingPushMessageSignal_RECEIPT:
+	case textsecure.Envelope_RECEIPT:
 		handleReceipt(ipms)
 		return nil
-	case textsecure.IncomingPushMessageSignal_CIPHERTEXT:
-		wm, err := axolotl.LoadWhisperMessage(ipms.GetMessage())
+	case textsecure.Envelope_CIPHERTEXT:
+		wm, err := axolotl.LoadWhisperMessage(ipms.GetLegacyMessage())
 		if err != nil {
 			return err
 		}
@@ -375,8 +375,8 @@ func handleReceivedMessage(msg []byte) error {
 			return err
 		}
 
-	case textsecure.IncomingPushMessageSignal_PREKEY_BUNDLE:
-		pkwm, err := axolotl.LoadPreKeyWhisperMessage(ipms.GetMessage())
+	case textsecure.Envelope_PREKEY_BUNDLE:
+		pkwm, err := axolotl.LoadPreKeyWhisperMessage(ipms.GetLegacyMessage())
 		if err != nil {
 			return err
 		}

@@ -74,7 +74,7 @@ func uploadAttachment(r io.Reader, ct string) (*att, error) {
 	return &att{id, ct, keys}, nil
 }
 
-func handleSingleAttachment(a *textsecure.PushMessageContent_AttachmentPointer) ([]byte, error) {
+func handleSingleAttachment(a *textsecure.AttachmentPointer) ([]byte, error) {
 	loc, err := getAttachmentLocation(*a.Id)
 	if err != nil {
 		return nil, err
@@ -102,7 +102,7 @@ func handleSingleAttachment(a *textsecure.PushMessageContent_AttachmentPointer) 
 	return b, nil
 }
 
-func handleAttachments(pmc *textsecure.PushMessageContent) ([][]byte, error) {
+func handleAttachments(pmc *textsecure.DataMessage) ([][]byte, error) {
 	atts := pmc.GetAttachments()
 	if atts == nil {
 		return nil, nil
