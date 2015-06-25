@@ -13,3 +13,9 @@ verificationType: sms
 #The local storage uses password base encryption
 #If not present here, the password will be requested on startup
 storagePassword: password
+
+#Overrides the default HTTP User-Agent field ("Go 1.1 package http")
+#userAgent: "TextSecure Go command line client 0.1"
+
+#Logging verbosity; valid values are error,warn,info and debug, case insensitive
+#loglevel: debug
