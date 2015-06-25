@@ -20,6 +20,7 @@ type Config struct {
 	UnencryptedStorage bool   `yaml:"unencryptedStorage"` // Whether to store plaintext keys and session state (only for development)
 	StoragePassword    string `yaml:"storagePassword"`    // Password to the storage
 	LogLevel           string `yaml:"loglevel"`           // Verbosity of the logging messages
+	UserAgent          string `yaml:"userAgent"`          // Override for the default HTTP User Agent header field
 }
 
 // ReadConfig reads a YAML config file
