@@ -294,8 +294,8 @@ func registerDevice() error {
 	return nil
 }
 
-func handleReceipt(ipms *textsecure.Envelope) {
-	//log.Printf("Receipt %+v\n", ipms)
+func handleReceipt(env *textsecure.Envelope) {
+	//log.Printf("Receipt %+v\n", env)
 }
 
 func recID(source string) string {
@@ -349,20 +349,20 @@ func handleReceivedMessage(msg []byte) error {
 	if err != nil {
 		return err
 	}
-	ipms := &textsecure.Envelope{}
-	err = proto.Unmarshal(plaintext, ipms)
+	env := &textsecure.Envelope{}
+	err = proto.Unmarshal(plaintext, env)
 	if err != nil {
 		return err
 	}
-	//log.Printf("%s %s %d\n", ipms.GetType(), ipms.GetSource(), ipms.GetSourceDevice())
-	recid := recID(ipms.GetSource())
-	sc := axolotl.NewSessionCipher(textSecureStore, textSecureStore, textSecureStore, textSecureStore, recid, ipms.GetSourceDevice())
-	switch *ipms.Type {
+	//log.Printf("%s %s %d\n", env.GetType(), env.GetSource(), env.GetSourceDevice())
+	recid := recID(env.GetSource())
+	sc := axolotl.NewSessionCipher(textSecureStore, textSecureStore, textSecureStore, textSecureStore, recid, env.GetSourceDevice())
+	switch *env.Type {
 	case textsecure.Envelope_RECEIPT:
-		handleReceipt(ipms)
+		handleReceipt(env)
 		return nil
 	case textsecure.Envelope_CIPHERTEXT:
-		wm, err := axolotl.LoadWhisperMessage(ipms.GetLegacyMessage())
+		wm, err := axolotl.LoadWhisperMessage(env.GetLegacyMessage())
 		if err != nil {
 			return err
 		}
@@ -370,13 +370,13 @@ func handleReceivedMessage(msg []byte) error {
 		if err != nil {
 			return err
 		}
-		err = handleMessageBody(ipms.GetSource(), ipms.GetTimestamp(), b)
+		err = handleMessageBody(env.GetSource(), env.GetTimestamp(), b)
 		if err != nil {
 			return err
 		}
 
 	case textsecure.Envelope_PREKEY_BUNDLE:
-		pkwm, err := axolotl.LoadPreKeyWhisperMessage(ipms.GetLegacyMessage())
+		pkwm, err := axolotl.LoadPreKeyWhisperMessage(env.GetLegacyMessage())
 		if err != nil {
 			return err
 		}
@@ -384,12 +384,12 @@ func handleReceivedMessage(msg []byte) error {
 		if err != nil {
 			return err
 		}
-		err = handleMessageBody(ipms.GetSource(), ipms.GetTimestamp(), b)
+		err = handleMessageBody(env.GetSource(), env.GetTimestamp(), b)
 		if err != nil {
 			return err
 		}
 	default:
-		return fmt.Errorf("Not implemented %d", *ipms.Type)
+		return fmt.Errorf("Not implemented %d", *env.Type)
 	}
 
 	return nil
