@@ -517,7 +517,7 @@ func (sc *SessionCipher) SessionEncryptMessage(plaintext []byte) ([]byte, int32,
 		return nil, 0, err
 	}
 	msg := wm.serialize()
-	msgType := int32(1) // textsecure.IncomingPushMessageSignal_CIPHERTEXT
+	msgType := int32(1) // textsecure.Envelope_CIPHERTEXT
 
 	if ss.hasUnacknowledgedPreKeyMessage() {
 		items := ss.getUnacknowledgedPreKeyMessageItems()
@@ -528,7 +528,7 @@ func (sc *SessionCipher) SessionEncryptMessage(plaintext []byte) ([]byte, int32,
 			return nil, 0, nil
 		}
 		msg = pkwm.serialize()
-		msgType = int32(3) // textsecure.IncomingPushMessageSignal_PREKEY_BUNDLE
+		msgType = int32(3) // textsecure.Envelope_PREKEY_BUNDLE
 	}
 
 	ss.setSenderChainKey(chainKey.getNextChainKey())
