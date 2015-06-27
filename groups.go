@@ -141,8 +141,8 @@ func quitGroup(src string, hexid string) error {
 }
 
 // handleGroups is the main entry point for handling the group metadata on messages.
-func handleGroups(src string, pmc *textsecure.DataMessage) (string, error) {
-	gr := pmc.GetGroup()
+func handleGroups(src string, dm *textsecure.DataMessage) (string, error) {
+	gr := dm.GetGroup()
 	if gr == nil {
 		return "", nil
 	}

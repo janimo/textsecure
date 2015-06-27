@@ -102,8 +102,8 @@ func handleSingleAttachment(a *textsecure.AttachmentPointer) ([]byte, error) {
 	return b, nil
 }
 
-func handleAttachments(pmc *textsecure.DataMessage) ([][]byte, error) {
-	atts := pmc.GetAttachments()
+func handleAttachments(dm *textsecure.DataMessage) ([][]byte, error) {
+	atts := dm.GetAttachments()
 	if atts == nil {
 		return nil, nil
 	}

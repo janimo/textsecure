@@ -213,12 +213,12 @@ type jsonMessage struct {
 }
 
 func createMessage(msg *outgoingMessage) ([]byte, error) {
-	pmc := &textsecure.DataMessage{}
+	dm := &textsecure.DataMessage{}
 	if msg.msg != "" {
-		pmc.Body = &msg.msg
+		dm.Body = &msg.msg
 	}
 	if msg.attachment != nil {
-		pmc.Attachments = []*textsecure.AttachmentPointer{
+		dm.Attachments = []*textsecure.AttachmentPointer{
 			&textsecure.AttachmentPointer{
 				Id:          &msg.attachment.id,
 				ContentType: &msg.attachment.ct,
@@ -227,14 +227,14 @@ func createMessage(msg *outgoingMessage) ([]byte, error) {
 		}
 	}
 	if msg.group != nil {
-		pmc.Group = &textsecure.GroupContext{
+		dm.Group = &textsecure.GroupContext{
 			Id:      msg.group.id,
 			Type:    &msg.group.typ,
 			Name:    &msg.group.name,
 			Members: msg.group.members,
 		}
 	}
-	b, err := proto.Marshal(pmc)
+	b, err := proto.Marshal(dm)
 	if err != nil {
 		return nil, err
 	}

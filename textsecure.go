@@ -305,24 +305,24 @@ func recID(source string) string {
 // handleMessageBody unmarshals the message and calls the client callbacks
 func handleMessageBody(src string, timestamp uint64, b []byte) error {
 	b = stripPadding(b)
-	pmc := &textsecure.DataMessage{}
-	err := proto.Unmarshal(b, pmc)
+	dm := &textsecure.DataMessage{}
+	err := proto.Unmarshal(b, dm)
 	if err != nil {
 		return err
 	}
-	atts, err := handleAttachments(pmc)
+	atts, err := handleAttachments(dm)
 	if err != nil {
 		return err
 	}
 
-	gr, err := handleGroups(src, pmc)
+	gr, err := handleGroups(src, dm)
 	if err != nil {
 		return err
 	}
 
 	msg := &Message{
 		source:      src,
-		message:     pmc.GetBody(),
+		message:     dm.GetBody(),
 		attachments: atts,
 		group:       gr,
 		timestamp:   timestamp,
