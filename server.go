@@ -68,7 +68,6 @@ func requestCode(tel, method string) (string, error) {
 type verificationData struct {
 	SignalingKey    string `json:"signalingKey"`
 	RegistrationID  uint32 `json:"registrationId"`
-	SupportsSms     bool   `json:"supportSms"`
 	FetchesMessages bool   `json:"fetchesMessages"`
 }
 
@@ -76,7 +75,6 @@ func verifyCode(code string) error {
 	code = strings.Replace(code, "-", "", -1)
 	vd := verificationData{
 		SignalingKey:    base64.StdEncoding.EncodeToString(registrationInfo.signalingKey),
-		SupportsSms:     false,
 		FetchesMessages: true,
 		RegistrationID:  registrationInfo.registrationID,
 	}
@@ -128,9 +126,8 @@ func getPreKeys(tel string) (*preKeyResponse, error) {
 
 // jsonContact is the data returned by the server for each registered contact
 type jsonContact struct {
-	Token       string `json:"token"`
-	Relay       string `json:"relay"`
-	SupportsSms bool   `json:"supportsSms"`
+	Token string `json:"token"`
+	Relay string `json:"relay"`
 }
 
 // GetRegisteredContacts returns the subset of the local contacts
