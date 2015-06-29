@@ -32,7 +32,7 @@ var (
 	messagePath            = "/v1/messages/%s"
 	acknowledgeMessagePath = "/v1/messages/%s/%d"
 	receiptPath            = "/v1/receipt/%s/%d"
-	attachmentPath         = "/v1/attachments/%s"
+	attachmentPath         = "/v1/attachments/%d"
 )
 
 // RegistrationInfo holds the data required to be identified by and
