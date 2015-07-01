@@ -206,6 +206,7 @@ type jsonMessage struct {
 	DestDeviceID       uint32 `json:"destinationDeviceId"`
 	DestRegistrationID uint32 `json:"destinationRegistrationId"`
 	Body               string `json:"body"`
+	Content            string `json:"content"`
 	Relay              string `json:"relay,omitempty"`
 }
 
