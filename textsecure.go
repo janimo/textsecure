@@ -302,14 +302,28 @@ func recID(source string) string {
 	return source[1:]
 }
 
-// handleMessageBody unmarshals the message and calls the client callbacks
-func handleMessageBody(src string, timestamp uint64, b []byte) error {
+func handleMessage(src string, timestamp uint64, b []byte, legacy bool) error {
 	b = stripPadding(b)
-	dm := &textsecure.DataMessage{}
-	err := proto.Unmarshal(b, dm)
-	if err != nil {
-		return err
+	if legacy {
+		dm := &textsecure.DataMessage{}
+		err := proto.Unmarshal(b, dm)
+		if err != nil {
+			return err
+		}
+		return handleDataMessage(src, timestamp, dm)
+	} else {
+		content := &textsecure.Content{}
+		err := proto.Unmarshal(b, content)
+		if err != nil {
+			return err
+		}
+		dm := content.GetDataMessage()
+		return handleDataMessage(src, timestamp, dm)
 	}
+}
+
+// handleDataMessage handles an incoming DataMessage and calls client callbacks
+func handleDataMessage(src string, timestamp uint64, dm *textsecure.DataMessage) error {
 	atts, err := handleAttachments(dm)
 	if err != nil {
 		return err
@@ -332,6 +346,13 @@ func handleMessageBody(src string, timestamp uint64, b []byte) error {
 		client.MessageHandler(msg)
 	}
 	return nil
+}
+
+func getMessage(env *textsecure.Envelope) ([]byte, bool) {
+	if msg := env.GetContent(); msg != nil {
+		return msg, false
+	}
+	return env.GetLegacyMessage(), true
 }
 
 // Authenticate and decrypt a received message
@@ -362,7 +383,8 @@ func handleReceivedMessage(msg []byte) error {
 		handleReceipt(env)
 		return nil
 	case textsecure.Envelope_CIPHERTEXT:
-		wm, err := axolotl.LoadWhisperMessage(env.GetLegacyMessage())
+		msg, legacy := getMessage(env)
+		wm, err := axolotl.LoadWhisperMessage(msg)
 		if err != nil {
 			return err
 		}
@@ -370,13 +392,14 @@ func handleReceivedMessage(msg []byte) error {
 		if err != nil {
 			return err
 		}
-		err = handleMessageBody(env.GetSource(), env.GetTimestamp(), b)
+		err = handleMessage(env.GetSource(), env.GetTimestamp(), b, legacy)
 		if err != nil {
 			return err
 		}
 
 	case textsecure.Envelope_PREKEY_BUNDLE:
-		pkwm, err := axolotl.LoadPreKeyWhisperMessage(env.GetLegacyMessage())
+		msg, legacy := getMessage(env)
+		pkwm, err := axolotl.LoadPreKeyWhisperMessage(msg)
 		if err != nil {
 			return err
 		}
@@ -384,7 +407,7 @@ func handleReceivedMessage(msg []byte) error {
 		if err != nil {
 			return err
 		}
-		err = handleMessageBody(env.GetSource(), env.GetTimestamp(), b)
+		err = handleMessage(env.GetSource(), env.GetTimestamp(), b, legacy)
 		if err != nil {
 			return err
 		}
