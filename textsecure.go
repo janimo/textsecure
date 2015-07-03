@@ -317,8 +317,10 @@ func handleMessage(src string, timestamp uint64, b []byte, legacy bool) error {
 		if err != nil {
 			return err
 		}
-		dm := content.GetDataMessage()
-		return handleDataMessage(src, timestamp, dm)
+		if dm := content.GetDataMessage(); dm != nil {
+			return handleDataMessage(src, timestamp, dm)
+		}
+		return handleSyncMessage(src, timestamp, content.GetSyncMessage())
 	}
 }
 
