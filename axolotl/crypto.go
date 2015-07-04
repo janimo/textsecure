@@ -11,6 +11,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"errors"
+	"fmt"
 	"io"
 )
 
@@ -36,7 +37,7 @@ func Decrypt(key, ciphertext []byte) ([]byte, error) {
 	mode.CryptBlocks(ciphertext, ciphertext)
 	pad := ciphertext[len(ciphertext)-1]
 	if pad > aes.BlockSize {
-		return nil, errors.New("Pad value larger than AES blocksize")
+		return nil, fmt.Errorf("Pad value (%d) larger than AES blocksize (%d)", pad, aes.BlockSize)
 	}
 	return ciphertext[aes.BlockSize : len(ciphertext)-int(pad)], nil
 }
