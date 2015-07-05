@@ -334,7 +334,7 @@ func (s *store) GetSubDeviceSessions(recipientID string) []uint32 {
 		if !fi.IsDir() {
 			i := strings.LastIndex(path, "_")
 			id, _ := strconv.Atoi(path[i+1:])
-			sessions[len(sessions)] = uint32(id)
+			sessions = append(sessions, uint32(id))
 		}
 		return nil
 	})
