@@ -13,6 +13,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 )
 
@@ -88,5 +89,8 @@ func aesDecrypt(key, ciphertext []byte) ([]byte, error) {
 	mode := cipher.NewCBCDecrypter(block, iv)
 	mode.CryptBlocks(ciphertext, ciphertext)
 	pad := ciphertext[len(ciphertext)-1]
+	if pad > aes.BlockSize {
+		return nil, fmt.Errorf("Pad value (%d) larger than AES blocksize (%d)", pad, aes.BlockSize)
+	}
 	return ciphertext[aes.BlockSize : len(ciphertext)-int(pad)], nil
 }
