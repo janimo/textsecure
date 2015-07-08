@@ -232,6 +232,9 @@ func createMessage(msg *outgoingMessage) ([]byte, error) {
 			Members: msg.group.members,
 		}
 	}
+
+	dm.Flags = &msg.flags
+
 	b, err := proto.Marshal(dm)
 	if err != nil {
 		return nil, err

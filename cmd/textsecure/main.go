@@ -26,6 +26,7 @@ var (
 	attachment string
 	newgroup   string
 	leavegroup string
+	endsession bool
 )
 
 func init() {
@@ -36,6 +37,7 @@ func init() {
 	flag.StringVar(&attachment, "attachment", "", "File to attach")
 	flag.StringVar(&newgroup, "newgroup", "", "Create a group, the argument has the format 'name:member1:member2'")
 	flag.StringVar(&leavegroup, "leavegroup", "", "Leave a group named by the argument")
+	flag.BoolVar(&endsession, "endsession", false, "Terminate session with peer")
 }
 
 var (
@@ -226,6 +228,12 @@ func main() {
 		}
 
 		if to != "" {
+			// Terminate the session with the peer
+			if endsession {
+				textsecure.EndSession(to)
+				return
+			}
+
 			// Send attachment with optional message then exit
 			if attachment != "" {
 				err := textsecure.SendFileAttachment(to, message, attachment)

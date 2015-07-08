@@ -92,6 +92,7 @@ type outgoingMessage struct {
 	msg        string
 	group      *groupMessage
 	attachment *att
+	flags      uint32
 }
 
 // SendMessage sends the given text message to the given contact.
@@ -129,6 +130,20 @@ func SendFileAttachment(tel, msg string, path string) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func EndSession(tel string) error {
+	omsg := &outgoingMessage{
+		tel:   tel,
+		msg:   "TERMINATE",
+		flags: uint32(textsecure.DataMessage_END_SESSION),
+	}
+	err := sendMessage(omsg)
+	if err != nil {
+		return err
+	}
+	textSecureStore.DeleteAllSessions(recID(tel))
 	return nil
 }
 
