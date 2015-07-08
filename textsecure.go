@@ -324,8 +324,20 @@ func handleMessage(src string, timestamp uint64, b []byte, legacy bool) error {
 	}
 }
 
+func handleFlags(src string, dm *textsecure.DataMessage) error {
+	if dm.GetFlags() == uint32(textsecure.DataMessage_END_SESSION) {
+		textSecureStore.DeleteAllSessions(recID(src))
+	}
+	return nil
+}
+
 // handleDataMessage handles an incoming DataMessage and calls client callbacks
 func handleDataMessage(src string, timestamp uint64, dm *textsecure.DataMessage) error {
+	err := handleFlags(src, dm)
+	if err != nil {
+		return err
+	}
+
 	atts, err := handleAttachments(dm)
 	if err != nil {
 		return err
