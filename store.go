@@ -16,6 +16,8 @@ import (
 
 	"github.com/janimo/textsecure/axolotl"
 	"golang.org/x/crypto/pbkdf2"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 // store implements the PreKeyStore, SignedPreKeyStore,
@@ -375,6 +377,7 @@ func (s *store) DeleteSession(recipientID string, deviceID uint32) {
 }
 
 func (s *store) DeleteAllSessions(recipientID string) {
+	log.Debugf("Deleting all sessions for %s\n", recipientID)
 	sessions := s.GetSubDeviceSessions(recipientID)
 	for _, dev := range sessions {
 		_ = os.Remove(s.sessionFilePath(recipientID, dev))
