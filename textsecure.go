@@ -320,6 +320,7 @@ func recID(source string) string {
 
 func handleMessage(src string, timestamp uint64, b []byte, legacy bool) error {
 	b = stripPadding(b)
+
 	if legacy {
 		dm := &textsecure.DataMessage{}
 		err := proto.Unmarshal(b, dm)
@@ -327,17 +328,17 @@ func handleMessage(src string, timestamp uint64, b []byte, legacy bool) error {
 			return err
 		}
 		return handleDataMessage(src, timestamp, dm)
-	} else {
-		content := &textsecure.Content{}
-		err := proto.Unmarshal(b, content)
-		if err != nil {
-			return err
-		}
-		if dm := content.GetDataMessage(); dm != nil {
-			return handleDataMessage(src, timestamp, dm)
-		}
-		return handleSyncMessage(src, timestamp, content.GetSyncMessage())
 	}
+
+	content := &textsecure.Content{}
+	err := proto.Unmarshal(b, content)
+	if err != nil {
+		return err
+	}
+	if dm := content.GetDataMessage(); dm != nil {
+		return handleDataMessage(src, timestamp, dm)
+	}
+	return handleSyncMessage(src, timestamp, content.GetSyncMessage())
 }
 
 func handleFlags(src string, dm *textsecure.DataMessage) error {
