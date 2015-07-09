@@ -133,6 +133,7 @@ func SendFileAttachment(tel, msg string, path string) error {
 	return nil
 }
 
+// EndSession terminates the session with the given peer.
 func EndSession(tel string) error {
 	omsg := &outgoingMessage{
 		tel:   tel,
