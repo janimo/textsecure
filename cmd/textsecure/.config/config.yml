@@ -4,11 +4,22 @@ tel: "+1771111001"
 #Server URL
 server: https://textsecure-service.whispersystems.org:443
 
+#Server's TLS root certificate path when using a non-default server
+#See https://github.com/janimo/textsecure-docker#using-https
+#rootCA: path/to/rootCA.pem
+
 #proxy URL if you use one
 #proxy: http://host:8080
 
-#Verification via sms or voice
+#Registration code verification can be done via sms or voice
+#Additionally the 'dev' type is supported for a non-official server fork.
 verificationType: sms
+
+#Where to store sessions' metadata, by default ".storage"
+#storageDir: path/to/storage
+
+#Setting this to false turns off encryption of local storage, for developing.
+#unencryptedStorage: true
 
 #The local storage uses password base encryption
 #If not present here, the password will be requested on startup
