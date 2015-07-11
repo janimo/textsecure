@@ -76,7 +76,7 @@ func decodeSignature(s string) ([]byte, error) {
 		return nil, err
 	}
 	if len(b) != 64 {
-		return nil, errors.New("Signature not 64 bytes")
+		return nil, fmt.Errorf("Signature is %d, not 64 bytes", len(b))
 	}
 	return b, nil
 }
