@@ -78,9 +78,11 @@ func loadGroup(path string) error {
 }
 
 // setupGroups reads all groups' state from storage.
-func setupGroups() {
+func setupGroups() error {
 	groupDir = filepath.Join(config.StorageDir, "groups")
-	os.MkdirAll(groupDir, 0700)
+	if err := os.MkdirAll(groupDir, 0700); err != nil {
+		return err
+	}
 	filepath.Walk(groupDir, func(path string, fi os.FileInfo, err error) error {
 		if !fi.IsDir() {
 			if !strings.Contains(path, "avatar") {
@@ -90,6 +92,7 @@ func setupGroups() {
 		return nil
 
 	})
+	return nil
 }
 
 // avatarPath returns the path to the avatar image of a given group.

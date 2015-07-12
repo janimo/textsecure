@@ -44,10 +44,18 @@ func newStore(password, path string) (*store, error) {
 	}
 
 	// Create dirs in case this is first run
-	os.MkdirAll(ts.preKeysDir, 0700)
-	os.MkdirAll(ts.signedPreKeysDir, 0700)
-	os.MkdirAll(ts.identityDir, 0700)
-	os.MkdirAll(ts.sessionsDir, 0700)
+	if err := os.MkdirAll(ts.preKeysDir, 0700); err != nil {
+		return nil, err
+	}
+	if err := os.MkdirAll(ts.signedPreKeysDir, 0700); err != nil {
+		return nil, err
+	}
+	if err := os.MkdirAll(ts.identityDir, 0700); err != nil {
+		return nil, err
+	}
+	if err := os.MkdirAll(ts.sessionsDir, 0700); err != nil {
+		return nil, err
+	}
 
 	// If there is a password, generate the keys from it
 	if !ts.unencrypted {
@@ -402,7 +410,9 @@ func setupStore() error {
 		return err
 	}
 
-	setupGroups()
+	if err := setupGroups(); err != nil {
+		return err
+	}
 
 	return nil
 }
