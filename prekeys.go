@@ -83,7 +83,9 @@ func getNextPreKeyID() uint32 {
 }
 
 func generatePreKeys() error {
-	os.MkdirAll(textSecureStore.preKeysDir, 0700)
+	if err := os.MkdirAll(textSecureStore.preKeysDir, 0700); err != nil {
+		return err
+	}
 
 	startID := getNextPreKeyID()
 	for i := 0; i < preKeyBatchSize; i++ {
