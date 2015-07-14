@@ -6,8 +6,6 @@ package axolotl
 // PreKey and SignedPreKey support
 
 import (
-	"errors"
-
 	"github.com/golang/protobuf/proto"
 	protobuf "github.com/janimo/textsecure/axolotl/protobuf"
 )
@@ -141,9 +139,6 @@ func NewPreKeyBundle(registrationID, deviceID, preKeyID uint32, preKey *ECPublic
 		SignedPreKeyID:     signedPreKeyID,
 		SignedPreKeyPublic: signedPreKey,
 		IdentityKey:        identityKey,
-	}
-	if len(signature) != 64 {
-		return nil, errors.New("Signature length is not 64")
 	}
 	copy(pkb.SignedPreKeySignature[:], signature)
 	return pkb, nil
