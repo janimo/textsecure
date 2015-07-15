@@ -271,6 +271,10 @@ func makePreKeyBundle(tel string) (*axolotl.PreKeyBundle, error) {
 	pkbs := make([]*axolotl.PreKeyBundle, ndev)
 
 	for i, d := range pkr.Devices {
+		if d.PreKey == nil {
+			return nil, fmt.Errorf("No prekey for contact %s, device %d\n", tel, i)
+		}
+
 		decPK, err := decodeKey(d.PreKey.PublicKey)
 		if err != nil {
 			return nil, err
