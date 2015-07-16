@@ -357,6 +357,16 @@ func (err NotTrustedError) Error() string {
 	return fmt.Sprintf("Remote identity %s is not trusted", err.ID)
 }
 
+// UnsupportedVersionError represents the error situation where the peer
+// is using an unsupported version.
+type UnsupportedVersionError struct {
+        version int
+}
+
+func (err UnsupportedVersionError) Error() string {
+        return fmt.Sprintf("Unsupported version %d", err.version)
+}
+
 // BuildReceiverSession creates a new session from a received PreKeyWhisperMessage.
 func (sb *SessionBuilder) BuildReceiverSession(sr *SessionRecord, pkwm *PreKeyWhisperMessage) (uint32, error) {
 	if pkwm.Version != currentVersion {
