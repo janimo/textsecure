@@ -6,7 +6,6 @@ package axolotl
 import (
 	"crypto/hmac"
 	"errors"
-	"fmt"
 
 	protobuf "github.com/janimo/textsecure/axolotl/protobuf"
 
@@ -41,7 +40,7 @@ func LoadWhisperMessage(serialized []byte) (*WhisperMessage, error) {
 	message := serialized[1 : len(serialized)-macLength]
 
 	if version != currentVersion {
-		return nil, fmt.Errorf("Unsupported version %d\n", version)
+		return nil, UnsupportedVersionError{version}
 	}
 	pwm := &protobuf.WhisperMessage{}
 	err := proto.Unmarshal(message, pwm)
@@ -140,7 +139,7 @@ func LoadPreKeyWhisperMessage(serialized []byte) (*PreKeyWhisperMessage, error) 
 	version := highBitsToInt(serialized[0])
 
 	if version != currentVersion {
-		return nil, fmt.Errorf("Unsupported version %d\n", version)
+		return nil, UnsupportedVersionError{version}
 	}
 
 	ppkwm := &protobuf.PreKeyWhisperMessage{}

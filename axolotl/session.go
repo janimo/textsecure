@@ -358,19 +358,19 @@ func (err NotTrustedError) Error() string {
 }
 
 // UnsupportedVersionError represents the error situation where the peer
-// is using an unsupported version.
+// is using an unsupported protocol version.
 type UnsupportedVersionError struct {
-        version int
+	version byte
 }
 
 func (err UnsupportedVersionError) Error() string {
-        return fmt.Sprintf("Unsupported version %d", err.version)
+	return fmt.Sprintf("Unsupported protocol version %d", err.version)
 }
 
 // BuildReceiverSession creates a new session from a received PreKeyWhisperMessage.
 func (sb *SessionBuilder) BuildReceiverSession(sr *SessionRecord, pkwm *PreKeyWhisperMessage) (uint32, error) {
 	if pkwm.Version != currentVersion {
-		return 0, fmt.Errorf("Unsupported version %d", pkwm.Version)
+		return 0, UnsupportedVersionError{pkwm.Version}
 	}
 	theirIdentityKey := pkwm.IdentityKey
 	if !sb.identityStore.IsTrustedIdentity(sb.recipientID, theirIdentityKey) {
