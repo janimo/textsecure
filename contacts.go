@@ -4,7 +4,6 @@
 package textsecure
 
 import (
-	"errors"
 	"io/ioutil"
 
 	"gopkg.in/yaml.v2"
@@ -33,11 +32,4 @@ func ReadContacts(fileName string) ([]Contact, error) {
 		return nil, err
 	}
 	return contacts.Contacts, nil
-}
-
-func loadLocalContacts() ([]Contact, error) {
-	if client.GetLocalContacts != nil {
-		return client.GetLocalContacts()
-	}
-	return nil, errors.New("Provide Client.GetLocalContacts")
 }

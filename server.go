@@ -133,7 +133,7 @@ type jsonContact struct {
 // GetRegisteredContacts returns the subset of the local contacts
 // that are also registered with the server
 func GetRegisteredContacts() ([]Contact, error) {
-	lc, err := loadLocalContacts()
+	lc, err := client.GetLocalContacts()
 	if err != nil {
 		return nil, fmt.Errorf("Could not get local contacts :%s\n", err)
 	}
