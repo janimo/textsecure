@@ -131,11 +131,20 @@ func updateGroup(gr *textsecure.GroupContext) error {
 	return saveGroup(hexid)
 }
 
+// UnknownGroupIDError is returned when an unknown group id is encountered
+type UnknownGroupIDError struct {
+	id string
+}
+
+func (err UnknownGroupIDError) Error() string {
+	return fmt.Sprintf("Unknown group ID %s", err.id)
+}
+
 // quitGroup removes a quitting member from the local group state.
 func quitGroup(src string, hexid string) error {
 	gr, ok := groups[hexid]
 	if !ok {
-		return fmt.Errorf("Quit message for group with unknown ID %s\n", hexid)
+		return UnknownGroupIDError{hexid}
 	}
 
 	gr.Members = removeMember(src, gr.Members)
@@ -160,7 +169,7 @@ func handleGroups(src string, dm *textsecure.DataMessage) (string, error) {
 		if g, ok := groups[hexid]; ok {
 			return g.Name, nil
 		}
-		return "", fmt.Errorf("Unknown group ID %s\n", hexid)
+		return "", UnknownGroupIDError{hexid}
 	case textsecure.GroupContext_QUIT:
 		if err := quitGroup(src, hexid); err != nil {
 			return "", err
@@ -177,11 +186,20 @@ type groupMessage struct {
 	typ     textsecure.GroupContext_Type
 }
 
+// UnknownGroupNameError is returned when an unknown group name is
+type UnknownGroupNameError struct {
+	name string
+}
+
+func (err UnknownGroupNameError) Error() string {
+	return fmt.Sprintf("Unknown group name %s", err.name)
+}
+
 // SendGroupMessage sends a text message to a given group.
 func SendGroupMessage(name string, msg string) error {
 	g := groupByName(name)
 	if g == nil {
-		return fmt.Errorf("Unknown group %s\n", name)
+		return UnknownGroupNameError{name}
 	}
 	for _, m := range g.Members {
 		if m != config.Tel {
@@ -258,7 +276,7 @@ func removeGroup(id []byte) error {
 func LeaveGroup(name string) error {
 	g := groupByName(name)
 	if g == nil {
-		return fmt.Errorf("Inexistent group %s\n", name)
+		return UnknownGroupNameError{name}
 	}
 
 	for _, m := range g.Members {
