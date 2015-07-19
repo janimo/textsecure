@@ -211,7 +211,10 @@ func SendGroupMessage(name string, msg string) error {
 					typ: textsecure.GroupContext_DELIVER,
 				},
 			}
-			sendMessage(omsg)
+			err := sendMessage(omsg)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -256,7 +259,10 @@ func NewGroup(name string, members []string) error {
 					typ:     textsecure.GroupContext_UPDATE,
 				},
 			}
-			sendMessage(omsg)
+			err := sendMessage(omsg)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -288,7 +294,10 @@ func LeaveGroup(name string) error {
 					typ: textsecure.GroupContext_QUIT,
 				},
 			}
-			sendMessage(omsg)
+			err := sendMessage(omsg)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	removeGroup(g.ID)
