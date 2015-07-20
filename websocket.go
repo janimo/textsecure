@@ -4,7 +4,6 @@
 package textsecure
 
 import (
-	"fmt"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -166,7 +165,7 @@ func (wsc *wsConn) sendAck(id uint64) error {
 func ListenForMessages() error {
 	wsc, err := newWSConn(config.Server+"/v1/websocket/", config.Tel, registrationInfo.password)
 	if err != nil {
-		return fmt.Errorf("Could not establish websocket connection: %s\n", err)
+		return err
 	}
 
 	go wsc.keepAlive()
