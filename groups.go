@@ -238,12 +238,22 @@ func newGroup(name string, members []string) *Group {
 	return groups[hexid]
 }
 
+// GroupExistsError is returned when an attempt is made to create a group
+// named like an already existing one.
+type GroupExistsError struct {
+	name string
+}
+
+func (err GroupExistsError) Error() string {
+	return fmt.Sprintf("Group %s already exists", err.name)
+}
+
 // NewGroup creates a group and notifies its members.
 // Our phone number is automatically added to members.
 func NewGroup(name string, members []string) error {
 	g := groupByName(name)
 	if g != nil {
-		return fmt.Errorf("Not creating existing group %s\n", name)
+		return GroupExistsError{name}
 	}
 
 	g = newGroup(name, members)
