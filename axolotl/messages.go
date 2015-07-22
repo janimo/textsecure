@@ -34,6 +34,9 @@ func makeVersionByte(hi, lo byte) byte {
 	return (hi << 4) | lo
 }
 
+// ErrIncompleteWhisperMessage is returned when an incomplete WhisperMessage is received.
+var ErrIncompleteWhisperMessage = errors.New("Incomplete WhisperMessage")
+
 // LoadWhisperMessage creates a WhisperMessage from serialized bytes.
 func LoadWhisperMessage(serialized []byte) (*WhisperMessage, error) {
 	version := highBitsToInt(serialized[0])
@@ -49,7 +52,7 @@ func LoadWhisperMessage(serialized []byte) (*WhisperMessage, error) {
 	}
 
 	if pwm.GetCiphertext() == nil || pwm.GetRatchetKey() == nil {
-		return nil, errors.New("Incomplete WhisperMessage")
+		return nil, ErrIncompleteWhisperMessage
 	}
 
 	wm := &WhisperMessage{
@@ -134,6 +137,9 @@ type PreKeyWhisperMessage struct {
 	serialized     []byte
 }
 
+// ErrIncompletePreKeyWhisperMessage is returned when an incomplete PreKeyWhisperMessage is received.
+var ErrIncompletePreKeyWhisperMessage = errors.New("Incomplete PreKeyWhisperMessage")
+
 // LoadPreKeyWhisperMessage creates a PreKeyWhisperMessage from serialized bytes.
 func LoadPreKeyWhisperMessage(serialized []byte) (*PreKeyWhisperMessage, error) {
 	version := highBitsToInt(serialized[0])
@@ -152,7 +158,7 @@ func LoadPreKeyWhisperMessage(serialized []byte) (*PreKeyWhisperMessage, error) 
 		ppkwm.GetIdentityKey() == nil ||
 		ppkwm.GetMessage() == nil ||
 		ppkwm.GetSignedPreKeyId() == 0 {
-		return nil, errors.New("Incomplete PreKeyWhisperMessage")
+		return nil, ErrIncompletePreKeyWhisperMessage
 	}
 
 	wm, err := LoadWhisperMessage(ppkwm.GetMessage())
