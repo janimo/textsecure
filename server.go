@@ -350,6 +350,9 @@ func buildMessage(msg *outgoingMessage) ([]jsonMessage, error) {
 	return messages, nil
 }
 
+// ErrRemoteGone is returned when the peer reinstalled and lost its session state.
+var ErrRemoteGone = errors.New("The remote device is gone (probably reinstalled)")
+
 func sendMessage(msg *outgoingMessage) error {
 	m := make(map[string]interface{})
 	bm, err := buildMessage(msg)
@@ -368,7 +371,7 @@ func sendMessage(msg *outgoingMessage) error {
 	}
 	if resp.Status == 410 {
 		textSecureStore.DeleteSession(recID(msg.tel), uint32(1))
-		return errors.New("The remote device is gone (probably reinstalled)")
+		return ErrRemoteGone
 	}
 	if resp.isError() {
 		return resp
