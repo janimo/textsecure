@@ -32,6 +32,7 @@ var (
 	messagePath            = "/v1/messages/%s"
 	acknowledgeMessagePath = "/v1/messages/%s/%d"
 	receiptPath            = "/v1/receipt/%s/%d"
+	allocateAttachmentPath = "/v1/attachments/"
 	attachmentPath         = "/v1/attachments/%d"
 )
 
@@ -178,7 +179,7 @@ type jsonAllocation struct {
 
 // GET /v1/attachments/
 func allocateAttachment() (uint64, string, error) {
-	resp, err := transport.get(fmt.Sprintf(attachmentPath, ""))
+	resp, err := transport.get(allocateAttachmentPath)
 	if err != nil {
 		return 0, "", err
 	}
