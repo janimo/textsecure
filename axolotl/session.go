@@ -557,10 +557,13 @@ func (sc *SessionCipher) GetRemoteRegistrationID() (uint32, error) {
 	return sr.sessionState.getRemoteRegistrationID(), nil
 }
 
+// ErrUninitializedSession occurs when there is no session matching the incoming message.
+var ErrUninitializedSession = errors.New("Uninitialized session")
+
 func (sc *SessionCipher) decrypt(sr *SessionRecord, ciphertext *WhisperMessage) ([]byte, error) {
 	ss := sr.sessionState
 	if !ss.hasSenderChain() {
-		return nil, errors.New("Uninitialized session")
+		return nil, ErrUninitializedSession
 	}
 	if uint32(ciphertext.Version) != ss.getSessionVersion() {
 		return nil, fmt.Errorf("Cipher version %d does not match session version %d", ciphertext.Version, ss.getSessionVersion())
