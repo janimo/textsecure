@@ -117,7 +117,7 @@ func getPreKeys(tel string) (*preKeyResponse, error) {
 		return nil, err
 	}
 	if resp.isError() {
-		return nil, fmt.Errorf("HTTP error %d\n", resp.Status)
+		return nil, resp
 	}
 	dec := json.NewDecoder(resp.Body)
 	k := &preKeyResponse{}
