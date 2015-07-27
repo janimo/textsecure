@@ -406,7 +406,7 @@ func handleReceivedMessage(msg []byte) error {
 	if err != nil {
 		return err
 	}
-	//log.Printf("%s %s %d\n", env.GetType(), env.GetSource(), env.GetSourceDevice())
+
 	recid := recID(env.GetSource())
 	sc := axolotl.NewSessionCipher(textSecureStore, textSecureStore, textSecureStore, textSecureStore, recid, env.GetSourceDevice())
 	switch *env.Type {
