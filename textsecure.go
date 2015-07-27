@@ -8,12 +8,11 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"mime"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/camlistore/camlistore/pkg/magic"
 	"github.com/golang/protobuf/proto"
 
 	log "github.com/Sirupsen/logrus"
@@ -116,8 +115,8 @@ func SendFileAttachment(tel, msg string, path string) error {
 		return err
 	}
 
-	ct := mime.TypeByExtension(filepath.Ext(path))
-	a, err := uploadAttachment(f, ct)
+	ct, r := magic.MIMETypeFromReader(f)
+	a, err := uploadAttachment(r, ct)
 	if err != nil {
 		return err
 	}
