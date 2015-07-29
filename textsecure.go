@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -107,15 +108,10 @@ func SendMessage(tel, msg string) error {
 	return nil
 }
 
-// SendFileAttachment sends the contents of a file, associated
+// SendAttachment sends the contents of a reader, along
 // with an optional message to a given contact.
-func SendFileAttachment(tel, msg string, path string) error {
-	f, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-
-	ct, r := magic.MIMETypeFromReader(f)
+func SendAttachment(tel, msg string, r io.Reader) error {
+	ct, r := magic.MIMETypeFromReader(r)
 	a, err := uploadAttachment(r, ct)
 	if err != nil {
 		return err

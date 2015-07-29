@@ -236,7 +236,12 @@ func main() {
 
 			// Send attachment with optional message then exit
 			if attachment != "" {
-				err := textsecure.SendFileAttachment(to, message, attachment)
+				f, err := os.Open(attachment)
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				err = textsecure.SendAttachment(to, message, f)
 				if err != nil {
 					log.Fatal(err)
 				}
