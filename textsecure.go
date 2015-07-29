@@ -148,7 +148,7 @@ func EndSession(tel string) error {
 type Message struct {
 	source      string
 	message     string
-	attachments [][]byte
+	attachments []io.Reader
 	group       string
 	timestamp   uint64
 }
@@ -164,7 +164,7 @@ func (m *Message) Message() string {
 }
 
 // Attachments returns the list of attachments on the message.
-func (m *Message) Attachments() [][]byte {
+func (m *Message) Attachments() []io.Reader {
 	return m.attachments
 }
 

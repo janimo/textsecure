@@ -74,7 +74,7 @@ func uploadAttachment(r io.Reader, ct string) (*att, error) {
 	return &att{id, ct, keys}, nil
 }
 
-func handleSingleAttachment(a *textsecure.AttachmentPointer) ([]byte, error) {
+func handleSingleAttachment(a *textsecure.AttachmentPointer) (io.Reader, error) {
 	loc, err := getAttachmentLocation(*a.Id)
 	if err != nil {
 		return nil, err
@@ -99,16 +99,16 @@ func handleSingleAttachment(a *textsecure.AttachmentPointer) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return b, nil
+	return bytes.NewReader(b), nil
 }
 
-func handleAttachments(dm *textsecure.DataMessage) ([][]byte, error) {
+func handleAttachments(dm *textsecure.DataMessage) ([]io.Reader, error) {
 	atts := dm.GetAttachments()
 	if atts == nil {
 		return nil, nil
 	}
 
-	all := make([][]byte, len(atts))
+	all := make([]io.Reader, len(atts))
 	var err error
 	for i, a := range atts {
 		all[i], err = handleSingleAttachment(a)

@@ -6,6 +6,7 @@ package textsecure
 import (
 	"encoding/hex"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -120,7 +121,14 @@ func updateGroup(gr *textsecure.GroupContext) error {
 		if err != nil {
 			return err
 		}
-		ioutil.WriteFile(avatarPath(hexid), avatarContents, 0600)
+		f, err := os.OpenFile(avatarPath(hexid), os.O_WRONLY, 0600)
+		if err != nil {
+			return err
+		}
+		_, err = io.Copy(f, avatarContents)
+		if err != nil {
+			return err
+		}
 	}
 
 	groups[hexid] = &Group{
