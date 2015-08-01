@@ -656,12 +656,22 @@ func getOrCreateChainKey(ss *sessionState, theirEphemeral *ECPublicKey) (*chainK
 	return &receiverChain.chainKey, nil
 }
 
+// DuplicateMessageError indicates that we have received the same message more than once.
+type DuplicateMessageError struct {
+	index   uint32
+	counter uint32
+}
+
+func (err DuplicateMessageError) Error() string {
+	return fmt.Sprintf("Duplicate message: expected %d, got %d", err.index, err.counter)
+}
+
 func getOrCreateMessageKeys(ss *sessionState, theirEphemeral *ECPublicKey, chainKey *chainKey, counter uint32) (*messageKeys, error) {
 	if chainKey.Index > counter {
 		if ss.hasMessageKeys(theirEphemeral, counter) {
 			return ss.removeMessageKeys(theirEphemeral, counter), nil
 		}
-		return nil, fmt.Errorf("Duplicate message: expected %d, got %d", chainKey.Index, counter)
+		return nil, DuplicateMessageError{chainKey.Index, counter}
 	}
 	if int(counter)-int(chainKey.Index) > 2000 {
 		return nil, errors.New("Over 2000 messages in the future")
