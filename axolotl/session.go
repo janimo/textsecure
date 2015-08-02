@@ -193,12 +193,6 @@ func (ss *sessionState) removeMessageKeys(senderEphemeral *ECPublicKey, counter 
 	}
 	for i, mk := range rc.GetMessageKeys() {
 		if counter == mk.GetIndex() {
-			/*
-				//FIXME better non-leaky delete from slice, like the ugly code below
-				copy(rc.MessageKeys[i:], rc.MessageKeys[i+1:])
-				rc.MessageKeys[len(rc.MessageKeys)-1] = nil
-				rc.MessageKeys = rc.MessageKeys[:len(rc.MessageKeys)-1]
-			*/
 			rc.MessageKeys = append(rc.MessageKeys[:i], rc.MessageKeys[i+1:]...)
 			return newMessageKeys(mk.GetCipherKey(), mk.GetMacKey(), mk.GetIv(), mk.GetIndex())
 		}

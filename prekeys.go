@@ -140,7 +140,7 @@ func loadPreKeys() error {
 	count := 0
 	err := filepath.Walk(textSecureStore.preKeysDir, func(path string, fi os.FileInfo, err error) error {
 		if !fi.IsDir() {
-			preKeyRecords = append(preKeyRecords, &axolotl.PreKeyRecord{}) //FIXME
+			preKeyRecords = append(preKeyRecords, &axolotl.PreKeyRecord{})
 			_, fname := filepath.Split(path)
 			id, err := filenameToID(fname)
 			if err != nil {
