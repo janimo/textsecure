@@ -361,6 +361,16 @@ func (err UnsupportedVersionError) Error() string {
 	return fmt.Sprintf("Unsupported protocol version %d", err.version)
 }
 
+// PreKeyNotFoundError represents the error situation when a local prekey cannot be loaded.
+type PreKeyNotFoundError struct {
+	pkid    uint32
+	details error
+}
+
+func (err PreKeyNotFoundError) Error() string {
+	return fmt.Sprintf("Prekey %d could not be found (%s).", err.pkid, err.details)
+}
+
 // BuildReceiverSession creates a new session from a received PreKeyWhisperMessage.
 func (sb *SessionBuilder) BuildReceiverSession(sr *SessionRecord, pkwm *PreKeyWhisperMessage) (uint32, error) {
 	if pkwm.Version != currentVersion {
@@ -391,7 +401,7 @@ func (sb *SessionBuilder) BuildReceiverSession(sr *SessionRecord, pkwm *PreKeyWh
 	if pkwm.PreKeyID != 0 {
 		pk, err := sb.preKeyStore.LoadPreKey(pkwm.PreKeyID)
 		if err != nil {
-			return 0, fmt.Errorf("key not found %d", pkwm.PreKeyID)
+			return 0, PreKeyNotFoundError{pkwm.PreKeyID, err}
 		}
 		bob.OurOneTimePreKey = pk.getKeyPair()
 	}
