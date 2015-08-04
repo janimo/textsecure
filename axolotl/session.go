@@ -429,6 +429,16 @@ func (sb *SessionBuilder) BuildReceiverSession(sr *SessionRecord, pkwm *PreKeyWh
 	return pkwm.PreKeyID, nil
 }
 
+// InvalidSignatureError represents the error situation where the verification
+// of the sender identity fails.
+type InvalidSignatureError struct {
+	pkb *PreKeyBundle
+}
+
+func (err InvalidSignatureError) Error() string {
+	return fmt.Sprintf("Invalid signature on prekey %d", err.pkb.PreKeyID)
+}
+
 // BuildSenderSession creates a new session from a PreKeyBundle
 func (sb *SessionBuilder) BuildSenderSession(pkb *PreKeyBundle) error {
 	theirIdentityKey := pkb.IdentityKey
@@ -437,7 +447,7 @@ func (sb *SessionBuilder) BuildSenderSession(pkb *PreKeyBundle) error {
 	}
 	if pkb.SignedPreKeyPublic != nil &&
 		!curve25519sign.Verify(*theirIdentityKey.Key(), pkb.SignedPreKeyPublic.Serialize(), &pkb.SignedPreKeySignature) {
-		return errors.New("Invalid signature")
+		return InvalidSignatureError{pkb}
 	}
 
 	sr, err := sb.sessionStore.LoadSession(sb.recipientID, sb.deviceID)
