@@ -59,13 +59,17 @@ func encodeKey(key []byte) string {
 	return base64EncWithoutPadding(append([]byte{5}, key[:]...))
 }
 
+// ErrBadPublicKey is raised when a given public key is not in the
+// expected format.
+var ErrBadPublicKey = errors.New("Public key not formatted correctly")
+
 func decodeKey(s string) ([]byte, error) {
 	b, err := base64DecodeNonPadded(s)
 	if err != nil {
 		return nil, err
 	}
 	if len(b) != 33 || b[0] != 5 {
-		return nil, errors.New("Public key not formatted correctly")
+		return nil, ErrBadPublicKey
 	}
 	return b[1:], nil
 }
