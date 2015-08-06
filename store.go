@@ -135,6 +135,10 @@ func (s *store) encrypt(plaintext []byte) ([]byte, error) {
 	return appendMAC(s.macKey, e), nil
 }
 
+// ErrStoreBadMAC occurs when MAC verification fails on the records stored using password based encryption.
+// The probable cause is using a wrong password.
+var ErrStoreBadMAC = errors.New("Wrong MAC calculated, possibly due to wrong passphrase")
+
 func (s *store) decrypt(ciphertext []byte) ([]byte, error) {
 	if s.unencrypted {
 		return ciphertext, nil
@@ -143,7 +147,7 @@ func (s *store) decrypt(ciphertext []byte) ([]byte, error) {
 	macPos := len(ciphertext) - 32
 
 	if !verifyMAC(s.macKey, ciphertext[:macPos], ciphertext[macPos:]) {
-		return nil, errors.New("Wrong MAC calculated, possibly due to wrong passphrase")
+		return nil, ErrStoreBadMAC
 	}
 
 	return aesDecrypt(s.aesKey, ciphertext[:macPos])
