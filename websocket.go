@@ -108,6 +108,10 @@ func (wsc *wsConn) receive() ([]byte, error) {
 	return b, nil
 }
 
+func (wsc *wsConn) close() error {
+	return wsc.conn.Close()
+}
+
 func (wsc *wsConn) sendRequest(verb, path string, body []byte, id *uint64) error {
 	typ := textsecure.WebSocketMessage_REQUEST
 
