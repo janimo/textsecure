@@ -21,9 +21,12 @@ import (
 )
 
 type wsConn struct {
-	conn *websocket.Conn
-	id   uint64
+	conn    *websocket.Conn
+	id      uint64
+	closing bool
 }
+
+var wsconn *wsConn
 
 // set up a tunnel via HTTP CONNECT
 // see https://gist.github.com/madmo/8548738
@@ -135,6 +138,9 @@ func (wsc *wsConn) sendRequest(verb, path string, body []byte, id *uint64) error
 
 func (wsc *wsConn) keepAlive() {
 	for {
+		if wsc.closing {
+			return
+		}
 		err := wsc.sendRequest("GET", "/v1/keepalive", nil, nil)
 		if err != nil {
 			log.Error(err)
@@ -165,21 +171,28 @@ func (wsc *wsConn) sendAck(id uint64) error {
 	return nil
 }
 
-// ListenForMessages connects to the server and handles incoming websocket messages.
-func ListenForMessages() error {
-	wsc, err := newWSConn(config.Server+"/v1/websocket/", config.Tel, registrationInfo.password)
+// StartListening connects to the server and handles incoming websocket messages.
+func StartListening() error {
+	var err error
+	wsconn, err = newWSConn(config.Server+"/v1/websocket/", config.Tel, registrationInfo.password)
 	if err != nil {
 		return err
 	}
 
-	go wsc.keepAlive()
+	go wsconn.keepAlive()
 
 	for {
-		bmsg, err := wsc.receive()
+		bmsg, err := wsconn.receive()
 		if err != nil {
 			log.Error(err)
 			time.Sleep(3 * time.Second)
 			continue
+		}
+
+		//do not handle and ack the message if closing
+
+		if wsconn.closing {
+			break
 		}
 
 		wsm := &textsecure.WebSocketMessage{}
@@ -194,9 +207,16 @@ func ListenForMessages() error {
 			log.Error(err)
 			continue
 		}
-		err = wsc.sendAck(wsm.GetRequest().GetId())
+		err = wsconn.sendAck(wsm.GetRequest().GetId())
 		if err != nil {
 			log.Error(err)
 		}
 	}
+	wsconn.close()
+	return nil
+}
+
+// StopListening disables the receiving of messages.
+func StopListening() {
+	wsconn.closing = true
 }

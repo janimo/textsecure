@@ -266,7 +266,7 @@ func main() {
 		}
 	}
 
-	err = textsecure.ListenForMessages()
+	err = textsecure.StartListening()
 	if err != nil {
 		log.Println(err)
 	}
