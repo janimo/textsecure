@@ -6,6 +6,8 @@ The included sample command line app can send and receive text messages and atta
 
 **The API presented by the package is subject to change.**
 
+Automatically generated documentation can be found on [GoDoc] (https://godoc.org/github.com/janimo/textsecure)
+
 Installation
 ------------
 
