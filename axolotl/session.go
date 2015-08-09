@@ -574,13 +574,24 @@ func (sc *SessionCipher) GetRemoteRegistrationID() (uint32, error) {
 // ErrUninitializedSession occurs when there is no session matching the incoming message.
 var ErrUninitializedSession = errors.New("Uninitialized session")
 
+// MismatchedVersionError represents the error situation where the peer
+// is using a different protocol version.
+type MismatchedVersionError struct {
+	cipherVersion  uint32
+	sessionVersion uint32
+}
+
+func (err MismatchedVersionError) Error() string {
+	return fmt.Sprintf("Cipher version %d does not match session version %d", err.cipherVersion, err.sessionVersion)
+}
+
 func (sc *SessionCipher) decrypt(sr *SessionRecord, ciphertext *WhisperMessage) ([]byte, error) {
 	ss := sr.sessionState
 	if !ss.hasSenderChain() {
 		return nil, ErrUninitializedSession
 	}
 	if uint32(ciphertext.Version) != ss.getSessionVersion() {
-		return nil, fmt.Errorf("Cipher version %d does not match session version %d", ciphertext.Version, ss.getSessionVersion())
+		return nil, MismatchedVersionError{uint32(ciphertext.Version), ss.getSessionVersion()}
 	}
 
 	theirEphemeral := ciphertext.RatchetKey
