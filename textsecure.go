@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/camlistore/camlistore/pkg/magic"
 	"github.com/golang/protobuf/proto"
+	"github.com/janimo/textsecure/vendor/magic"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/janimo/textsecure/axolotl"
