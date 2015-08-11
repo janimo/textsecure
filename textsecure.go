@@ -385,6 +385,15 @@ func getMessage(env *textsecure.Envelope) ([]byte, bool) {
 	return env.GetLegacyMessage(), true
 }
 
+// MessageTypeNotImplementedError is raised in the unlikely event that an unhandled protocol message type is received.
+type MessageTypeNotImplementedError struct {
+	typ uint32
+}
+
+func (err MessageTypeNotImplementedError) Error() string {
+	return fmt.Sprintf("Not implemented message type %d", err.typ)
+}
+
 // Authenticate and decrypt a received message
 func handleReceivedMessage(msg []byte) error {
 	macpos := len(msg) - 10
@@ -442,7 +451,7 @@ func handleReceivedMessage(msg []byte) error {
 			return err
 		}
 	default:
-		return fmt.Errorf("Not implemented %d", *env.Type)
+		return MessageTypeNotImplementedError{uint32(*env.Type)}
 	}
 
 	return nil
