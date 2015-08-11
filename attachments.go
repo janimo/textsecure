@@ -38,7 +38,7 @@ func putAttachment(url string, body []byte) error {
 	req.Header.Add("Content-length", strconv.Itoa(len(body)))
 	resp, err := http.DefaultClient.Do(req)
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+	if resp != nil && (resp.StatusCode < 200 || resp.StatusCode >= 300) {
 		return fmt.Errorf("HTTP status %d\n", resp.StatusCode)
 	}
 
