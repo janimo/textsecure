@@ -218,5 +218,7 @@ func StartListening() error {
 
 // StopListening disables the receiving of messages.
 func StopListening() {
-	wsconn.closing = true
+	if wsconn != nil {
+		wsconn.closing = true
+	}
 }
