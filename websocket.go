@@ -4,6 +4,7 @@
 package textsecure
 
 import (
+	"errors"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -216,9 +217,15 @@ func StartListening() error {
 	return nil
 }
 
+// ErrNotListening is returned when trying to stop listening when there's no
+// valid listening connection set up
+var ErrNotListening = errors.New("There is no listening connection to stop.")
+
 // StopListening disables the receiving of messages.
-func StopListening() {
-	if wsconn != nil {
-		wsconn.closing = true
+func StopListening() error {
+	if wsconn == nil {
+		return ErrNotListening
 	}
+	wsconn.closing = true
+	return nil
 }
