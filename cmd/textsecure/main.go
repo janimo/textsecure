@@ -28,6 +28,7 @@ var (
 	newgroup   string
 	leavegroup string
 	endsession bool
+	configDir  string
 )
 
 func init() {
@@ -39,6 +40,7 @@ func init() {
 	flag.StringVar(&newgroup, "newgroup", "", "Create a group, the argument has the format 'name:member1:member2'")
 	flag.StringVar(&leavegroup, "leavegroup", "", "Leave a group named by the argument")
 	flag.BoolVar(&endsession, "endsession", false, "Terminate session with peer")
+	flag.StringVar(&configDir, "config", ".config", "Location of config dir")
 }
 
 var (
@@ -73,11 +75,11 @@ func getStoragePassword() string {
 }
 
 func getConfig() (*textsecure.Config, error) {
-	return textsecure.ReadConfig(".config/config.yml")
+	return textsecure.ReadConfig(configDir + "/config.yml")
 }
 
 func getLocalContacts() ([]textsecure.Contact, error) {
-	return textsecure.ReadContacts(".config/contacts.yml")
+	return textsecure.ReadContacts(configDir + "/contacts.yml")
 }
 
 func sendMessage(isGroup bool, to, message string) error {
