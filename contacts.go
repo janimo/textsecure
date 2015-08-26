@@ -33,3 +33,12 @@ func ReadContacts(fileName string) ([]Contact, error) {
 	}
 	return contacts.Contacts, nil
 }
+
+// WriteContacts saves a list of contacts to a file
+func WriteContacts(filename string, contacts []Contact) error {
+	b, err := yaml.Marshal(contacts)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(filename, b, 0600)
+}
