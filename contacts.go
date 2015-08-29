@@ -36,7 +36,8 @@ func ReadContacts(fileName string) ([]Contact, error) {
 
 // WriteContacts saves a list of contacts to a file
 func WriteContacts(filename string, contacts []Contact) error {
-	b, err := yaml.Marshal(contacts)
+	c := &yamlContacts{contacts}
+	b, err := yaml.Marshal(c)
 	if err != nil {
 		return err
 	}
