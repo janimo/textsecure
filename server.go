@@ -236,7 +236,11 @@ func createMessage(msg *outgoingMessage) ([]byte, error) {
 
 	dm.Flags = &msg.flags
 
-	b, err := proto.Marshal(dm)
+	content := &textsecure.Content{
+		DataMessage: dm,
+	}
+
+	b, err := proto.Marshal(content)
 	if err != nil {
 		return nil, err
 	}
@@ -346,7 +350,7 @@ func buildMessage(msg *outgoingMessage) ([]jsonMessage, error) {
 		Type:               messageType,
 		DestDeviceID:       devid,
 		DestRegistrationID: rrID,
-		Body:               base64.StdEncoding.EncodeToString(encryptedMessage),
+		Content:            base64.StdEncoding.EncodeToString(encryptedMessage),
 	}}
 	return messages, nil
 }
