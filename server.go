@@ -285,6 +285,10 @@ func makePreKeyBundle(tel string) (*axolotl.PreKeyBundle, error) {
 			return nil, err
 		}
 
+		if d.SignedPreKey == nil {
+			return nil, fmt.Errorf("No signed prekey for contact %s, device %d\n", tel, i)
+		}
+
 		decSPK, err := decodeKey(d.SignedPreKey.PublicKey)
 		if err != nil {
 			return nil, err
