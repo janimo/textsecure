@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/janimo/textsecure/protobuf"
+	"github.com/janimo/textsecure/vendor/magic"
 	"gopkg.in/yaml.v2"
 )
 
@@ -214,6 +215,37 @@ func SendGroupMessage(name string, msg string) error {
 			omsg := &outgoingMessage{
 				tel: m,
 				msg: msg,
+				group: &groupMessage{
+					id:  g.ID,
+					typ: textsecure.GroupContext_DELIVER,
+				},
+			}
+			err := sendMessage(omsg)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// SendGroupAttachment sends an attachment to a given group.
+func SendGroupAttachment(name string, msg string, r io.Reader) error {
+	ct, r := magic.MIMETypeFromReader(r)
+	a, err := uploadAttachment(r, ct)
+	if err != nil {
+		return err
+	}
+	g := groupByName(name)
+	if g == nil {
+		return UnknownGroupNameError{name}
+	}
+	for _, m := range g.Members {
+		if m != config.Tel {
+			omsg := &outgoingMessage{
+				tel:        m,
+				msg:        msg,
+				attachment: a,
 				group: &groupMessage{
 					id:  g.ID,
 					typ: textsecure.GroupContext_DELIVER,
