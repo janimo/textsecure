@@ -98,8 +98,8 @@ func newWSConn(originURL, user, pass string) (*wsConn, error) {
 	return &wsConn{conn: wsc}, nil
 }
 
-func (wsc *wsConn) send(b []byte) {
-	websocket.Message.Send(wsc.conn, b)
+func (wsc *wsConn) send(b []byte) error {
+	return websocket.Message.Send(wsc.conn, b)
 }
 
 func (wsc *wsConn) receive() ([]byte, error) {
@@ -133,8 +133,7 @@ func (wsc *wsConn) sendRequest(verb, path string, body []byte, id *uint64) error
 	if err != nil {
 		return err
 	}
-	wsc.send(b)
-	return nil
+	return wsc.send(b)
 }
 
 func (wsc *wsConn) keepAlive() {
@@ -168,8 +167,7 @@ func (wsc *wsConn) sendAck(id uint64) error {
 	if err != nil {
 		return err
 	}
-	wsc.send(b)
-	return nil
+	return wsc.send(b)
 }
 
 // StartListening connects to the server and handles incoming websocket messages.
