@@ -29,6 +29,7 @@ var (
 	leavegroup string
 	endsession bool
 	configDir  string
+	stress     int
 )
 
 func init() {
@@ -40,6 +41,7 @@ func init() {
 	flag.StringVar(&newgroup, "newgroup", "", "Create a group, the argument has the format 'name:member1:member2'")
 	flag.StringVar(&leavegroup, "leavegroup", "", "Leave a group named by the argument")
 	flag.BoolVar(&endsession, "endsession", false, "Terminate session with peer")
+	flag.IntVar(&stress, "stress", 0, "Automatically send many messages to the peer")
 	flag.StringVar(&configDir, "config", ".config", "Location of config dir")
 }
 
@@ -250,6 +252,20 @@ func main() {
 				err, _ = textsecure.SendAttachment(to, message, f)
 				if err != nil {
 					log.Fatal(err)
+				}
+				return
+			}
+
+			if stress > 0 {
+				c := make(chan int, stress)
+				for i := 0; i < stress; i++ {
+					go func(i int) {
+						sendMessage(false, to, fmt.Sprintf("Stress %d\n", i))
+						c <- i
+					}(i)
+				}
+				for i := 0; i < stress; i++ {
+					<-c
 				}
 				return
 			}
