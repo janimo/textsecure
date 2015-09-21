@@ -144,6 +144,7 @@ func (wsc *wsConn) keepAlive() {
 		err := wsc.sendRequest("GET", "/v1/keepalive", nil, nil)
 		if err != nil {
 			log.Error(err)
+			return
 		}
 		time.Sleep(time.Second * 15)
 	}
