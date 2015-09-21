@@ -182,6 +182,7 @@ type Client struct {
 	GetConfig           func() (*Config, error)
 	GetLocalContacts    func() ([]Contact, error)
 	MessageHandler      func(*Message)
+	ReceiptHandler      func(string, uint32, uint64)
 	RegistrationDone    func()
 }
 
@@ -302,7 +303,9 @@ func registerDevice() error {
 }
 
 func handleReceipt(env *textsecure.Envelope) {
-	//log.Printf("Receipt %+v\n", env)
+	if client.ReceiptHandler != nil {
+		client.ReceiptHandler(env.GetSource(), env.GetSourceDevice(), env.GetTimestamp())
+	}
 }
 
 func recID(source string) string {
