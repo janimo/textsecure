@@ -30,6 +30,8 @@ type SignedPreKeyStore interface {
 
 // SessionStore provides an interface to accessing the local session records.
 type SessionStore interface {
+	Lock()
+	Unlock()
 	LoadSession(string, uint32) (*SessionRecord, error)
 	GetSubDeviceSessions(string) []uint32
 	StoreSession(string, uint32, *SessionRecord) error

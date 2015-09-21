@@ -518,6 +518,9 @@ func NewSessionCipher(identityStore IdentityStore, preKeyStore PreKeyStore, sign
 // SessionEncryptMessage encrypts a given plaintext in a WhisperMessage or a PreKeyWhisperMessage,
 // depending on whether there a session with the peer exists or needs to be established.
 func (sc *SessionCipher) SessionEncryptMessage(plaintext []byte) ([]byte, int32, error) {
+	sc.SessionStore.Lock()
+	defer sc.SessionStore.Unlock()
+
 	sr, err := sc.SessionStore.LoadSession(sc.RecipientID, sc.DeviceID)
 	if err != nil {
 		return nil, 0, err
@@ -619,6 +622,9 @@ func (sc *SessionCipher) decrypt(sr *SessionRecord, ciphertext *WhisperMessage) 
 
 // SessionDecryptWhisperMessage decrypts an incoming message.
 func (sc *SessionCipher) SessionDecryptWhisperMessage(ciphertext *WhisperMessage) ([]byte, error) {
+	sc.SessionStore.Lock()
+	defer sc.SessionStore.Unlock()
+
 	sr, err := sc.SessionStore.LoadSession(sc.RecipientID, sc.DeviceID)
 	if err != nil {
 		return nil, err
@@ -633,6 +639,9 @@ func (sc *SessionCipher) SessionDecryptWhisperMessage(ciphertext *WhisperMessage
 
 // SessionDecryptPreKeyWhisperMessage decrypts an incoming message.
 func (sc *SessionCipher) SessionDecryptPreKeyWhisperMessage(ciphertext *PreKeyWhisperMessage) ([]byte, error) {
+	sc.SessionStore.Lock()
+	defer sc.SessionStore.Unlock()
+
 	sr, err := sc.SessionStore.LoadSession(sc.RecipientID, sc.DeviceID)
 	if err != nil {
 		return nil, err

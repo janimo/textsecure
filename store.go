@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/janimo/textsecure/axolotl"
 	"golang.org/x/crypto/pbkdf2"
@@ -24,6 +25,7 @@ import (
 // IdentityStore and SessionStore interfaces from the axolotl package
 // Blobs are encrypted with AES-128 and authenticated with HMAC-SHA1
 type store struct {
+	sync.Mutex
 	preKeysDir       string
 	signedPreKeysDir string
 	identityDir      string
