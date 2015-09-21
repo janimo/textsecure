@@ -100,36 +100,28 @@ type outgoingMessage struct {
 }
 
 // SendMessage sends the given text message to the given contact.
-func SendMessage(tel, msg string) error {
+func SendMessage(tel, msg string) (error, uint64) {
 	omsg := &outgoingMessage{
 		tel: tel,
 		msg: msg,
 	}
-	err := sendMessage(omsg)
-	if err != nil {
-		return err
-	}
-	return nil
+	return sendMessage(omsg)
 }
 
 // SendAttachment sends the contents of a reader, along
 // with an optional message to a given contact.
-func SendAttachment(tel, msg string, r io.Reader) error {
+func SendAttachment(tel, msg string, r io.Reader) (error, uint64) {
 	ct, r := magic.MIMETypeFromReader(r)
 	a, err := uploadAttachment(r, ct)
 	if err != nil {
-		return err
+		return err, 0
 	}
 	omsg := &outgoingMessage{
 		tel:        tel,
 		msg:        msg,
 		attachment: a,
 	}
-	err = sendMessage(omsg)
-	if err != nil {
-		return err
-	}
-	return nil
+	return sendMessage(omsg)
 }
 
 // EndSession terminates the session with the given peer.
@@ -139,7 +131,7 @@ func EndSession(tel string) error {
 		msg:   "TERMINATE",
 		flags: uint32(textsecure.DataMessage_END_SESSION),
 	}
-	err := sendMessage(omsg)
+	err, _ := sendMessage(omsg)
 	if err != nil {
 		return err
 	}

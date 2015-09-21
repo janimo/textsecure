@@ -87,7 +87,7 @@ func sendMessage(isGroup bool, to, message string) error {
 	if isGroup {
 		err = textsecure.SendGroupMessage(to, message)
 	} else {
-		err = textsecure.SendMessage(to, message)
+		err, _ = textsecure.SendMessage(to, message)
 		if nerr, ok := err.(axolotl.NotTrustedError); ok {
 			log.Fatalf("Peer identity not trusted. Remove the file .storage/identity/remote_%s to approve\n", nerr.ID)
 		}
@@ -247,7 +247,7 @@ func main() {
 					log.Fatal(err)
 				}
 
-				err = textsecure.SendAttachment(to, message, f)
+				err, _ = textsecure.SendAttachment(to, message, f)
 				if err != nil {
 					log.Fatal(err)
 				}

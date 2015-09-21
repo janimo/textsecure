@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/janimo/textsecure/axolotl"
@@ -358,28 +359,30 @@ func buildMessage(msg *outgoingMessage) ([]jsonMessage, error) {
 // ErrRemoteGone is returned when the peer reinstalled and lost its session state.
 var ErrRemoteGone = errors.New("The remote device is gone (probably reinstalled)")
 
-func sendMessage(msg *outgoingMessage) error {
+func sendMessage(msg *outgoingMessage) (error, uint64) {
 	m := make(map[string]interface{})
 	bm, err := buildMessage(msg)
 	if err != nil {
-		return err
+		return err, 0
 	}
 	m["messages"] = bm
+	now := uint64(time.Now().UnixNano() / 1000)
+	m["timestamp"] = now
 	m["destination"] = msg.tel
 	body, err := json.MarshalIndent(m, "", "    ")
 	if err != nil {
-		return err
+		return err, 0
 	}
 	resp, err := transport.putJSON(fmt.Sprintf(messagePath, msg.tel), body)
 	if err != nil {
-		return err
+		return err, 0
 	}
 	if resp.Status == 410 {
 		textSecureStore.DeleteSession(recID(msg.tel), uint32(1))
-		return ErrRemoteGone
+		return ErrRemoteGone, 0
 	}
 	if resp.isError() {
-		return resp
+		return resp, 0
 	}
-	return nil
+	return nil, now
 }
