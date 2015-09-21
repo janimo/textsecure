@@ -184,8 +184,7 @@ func StartListening() error {
 		bmsg, err := wsconn.receive()
 		if err != nil {
 			log.Error(err)
-			time.Sleep(3 * time.Second)
-			continue
+			break
 		}
 
 		//do not handle and ack the message if closing
@@ -209,10 +208,11 @@ func StartListening() error {
 		err = wsconn.sendAck(wsm.GetRequest().GetId())
 		if err != nil {
 			log.Error(err)
+			break
 		}
 	}
 	wsconn.close()
-	return nil
+	return err
 }
 
 // ErrNotListening is returned when trying to stop listening when there's no
