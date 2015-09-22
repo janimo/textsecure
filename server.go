@@ -366,7 +366,7 @@ func sendMessage(msg *outgoingMessage) (error, uint64) {
 		return err, 0
 	}
 	m["messages"] = bm
-	now := uint64(time.Now().UnixNano() / 1000)
+	now := uint64(time.Now().UnixNano() / 1000000)
 	m["timestamp"] = now
 	m["destination"] = msg.tel
 	body, err := json.MarshalIndent(m, "", "    ")
