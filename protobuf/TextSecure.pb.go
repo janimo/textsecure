@@ -424,6 +424,8 @@ type AttachmentPointer struct {
 	Id               *uint64 `protobuf:"fixed64,1,opt,name=id" json:"id,omitempty"`
 	ContentType      *string `protobuf:"bytes,2,opt,name=contentType" json:"contentType,omitempty"`
 	Key              []byte  `protobuf:"bytes,3,opt,name=key" json:"key,omitempty"`
+	Size             *uint32 `protobuf:"varint,4,opt,name=size" json:"size,omitempty"`
+	Thumbnail        []byte  `protobuf:"bytes,5,opt,name=thumbnail" json:"thumbnail,omitempty"`
 	XXX_unrecognized []byte  `json:"-"`
 }
 
@@ -448,6 +450,20 @@ func (m *AttachmentPointer) GetContentType() string {
 func (m *AttachmentPointer) GetKey() []byte {
 	if m != nil {
 		return m.Key
+	}
+	return nil
+}
+
+func (m *AttachmentPointer) GetSize() uint32 {
+	if m != nil && m.Size != nil {
+		return *m.Size
+	}
+	return 0
+}
+
+func (m *AttachmentPointer) GetThumbnail() []byte {
+	if m != nil {
+		return m.Thumbnail
 	}
 	return nil
 }
