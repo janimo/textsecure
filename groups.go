@@ -290,10 +290,10 @@ func (err GroupExistsError) Error() string {
 
 // NewGroup creates a group and notifies its members.
 // Our phone number is automatically added to members.
-func NewGroup(name string, members []string) error {
+func NewGroup(name string, members []string) (*Group, error) {
 	g := groupByName(name)
 	if g != nil {
-		return GroupExistsError{name}
+		return nil, GroupExistsError{name}
 	}
 
 	g = newGroup(name, members)
@@ -311,11 +311,11 @@ func NewGroup(name string, members []string) error {
 			}
 			err, _ := sendMessage(omsg)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 	}
-	return nil
+	return g, nil
 }
 
 func removeGroup(id []byte) error {
