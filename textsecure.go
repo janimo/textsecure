@@ -99,7 +99,7 @@ type outgoingMessage struct {
 }
 
 // SendMessage sends the given text message to the given contact.
-func SendMessage(tel, msg string) (error, uint64) {
+func SendMessage(tel, msg string) (uint64, error) {
 	omsg := &outgoingMessage{
 		tel: tel,
 		msg: msg,
@@ -109,11 +109,11 @@ func SendMessage(tel, msg string) (error, uint64) {
 
 // SendAttachment sends the contents of a reader, along
 // with an optional message to a given contact.
-func SendAttachment(tel, msg string, r io.Reader) (error, uint64) {
+func SendAttachment(tel, msg string, r io.Reader) (uint64, error) {
 	ct, r := magic.MIMETypeFromReader(r)
 	a, err := uploadAttachment(r, ct)
 	if err != nil {
-		return err, 0
+		return 0, err
 	}
 	omsg := &outgoingMessage{
 		tel:        tel,
@@ -130,7 +130,7 @@ func EndSession(tel string) error {
 		msg:   "TERMINATE",
 		flags: uint32(textsecure.DataMessage_END_SESSION),
 	}
-	err, _ := sendMessage(omsg)
+	_, err := sendMessage(omsg)
 	if err != nil {
 		return err
 	}

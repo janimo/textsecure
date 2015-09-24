@@ -220,7 +220,7 @@ func SendGroupMessage(name string, msg string) error {
 					typ: textsecure.GroupContext_DELIVER,
 				},
 			}
-			err, _ := sendMessage(omsg)
+			_, err := sendMessage(omsg)
 			if err != nil {
 				return err
 			}
@@ -251,7 +251,7 @@ func SendGroupAttachment(name string, msg string, r io.Reader) error {
 					typ: textsecure.GroupContext_DELIVER,
 				},
 			}
-			err, _ := sendMessage(omsg)
+			_, err := sendMessage(omsg)
 			if err != nil {
 				return err
 			}
@@ -309,7 +309,7 @@ func NewGroup(name string, members []string) (*Group, error) {
 					typ:     textsecure.GroupContext_UPDATE,
 				},
 			}
-			err, _ := sendMessage(omsg)
+			_, err := sendMessage(omsg)
 			if err != nil {
 				return nil, err
 			}
@@ -344,7 +344,7 @@ func LeaveGroup(name string) error {
 					typ: textsecure.GroupContext_QUIT,
 				},
 			}
-			err, _ := sendMessage(omsg)
+			_, err := sendMessage(omsg)
 			if err != nil {
 				return err
 			}
