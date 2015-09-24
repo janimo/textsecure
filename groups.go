@@ -205,10 +205,12 @@ func (err UnknownGroupNameError) Error() string {
 }
 
 // SendGroupMessage sends a text message to a given group.
-func SendGroupMessage(name string, msg string) error {
+func SendGroupMessage(name string, msg string) (uint64, error) {
+	var ts uint64
+	var err error
 	g := groupByName(name)
 	if g == nil {
-		return UnknownGroupNameError{name}
+		return 0, UnknownGroupNameError{name}
 	}
 	for _, m := range g.Members {
 		if m != config.Tel {
@@ -220,25 +222,26 @@ func SendGroupMessage(name string, msg string) error {
 					typ: textsecure.GroupContext_DELIVER,
 				},
 			}
-			_, err := sendMessage(omsg)
+			ts, err = sendMessage(omsg)
 			if err != nil {
-				return err
+				return 0, err
 			}
 		}
 	}
-	return nil
+	return ts, nil
 }
 
 // SendGroupAttachment sends an attachment to a given group.
-func SendGroupAttachment(name string, msg string, r io.Reader) error {
+func SendGroupAttachment(name string, msg string, r io.Reader) (uint64, error) {
+	var ts uint64
 	ct, r := magic.MIMETypeFromReader(r)
 	a, err := uploadAttachment(r, ct)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	g := groupByName(name)
 	if g == nil {
-		return UnknownGroupNameError{name}
+		return 0, UnknownGroupNameError{name}
 	}
 	for _, m := range g.Members {
 		if m != config.Tel {
@@ -251,13 +254,13 @@ func SendGroupAttachment(name string, msg string, r io.Reader) error {
 					typ: textsecure.GroupContext_DELIVER,
 				},
 			}
-			_, err := sendMessage(omsg)
+			ts, err = sendMessage(omsg)
 			if err != nil {
-				return err
+				return 0, err
 			}
 		}
 	}
-	return nil
+	return ts, nil
 }
 
 func newGroupID() []byte {

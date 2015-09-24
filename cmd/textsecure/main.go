@@ -88,7 +88,7 @@ func getLocalContacts() ([]textsecure.Contact, error) {
 func sendMessage(isGroup bool, to, message string) error {
 	var err error
 	if isGroup {
-		err = textsecure.SendGroupMessage(to, message)
+		_, err = textsecure.SendGroupMessage(to, message)
 	} else {
 		_, err = textsecure.SendMessage(to, message)
 		if nerr, ok := err.(axolotl.NotTrustedError); ok {
