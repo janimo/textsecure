@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/janimo/textsecure"
 	"github.com/janimo/textsecure/axolotl"
@@ -164,7 +165,7 @@ func handleAttachment(src string, r io.Reader) {
 var timeFormat = "Mon 03:04"
 
 func timestamp(msg *textsecure.Message) string {
-	t := msg.Timestamp()
+	t := time.Unix(0, int64(msg.Timestamp())*1000000)
 	return t.Format(timeFormat)
 }
 

@@ -11,7 +11,6 @@ import (
 	"io"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/janimo/textsecure/vendor/magic"
@@ -170,8 +169,8 @@ func (m *Message) Group() string {
 }
 
 // Timestamp returns the timestamp of the message
-func (m *Message) Timestamp() time.Time {
-	return time.Unix(int64(m.timestamp/1000), 0)
+func (m *Message) Timestamp() uint64 {
+	return m.timestamp
 }
 
 // Client contains application specific data and callbacks.
