@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 	"time"
 
@@ -55,14 +56,15 @@ func requestCode(tel, method string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer resp.Body.Close()
 	// unofficial dev method, useful for development, with no telephony account needed on the server
 	if method == "dev" {
 		code := make([]byte, 7)
-		_, err = resp.Body.Read(code)
-		if err != nil {
-			return "", err
+		l, err := resp.Body.Read(code)
+		if err == nil || (err == io.EOF && l == 7) {
+			return string(code[:3]) + string(code[4:]), nil
 		}
-		return string(code[:3]) + string(code[4:]), nil
+		return "", err
 	}
 	return "", nil
 }
