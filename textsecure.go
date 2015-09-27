@@ -124,18 +124,18 @@ func SendAttachment(tel, msg string, r io.Reader) (uint64, error) {
 }
 
 // EndSession terminates the session with the given peer.
-func EndSession(tel string) error {
+func EndSession(tel string, msg string) (uint64, error) {
 	omsg := &outgoingMessage{
 		tel:   tel,
-		msg:   "TERMINATE",
+		msg:   msg,
 		flags: uint32(textsecure.DataMessage_END_SESSION),
 	}
-	_, err := sendMessage(omsg)
+	ts, err := sendMessage(omsg)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	textSecureStore.DeleteAllSessions(recID(tel))
-	return nil
+	return ts, nil
 }
 
 // Message represents a message received from the peer.

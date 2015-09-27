@@ -239,7 +239,7 @@ func main() {
 		if to != "" {
 			// Terminate the session with the peer
 			if endsession {
-				textsecure.EndSession(to)
+				textsecure.EndSession(to, "TERMINATE")
 				return
 			}
 
