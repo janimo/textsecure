@@ -146,6 +146,7 @@ type Message struct {
 	attachments []io.Reader
 	group       string
 	timestamp   uint64
+	flags       uint32
 }
 
 // Source returns the ID of the sender of the message.
@@ -171,6 +172,11 @@ func (m *Message) Group() string {
 // Timestamp returns the timestamp of the message
 func (m *Message) Timestamp() uint64 {
 	return m.timestamp
+}
+
+// Flags returns the flags in the message
+func (m *Message) Flags() uint32 {
+	return m.flags
 }
 
 // Client contains application specific data and callbacks.
@@ -334,16 +340,20 @@ func handleMessage(src string, timestamp uint64, b []byte, legacy bool) error {
 	return handleSyncMessage(src, timestamp, content.GetSyncMessage())
 }
 
-func handleFlags(src string, dm *textsecure.DataMessage) error {
+var EndSessionFlag uint32 = 1
+
+func handleFlags(src string, dm *textsecure.DataMessage) (uint32, error) {
+	flags := uint32(0)
 	if dm.GetFlags() == uint32(textsecure.DataMessage_END_SESSION) {
+		flags = EndSessionFlag
 		textSecureStore.DeleteAllSessions(recID(src))
 	}
-	return nil
+	return flags, nil
 }
 
 // handleDataMessage handles an incoming DataMessage and calls client callbacks
 func handleDataMessage(src string, timestamp uint64, dm *textsecure.DataMessage) error {
-	err := handleFlags(src, dm)
+	flags, err := handleFlags(src, dm)
 	if err != nil {
 		return err
 	}
@@ -364,6 +374,7 @@ func handleDataMessage(src string, timestamp uint64, dm *textsecure.DataMessage)
 		attachments: atts,
 		group:       gr,
 		timestamp:   timestamp,
+		flags:       flags,
 	}
 
 	if client.MessageHandler != nil {
