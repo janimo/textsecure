@@ -43,16 +43,6 @@ func idToPath(hexid string) string {
 	return filepath.Join(groupDir, hexid)
 }
 
-// groupByName returns the group structure for the group with the given name
-func groupByName(name string) *Group {
-	for _, g := range groups {
-		if name == g.Name {
-			return g
-		}
-	}
-	return nil
-}
-
 // FIXME: for now using unencrypted YAML files for group state,
 // should be definitely encrypted and maybe another format.
 
@@ -194,22 +184,13 @@ type groupMessage struct {
 	typ     textsecure.GroupContext_Type
 }
 
-// UnknownGroupNameError is returned when an unknown group name is
-type UnknownGroupNameError struct {
-	name string
-}
-
-func (err UnknownGroupNameError) Error() string {
-	return fmt.Sprintf("Unknown group name %s", err.name)
-}
-
 // SendGroupMessage sends a text message to a given group.
-func SendGroupMessage(name string, msg string) (uint64, error) {
+func SendGroupMessage(hexid string, msg string) (uint64, error) {
 	var ts uint64
 	var err error
-	g := groupByName(name)
-	if g == nil {
-		return 0, UnknownGroupNameError{name}
+	g, ok := groups[hexid]
+	if !ok {
+		return 0, UnknownGroupIDError{hexid}
 	}
 	for _, m := range g.Members {
 		if m != config.Tel {
@@ -231,16 +212,16 @@ func SendGroupMessage(name string, msg string) (uint64, error) {
 }
 
 // SendGroupAttachment sends an attachment to a given group.
-func SendGroupAttachment(name string, msg string, r io.Reader) (uint64, error) {
+func SendGroupAttachment(hexid string, msg string, r io.Reader) (uint64, error) {
 	var ts uint64
 	ct, r := magic.MIMETypeFromReader(r)
 	a, err := uploadAttachment(r, ct)
 	if err != nil {
 		return 0, err
 	}
-	g := groupByName(name)
-	if g == nil {
-		return 0, UnknownGroupNameError{name}
+	g, ok := groups[hexid]
+	if !ok {
+		return 0, UnknownGroupIDError{hexid}
 	}
 	for _, m := range g.Members {
 		if m != config.Tel {
@@ -281,25 +262,10 @@ func newGroup(name string, members []string) *Group {
 	return groups[hexid]
 }
 
-// GroupExistsError is returned when an attempt is made to create a group
-// named like an already existing one.
-type GroupExistsError struct {
-	name string
-}
-
-func (err GroupExistsError) Error() string {
-	return fmt.Sprintf("Group %s already exists", err.name)
-}
-
 // NewGroup creates a group and notifies its members.
 // Our phone number is automatically added to members.
 func NewGroup(name string, members []string) (*Group, error) {
-	g := groupByName(name)
-	if g != nil {
-		return nil, GroupExistsError{name}
-	}
-
-	g = newGroup(name, members)
+	g := newGroup(name, members)
 
 	for _, m := range g.Members {
 		if m != config.Tel {
@@ -331,10 +297,10 @@ func removeGroup(id []byte) error {
 }
 
 // LeaveGroup sends a group quit message to the other members of the given group.
-func LeaveGroup(name string) error {
-	g := groupByName(name)
-	if g == nil {
-		return UnknownGroupNameError{name}
+func LeaveGroup(hexid string) error {
+	g, ok := groups[hexid]
+	if !ok {
+		return UnknownGroupIDError{hexid}
 	}
 
 	for _, m := range g.Members {
