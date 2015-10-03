@@ -20,9 +20,11 @@ import (
 // Group holds group metadata.
 type Group struct {
 	ID      []byte
+	Hexid   string
+	Flags   uint32
 	Name    string
 	Members []string
-	Avatar  io.Reader
+	Avatar  io.Reader `yaml:"-"`
 }
 
 var (
@@ -125,6 +127,7 @@ func updateGroup(gr *textsecure.GroupContext) error {
 
 	groups[hexid] = &Group{
 		ID:      gr.GetId(),
+		Hexid:   hexid,
 		Name:    gr.GetName(),
 		Members: gr.GetMembers(),
 		Avatar:  r,
@@ -153,31 +156,35 @@ func quitGroup(src string, hexid string) error {
 	return saveGroup(hexid)
 }
 
+var GroupUpdateFlag uint32 = 1
+var GroupLeaveFlag uint32 = 2
+
 // handleGroups is the main entry point for handling the group metadata on messages.
-func handleGroups(src string, dm *textsecure.DataMessage) (string, error) {
+func handleGroups(src string, dm *textsecure.DataMessage) (*Group, error) {
 	gr := dm.GetGroup()
 	if gr == nil {
-		return "", nil
+		return nil, nil
 	}
 	hexid := idToHex(gr.GetId())
 
 	switch gr.GetType() {
 	case textsecure.GroupContext_UPDATE:
 		if err := updateGroup(gr); err != nil {
-			return "", err
+			return nil, err
 		}
+		groups[hexid].Flags = GroupUpdateFlag
 	case textsecure.GroupContext_DELIVER:
-		if g, ok := groups[hexid]; ok {
-			return g.Name, nil
+		if _, ok := groups[hexid]; !ok {
+			return nil, UnknownGroupIDError{hexid}
 		}
-		return "", UnknownGroupIDError{hexid}
 	case textsecure.GroupContext_QUIT:
 		if err := quitGroup(src, hexid); err != nil {
-			return "", err
+			return nil, err
 		}
+		groups[hexid].Flags = GroupLeaveFlag
 	}
 
-	return "", nil
+	return groups[hexid], nil
 }
 
 type groupMessage struct {
@@ -266,6 +273,7 @@ func newGroup(name string, members []string) *Group {
 	hexid := idToHex(id)
 	groups[hexid] = &Group{
 		ID:      id,
+		Hexid:   hexid,
 		Name:    name,
 		Members: append(members, config.Tel),
 	}

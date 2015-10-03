@@ -144,7 +144,7 @@ type Message struct {
 	source      string
 	message     string
 	attachments []io.Reader
-	group       string
+	group       *Group
 	timestamp   uint64
 	flags       uint32
 }
@@ -164,8 +164,8 @@ func (m *Message) Attachments() []io.Reader {
 	return m.attachments
 }
 
-// Group returns the group name or empty.
-func (m *Message) Group() string {
+// Group returns group information.
+func (m *Message) Group() *Group {
 	return m.group
 }
 

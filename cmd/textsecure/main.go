@@ -116,11 +116,11 @@ func conversationLoop(isGroup bool) {
 
 func messageHandler(msg *textsecure.Message) {
 	if echo {
-		to := msg.Group()
-		if to == "" {
-			to = msg.Source()
+		to := msg.Source()
+		if msg.Group() != nil {
+			to = msg.Group().Name
 		}
-		err := sendMessage(msg.Group() != "", to, msg.Message())
+		err := sendMessage(msg.Group() != nil, to, msg.Message())
 
 		if err != nil {
 			log.Println(err)
@@ -140,9 +140,9 @@ func messageHandler(msg *textsecure.Message) {
 	if to == "" {
 		to = msg.Source()
 		isGroup := false
-		if msg.Group() != "" {
+		if msg.Group() != nil {
 			isGroup = true
-			to = msg.Group()
+			to = msg.Group().Name
 		}
 		go conversationLoop(isGroup)
 	}
@@ -171,8 +171,8 @@ func timestamp(msg *textsecure.Message) string {
 
 func pretty(msg *textsecure.Message) string {
 	src := getName(msg.Source())
-	if msg.Group() != "" {
-		src = src + "[" + msg.Group() + "]"
+	if msg.Group() != nil {
+		src = src + "[" + msg.Group().Name + "]"
 	}
 	return fmt.Sprintf("%s%s %s%s %s%s", yellow, timestamp(msg), red, src, green, msg.Message())
 }
