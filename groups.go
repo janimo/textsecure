@@ -22,6 +22,7 @@ type Group struct {
 	ID      []byte
 	Name    string
 	Members []string
+	Avatar  io.Reader
 }
 
 var (
@@ -97,11 +98,6 @@ func setupGroups() error {
 	return nil
 }
 
-// avatarPath returns the path to the avatar image of a given group.
-func avatarPath(hexid string) string {
-	return idToPath(hexid) + "_avatar.png"
-}
-
 // removeMember removes a given number from a list.
 func removeMember(tel string, members []string) []string {
 	for i, m := range members {
@@ -117,16 +113,11 @@ func removeMember(tel string, members []string) []string {
 func updateGroup(gr *textsecure.GroupContext) error {
 	hexid := idToHex(gr.GetId())
 
+	var r io.Reader
+	var err error
+
 	if av := gr.GetAvatar(); av != nil {
-		avatarContents, err := handleSingleAttachment(av)
-		if err != nil {
-			return err
-		}
-		f, err := os.OpenFile(avatarPath(hexid), os.O_WRONLY, 0600)
-		if err != nil {
-			return err
-		}
-		_, err = io.Copy(f, avatarContents)
+		r, err = handleSingleAttachment(av)
 		if err != nil {
 			return err
 		}
@@ -136,6 +127,7 @@ func updateGroup(gr *textsecure.GroupContext) error {
 		ID:      gr.GetId(),
 		Name:    gr.GetName(),
 		Members: gr.GetMembers(),
+		Avatar:  r,
 	}
 	return saveGroup(hexid)
 }
@@ -327,7 +319,6 @@ func removeGroup(id []byte) error {
 	if err != nil {
 		return err
 	}
-	os.Remove(avatarPath(hexid))
 	return nil
 }
 
