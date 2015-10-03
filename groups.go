@@ -227,7 +227,7 @@ func SendGroupAttachment(hexid string, msg string, r io.Reader) (uint64, error) 
 }
 
 func newGroupID() []byte {
-	id := make([]byte, 10)
+	id := make([]byte, 16)
 	randBytes(id)
 	return id
 }
