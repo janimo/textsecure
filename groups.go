@@ -184,41 +184,9 @@ type groupMessage struct {
 	typ     textsecure.GroupContext_Type
 }
 
-// SendGroupMessage sends a text message to a given group.
-func SendGroupMessage(hexid string, msg string) (uint64, error) {
+func sendGroupHelper(hexid string, msg string, a *att) (uint64, error) {
 	var ts uint64
 	var err error
-	g, ok := groups[hexid]
-	if !ok {
-		return 0, UnknownGroupIDError{hexid}
-	}
-	for _, m := range g.Members {
-		if m != config.Tel {
-			omsg := &outgoingMessage{
-				tel: m,
-				msg: msg,
-				group: &groupMessage{
-					id:  g.ID,
-					typ: textsecure.GroupContext_DELIVER,
-				},
-			}
-			ts, err = sendMessage(omsg)
-			if err != nil {
-				return 0, err
-			}
-		}
-	}
-	return ts, nil
-}
-
-// SendGroupAttachment sends an attachment to a given group.
-func SendGroupAttachment(hexid string, msg string, r io.Reader) (uint64, error) {
-	var ts uint64
-	ct, r := magic.MIMETypeFromReader(r)
-	a, err := uploadAttachment(r, ct)
-	if err != nil {
-		return 0, err
-	}
 	g, ok := groups[hexid]
 	if !ok {
 		return 0, UnknownGroupIDError{hexid}
@@ -241,6 +209,21 @@ func SendGroupAttachment(hexid string, msg string, r io.Reader) (uint64, error) 
 		}
 	}
 	return ts, nil
+}
+
+// SendGroupMessage sends a text message to a given group.
+func SendGroupMessage(hexid string, msg string) (uint64, error) {
+	return sendGroupHelper(hexid, msg, nil)
+}
+
+// SendGroupAttachment sends an attachment to a given group.
+func SendGroupAttachment(hexid string, msg string, r io.Reader) (uint64, error) {
+	ct, r := magic.MIMETypeFromReader(r)
+	a, err := uploadAttachment(r, ct)
+	if err != nil {
+		return 0, err
+	}
+	return sendGroupHelper(hexid, msg, a)
 }
 
 func newGroupID() []byte {
