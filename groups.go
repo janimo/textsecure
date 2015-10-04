@@ -167,6 +167,7 @@ func handleGroups(src string, dm *textsecure.DataMessage) (*Group, error) {
 		if _, ok := groups[hexid]; !ok {
 			return nil, UnknownGroupIDError{hexid}
 		}
+		groups[hexid].Flags = 0
 	case textsecure.GroupContext_QUIT:
 		if err := quitGroup(src, hexid); err != nil {
 			return nil, err
