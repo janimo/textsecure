@@ -233,7 +233,7 @@ func newGroupID() []byte {
 	return id
 }
 
-func newGroup(name string, members []string) *Group {
+func newGroup(name string, members []string) (*Group, error) {
 	id := newGroupID()
 	hexid := idToHex(id)
 	groups[hexid] = &Group{
@@ -242,33 +242,65 @@ func newGroup(name string, members []string) *Group {
 		Name:    name,
 		Members: append(members, config.Tel),
 	}
-	saveGroup(hexid)
-	return groups[hexid]
+	err := saveGroup(hexid)
+	if err != nil {
+		return nil, err
+	}
+	return groups[hexid], nil
 }
 
-// NewGroup creates a group and notifies its members.
-// Our phone number is automatically added to members.
-func NewGroup(name string, members []string) (*Group, error) {
-	g := newGroup(name, members)
+func changeGroup(hexid, name string, members []string) (*Group, error) {
+	g, ok := groups[hexid]
+	if !ok {
+		return nil, UnknownGroupIDError{hexid}
+	}
 
+	g.Name = name
+	g.Members = append(members, config.Tel)
+	saveGroup(hexid)
+
+	return g, nil
+}
+
+func sendUpdate(g *Group) error {
 	for _, m := range g.Members {
 		if m != config.Tel {
 			omsg := &outgoingMessage{
 				tel: m,
 				group: &groupMessage{
 					id:      g.ID,
-					name:    name,
+					name:    g.Name,
 					members: g.Members,
 					typ:     textsecure.GroupContext_UPDATE,
 				},
 			}
 			_, err := sendMessage(omsg)
 			if err != nil {
-				return nil, err
+				return err
 			}
 		}
 	}
-	return g, nil
+	return nil
+}
+
+// NewGroup creates a group and notifies its members.
+// Our phone number is automatically added to members.
+func NewGroup(name string, members []string) (*Group, error) {
+	g, err := newGroup(name, members)
+	if err != nil {
+		return nil, err
+	}
+	return g, sendUpdate(g)
+}
+
+// UpdateGroup updates the group name and/or membership.
+// Our phone number is automatically added to members.
+func UpdateGroup(hexid, name string, members []string) (*Group, error) {
+	g, err := changeGroup(hexid, name, members)
+	if err != nil {
+		return nil, err
+	}
+	return g, sendUpdate(g)
 }
 
 func removeGroup(id []byte) error {
