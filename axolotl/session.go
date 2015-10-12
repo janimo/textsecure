@@ -490,7 +490,10 @@ func (sb *SessionBuilder) BuildSenderSession(pkb *PreKeyBundle) error {
 	sr.sessionState.setRemoteRegistrationID(pkb.RegistrationID)
 	sr.sessionState.setAliceBaseKey(ourBaseKey.PublicKey.Serialize())
 
-	sb.sessionStore.StoreSession(sb.recipientID, sb.deviceID, sr)
+	err = sb.sessionStore.StoreSession(sb.recipientID, sb.deviceID, sr)
+	if err != nil {
+		return err
+	}
 	err = sb.identityStore.SaveIdentity(sb.recipientID, theirIdentityKey)
 	return err
 }
@@ -560,7 +563,10 @@ func (sc *SessionCipher) SessionEncryptMessage(plaintext []byte) ([]byte, int32,
 	}
 
 	ss.setSenderChainKey(chainKey.getNextChainKey())
-	sc.SessionStore.StoreSession(sc.RecipientID, sc.DeviceID, sr)
+	err = sc.SessionStore.StoreSession(sc.RecipientID, sc.DeviceID, sr)
+	if err != nil {
+		return nil, 0, err
+	}
 
 	return msg, msgType, nil
 }
@@ -633,7 +639,10 @@ func (sc *SessionCipher) SessionDecryptWhisperMessage(ciphertext *WhisperMessage
 	if err != nil {
 		return nil, err
 	}
-	sc.SessionStore.StoreSession(sc.RecipientID, sc.DeviceID, sr)
+	err = sc.SessionStore.StoreSession(sc.RecipientID, sc.DeviceID, sr)
+	if err != nil {
+		return nil, err
+	}
 	return plaintext, nil
 }
 
@@ -657,7 +666,10 @@ func (sc *SessionCipher) SessionDecryptPreKeyWhisperMessage(ciphertext *PreKeyWh
 	if pkid != 0xFFFFFF {
 		sc.PreKeyStore.RemovePreKey(pkid)
 	}
-	sc.SessionStore.StoreSession(sc.RecipientID, sc.DeviceID, sr)
+	err = sc.SessionStore.StoreSession(sc.RecipientID, sc.DeviceID, sr)
+	if err != nil {
+		return nil, err
+	}
 	return plaintext, nil
 }
 
