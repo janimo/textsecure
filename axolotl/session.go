@@ -594,6 +594,9 @@ func (err MismatchedVersionError) Error() string {
 	return fmt.Sprintf("Cipher version %d does not match session version %d", err.cipherVersion, err.sessionVersion)
 }
 
+// ErrInvalidMACForWhisperMessage signals a message with invalid MAC.
+var ErrInvalidMACForWhisperMessage = errors.New("Invalid MAC for WhisperMessage")
+
 func (sc *SessionCipher) decrypt(sr *SessionRecord, ciphertext *WhisperMessage) ([]byte, error) {
 	ss := sr.sessionState
 	if !ss.hasSenderChain() {
@@ -614,8 +617,9 @@ func (sc *SessionCipher) decrypt(sr *SessionRecord, ciphertext *WhisperMessage) 
 		return nil, err
 	}
 
-	ciphertext.verifyMAC(ss.getRemoteIdentityPublic(), ss.getLocalIdentityPublic(), messageKeys.MacKey)
-
+	if !ciphertext.verifyMAC(ss.getRemoteIdentityPublic(), ss.getLocalIdentityPublic(), messageKeys.MacKey) {
+		return nil, ErrInvalidMACForWhisperMessage
+	}
 	plaintext, err := Decrypt(messageKeys.CipherKey, append(messageKeys.Iv, ciphertext.Ciphertext...))
 	if err != nil {
 		return nil, err

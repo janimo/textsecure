@@ -74,6 +74,9 @@ func uploadAttachment(r io.Reader, ct string) (*att, error) {
 	return &att{id, ct, keys}, nil
 }
 
+// ErrInvalidMACForAttachment signals that the downloaded attachment has an invalid MAC.
+var ErrInvalidMACForAttachment = errors.New("Invalid MAC for attachment")
+
 func handleSingleAttachment(a *textsecure.AttachmentPointer) (io.Reader, error) {
 	loc, err := getAttachmentLocation(*a.Id)
 	if err != nil {
@@ -92,7 +95,7 @@ func handleSingleAttachment(a *textsecure.AttachmentPointer) (io.Reader, error) 
 
 	l := len(b) - 32
 	if !verifyMAC(a.Key[32:], b[:l], b[l:]) {
-		return nil, errors.New("Invalid MAC on attachment")
+		return nil, ErrInvalidMACForAttachment
 	}
 
 	b, err = aesDecrypt(a.Key[:32], b[:l])

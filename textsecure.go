@@ -399,6 +399,9 @@ func (err MessageTypeNotImplementedError) Error() string {
 	return fmt.Sprintf("Not implemented message type %d", err.typ)
 }
 
+// ErrInvalidMACForMessage signals an incoming message with invalid MAC.
+var ErrInvalidMACForMessage = errors.New("Invalid MAC for incoming message")
+
 // Authenticate and decrypt a received message
 func handleReceivedMessage(msg []byte) error {
 	macpos := len(msg) - 10
@@ -406,7 +409,7 @@ func handleReceivedMessage(msg []byte) error {
 	aesKey := registrationInfo.signalingKey[:32]
 	macKey := registrationInfo.signalingKey[32:]
 	if !axolotl.ValidTruncMAC(msg[:macpos], tmac, macKey) {
-		return errors.New("Invalid MAC for Incoming Message")
+		return ErrInvalidMACForMessage
 	}
 	ciphertext := msg[1:macpos]
 
