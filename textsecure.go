@@ -436,6 +436,10 @@ func handleReceivedMessage(msg []byte) error {
 			return err
 		}
 		b, err := sc.SessionDecryptWhisperMessage(wm)
+		if _, ok := err.(axolotl.DuplicateMessageError); ok {
+			log.Infof("Incoming WhisperMessage %s. Ignoring.\n", err)
+			return nil
+		}
 		if err != nil {
 			return err
 		}
@@ -451,6 +455,10 @@ func handleReceivedMessage(msg []byte) error {
 			return err
 		}
 		b, err := sc.SessionDecryptPreKeyWhisperMessage(pkwm)
+		if _, ok := err.(axolotl.DuplicateMessageError); ok {
+			log.Infof("Incoming PreKeyWhisperMessage %s. Ignoring.\n", err)
+			return nil
+		}
 		if err != nil {
 			return err
 		}
