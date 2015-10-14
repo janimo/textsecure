@@ -139,7 +139,7 @@ func (s *store) encrypt(plaintext []byte) ([]byte, error) {
 
 // ErrStoreBadMAC occurs when MAC verification fails on the records stored using password based encryption.
 // The probable cause is using a wrong password.
-var ErrStoreBadMAC = errors.New("Wrong MAC calculated, possibly due to wrong passphrase")
+var ErrStoreBadMAC = errors.New("wrong MAC calculated, possibly due to wrong passphrase")
 
 func (s *store) decrypt(ciphertext []byte) ([]byte, error) {
 	if s.unencrypted {
@@ -192,7 +192,7 @@ func (s *store) GetIdentityKeyPair() (*axolotl.IdentityKeyPair, error) {
 		return nil, err
 	}
 	if len(b) != 64 {
-		return nil, fmt.Errorf("Identity key is %d not 64 bytes long", len(b))
+		return nil, fmt.Errorf("identity key is %d not 64 bytes long", len(b))
 	}
 	return axolotl.NewIdentityKeyPairFromKeys(b[32:], b[:32]), nil
 }

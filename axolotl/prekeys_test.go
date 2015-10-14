@@ -32,7 +32,7 @@ func (impks InMemoryPreKeyStore) removePreKey(id uint32) {
 
 func (impks InMemoryPreKeyStore) loadPreKey(id uint32) (*PreKeyRecord, error) {
 	if !impks.containsPreKey(id) {
-		return nil, fmt.Errorf("Key %d not found", id)
+		return nil, fmt.Errorf("key %d not found", id)
 	}
 	pkr, err := LoadPreKeyRecord(impks.s[id])
 	if err != nil {

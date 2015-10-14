@@ -29,7 +29,7 @@ func Decrypt(key, ciphertext []byte) ([]byte, error) {
 	}
 
 	if len(ciphertext)%aes.BlockSize != 0 {
-		return nil, errors.New("Not multiple of AES blocksize")
+		return nil, errors.New("not multiple of AES blocksize")
 	}
 
 	iv := ciphertext[:aes.BlockSize]
@@ -37,7 +37,7 @@ func Decrypt(key, ciphertext []byte) ([]byte, error) {
 	mode.CryptBlocks(ciphertext, ciphertext)
 	pad := ciphertext[len(ciphertext)-1]
 	if pad > aes.BlockSize {
-		return nil, fmt.Errorf("Pad value (%d) larger than AES blocksize (%d)", pad, aes.BlockSize)
+		return nil, fmt.Errorf("pad value (%d) larger than AES blocksize (%d)", pad, aes.BlockSize)
 	}
 	return ciphertext[aes.BlockSize : len(ciphertext)-int(pad)], nil
 }

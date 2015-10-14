@@ -131,7 +131,7 @@ type UnknownGroupIDError struct {
 }
 
 func (err UnknownGroupIDError) Error() string {
-	return fmt.Sprintf("Unknown group ID %s", err.id)
+	return fmt.Sprintf("unknown group ID %s", err.id)
 }
 
 // quitGroup removes a quitting member from the local group state.

@@ -139,7 +139,7 @@ type jsonContact struct {
 func GetRegisteredContacts() ([]Contact, error) {
 	lc, err := client.GetLocalContacts()
 	if err != nil {
-		return nil, fmt.Errorf("Could not get local contacts :%s\n", err)
+		return nil, fmt.Errorf("could not get local contacts :%s\n", err)
 	}
 	tokens := make([]string, len(lc))
 	m := make(map[string]Contact)
@@ -276,7 +276,7 @@ func makePreKeyBundle(tel string) (*axolotl.PreKeyBundle, error) {
 
 	for i, d := range pkr.Devices {
 		if d.PreKey == nil {
-			return nil, fmt.Errorf("No prekey for contact %s, device %d\n", tel, i)
+			return nil, fmt.Errorf("no prekey for contact %s, device %d\n", tel, i)
 		}
 
 		decPK, err := decodeKey(d.PreKey.PublicKey)
@@ -285,7 +285,7 @@ func makePreKeyBundle(tel string) (*axolotl.PreKeyBundle, error) {
 		}
 
 		if d.SignedPreKey == nil {
-			return nil, fmt.Errorf("No signed prekey for contact %s, device %d\n", tel, i)
+			return nil, fmt.Errorf("no signed prekey for contact %s, device %d\n", tel, i)
 		}
 
 		decSPK, err := decodeKey(d.SignedPreKey.PublicKey)
@@ -359,7 +359,7 @@ func buildMessage(msg *outgoingMessage) ([]jsonMessage, error) {
 }
 
 // ErrRemoteGone is returned when the peer reinstalled and lost its session state.
-var ErrRemoteGone = errors.New("The remote device is gone (probably reinstalled)")
+var ErrRemoteGone = errors.New("the remote device is gone (probably reinstalled)")
 
 func sendMessage(msg *outgoingMessage) (uint64, error) {
 	m := make(map[string]interface{})

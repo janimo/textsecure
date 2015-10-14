@@ -31,7 +31,7 @@ func (r *response) isError() bool {
 }
 
 func (r *response) Error() string {
-	return fmt.Sprintf("Status code %d\n", r.Status)
+	return fmt.Sprintf("status code %d\n", r.Status)
 }
 
 type transporter interface {

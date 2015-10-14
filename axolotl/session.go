@@ -348,7 +348,7 @@ type NotTrustedError struct {
 }
 
 func (err NotTrustedError) Error() string {
-	return fmt.Sprintf("Remote identity %s is not trusted", err.ID)
+	return fmt.Sprintf("remote identity %s is not trusted", err.ID)
 }
 
 // UnsupportedVersionError represents the error situation where the peer
@@ -358,7 +358,7 @@ type UnsupportedVersionError struct {
 }
 
 func (err UnsupportedVersionError) Error() string {
-	return fmt.Sprintf("Unsupported protocol version %d", err.version)
+	return fmt.Sprintf("unsupported protocol version %d", err.version)
 }
 
 // PreKeyNotFoundError represents the error situation when a local prekey cannot be loaded.
@@ -368,7 +368,7 @@ type PreKeyNotFoundError struct {
 }
 
 func (err PreKeyNotFoundError) Error() string {
-	return fmt.Sprintf("Prekey %d could not be found (%s).", err.pkid, err.details)
+	return fmt.Sprintf("prekey %d could not be found (%s)", err.pkid, err.details)
 }
 
 // BuildReceiverSession creates a new session from a received PreKeyWhisperMessage.
@@ -436,7 +436,7 @@ type InvalidSignatureError struct {
 }
 
 func (err InvalidSignatureError) Error() string {
-	return fmt.Sprintf("Invalid signature on prekey %d", err.pkb.PreKeyID)
+	return fmt.Sprintf("invalid signature on prekey %d", err.pkb.PreKeyID)
 }
 
 // BuildSenderSession creates a new session from a PreKeyBundle
@@ -581,7 +581,7 @@ func (sc *SessionCipher) GetRemoteRegistrationID() (uint32, error) {
 }
 
 // ErrUninitializedSession occurs when there is no session matching the incoming message.
-var ErrUninitializedSession = errors.New("Uninitialized session")
+var ErrUninitializedSession = errors.New("uninitialized session")
 
 // MismatchedVersionError represents the error situation where the peer
 // is using a different protocol version.
@@ -591,11 +591,11 @@ type MismatchedVersionError struct {
 }
 
 func (err MismatchedVersionError) Error() string {
-	return fmt.Sprintf("Cipher version %d does not match session version %d", err.cipherVersion, err.sessionVersion)
+	return fmt.Sprintf("cipher version %d does not match session version %d", err.cipherVersion, err.sessionVersion)
 }
 
 // ErrInvalidMACForWhisperMessage signals a message with invalid MAC.
-var ErrInvalidMACForWhisperMessage = errors.New("Invalid MAC for WhisperMessage")
+var ErrInvalidMACForWhisperMessage = errors.New("invalid MAC for WhisperMessage")
 
 func (sc *SessionCipher) decrypt(sr *SessionRecord, ciphertext *WhisperMessage) ([]byte, error) {
 	ss := sr.sessionState
@@ -713,7 +713,7 @@ type DuplicateMessageError struct {
 }
 
 func (err DuplicateMessageError) Error() string {
-	return fmt.Sprintf("Duplicate message: expected %d, got %d", err.index, err.counter)
+	return fmt.Sprintf("duplicate message: expected %d, got %d", err.index, err.counter)
 }
 
 func getOrCreateMessageKeys(ss *sessionState, theirEphemeral *ECPublicKey, chainKey *chainKey, counter uint32) (*messageKeys, error) {
@@ -724,7 +724,7 @@ func getOrCreateMessageKeys(ss *sessionState, theirEphemeral *ECPublicKey, chain
 		return nil, DuplicateMessageError{chainKey.Index, counter}
 	}
 	if int(counter)-int(chainKey.Index) > 2000 {
-		return nil, errors.New("Over 2000 messages in the future")
+		return nil, errors.New("over 2000 messages in the future")
 	}
 	for chainKey.Index < counter {
 		messageKeys, err := chainKey.getMessageKeys()

@@ -35,7 +35,7 @@ func makeVersionByte(hi, lo byte) byte {
 }
 
 // ErrIncompleteWhisperMessage is returned when an incomplete WhisperMessage is received.
-var ErrIncompleteWhisperMessage = errors.New("Incomplete WhisperMessage")
+var ErrIncompleteWhisperMessage = errors.New("incomplete WhisperMessage")
 
 // LoadWhisperMessage creates a WhisperMessage from serialized bytes.
 func LoadWhisperMessage(serialized []byte) (*WhisperMessage, error) {
@@ -138,7 +138,7 @@ type PreKeyWhisperMessage struct {
 }
 
 // ErrIncompletePreKeyWhisperMessage is returned when an incomplete PreKeyWhisperMessage is received.
-var ErrIncompletePreKeyWhisperMessage = errors.New("Incomplete PreKeyWhisperMessage")
+var ErrIncompletePreKeyWhisperMessage = errors.New("incomplete PreKeyWhisperMessage")
 
 // LoadPreKeyWhisperMessage creates a PreKeyWhisperMessage from serialized bytes.
 func LoadPreKeyWhisperMessage(serialized []byte) (*PreKeyWhisperMessage, error) {

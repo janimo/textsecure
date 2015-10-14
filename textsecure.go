@@ -60,7 +60,7 @@ func encodeKey(key []byte) string {
 
 // ErrBadPublicKey is raised when a given public key is not in the
 // expected format.
-var ErrBadPublicKey = errors.New("Public key not formatted correctly")
+var ErrBadPublicKey = errors.New("public key not formatted correctly")
 
 func decodeKey(s string) ([]byte, error) {
 	b, err := base64DecodeNonPadded(s)
@@ -79,7 +79,7 @@ func decodeSignature(s string) ([]byte, error) {
 		return nil, err
 	}
 	if len(b) != 64 {
-		return nil, fmt.Errorf("Signature is %d, not 64 bytes", len(b))
+		return nil, fmt.Errorf("signature is %d, not 64 bytes", len(b))
 	}
 	return b, nil
 }
@@ -396,11 +396,11 @@ type MessageTypeNotImplementedError struct {
 }
 
 func (err MessageTypeNotImplementedError) Error() string {
-	return fmt.Sprintf("Not implemented message type %d", err.typ)
+	return fmt.Sprintf("not implemented message type %d", err.typ)
 }
 
 // ErrInvalidMACForMessage signals an incoming message with invalid MAC.
-var ErrInvalidMACForMessage = errors.New("Invalid MAC for incoming message")
+var ErrInvalidMACForMessage = errors.New("invalid MAC for incoming message")
 
 // Authenticate and decrypt a received message
 func handleReceivedMessage(msg []byte) error {
