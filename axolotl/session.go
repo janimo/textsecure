@@ -597,8 +597,32 @@ func (err MismatchedVersionError) Error() string {
 // ErrInvalidMACForWhisperMessage signals a message with invalid MAC.
 var ErrInvalidMACForWhisperMessage = errors.New("invalid MAC for WhisperMessage")
 
+// InvalidMessageError represents various error states
+type InvalidMessageError struct {
+	details string
+}
+
+func (err InvalidMessageError) Error() string {
+	return fmt.Sprintf("invalid message: %s", err.details)
+}
+
 func (sc *SessionCipher) decrypt(sr *SessionRecord, ciphertext *WhisperMessage) ([]byte, error) {
-	ss := sr.sessionState
+	b, err := sr.sessionState.decrypt(ciphertext)
+	if err == nil {
+		return b, nil
+	}
+
+	for _, ss := range sr.PreviousStates {
+		b, err := ss.decrypt(ciphertext)
+		if err == nil {
+			sr.promoteState(ss)
+			return b, nil
+		}
+	}
+	return nil, &InvalidMessageError{"no valid sessions"}
+}
+
+func (ss *sessionState) decrypt(ciphertext *WhisperMessage) ([]byte, error) {
 	if !ss.hasSenderChain() {
 		return nil, ErrUninitializedSession
 	}
