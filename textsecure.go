@@ -459,6 +459,14 @@ func handleReceivedMessage(msg []byte) error {
 			log.Infof("Incoming PreKeyWhisperMessage %s. Ignoring.\n", err)
 			return nil
 		}
+		if _, ok := err.(axolotl.PreKeyNotFoundError); ok {
+			log.Infof("Incoming PreKeyWhisperMessage %s. Ignoring.\n", err)
+			return nil
+		}
+		if _, ok := err.(axolotl.InvalidMessageError); ok {
+			log.Infof("Incoming PreKeyWhisperMessage %s. Ignoring.\n", err)
+			return nil
+		}
 		if err != nil {
 			return err
 		}
