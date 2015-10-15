@@ -11,8 +11,9 @@ import (
 
 // Contact contains information about a contact.
 type Contact struct {
-	Name string
-	Tel  string
+	Name  string
+	Tel   string
+	Photo string
 }
 
 type yamlContacts struct {
