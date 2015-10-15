@@ -340,6 +340,7 @@ func handleMessage(src string, timestamp uint64, b []byte, legacy bool) error {
 	return handleSyncMessage(src, timestamp, content.GetSyncMessage())
 }
 
+// EndSessionFlag signals that this message resets the session
 var EndSessionFlag uint32 = 1
 
 func handleFlags(src string, dm *textsecure.DataMessage) (uint32, error) {

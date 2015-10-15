@@ -146,7 +146,10 @@ func quitGroup(src string, hexid string) error {
 	return saveGroup(hexid)
 }
 
+// GroupUpdateFlag signals that this message updates the group membership or name.
 var GroupUpdateFlag uint32 = 1
+
+// GroupLeavelag signals that this message is a group leave message
 var GroupLeaveFlag uint32 = 2
 
 // handleGroups is the main entry point for handling the group metadata on messages.
