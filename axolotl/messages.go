@@ -149,7 +149,7 @@ func LoadPreKeyWhisperMessage(serialized []byte) (*PreKeyWhisperMessage, error) 
 	}
 
 	ppkwm := &protobuf.PreKeyWhisperMessage{}
-	err := proto.Unmarshal(serialized[1:len(serialized)], ppkwm)
+	err := proto.Unmarshal(serialized[1:], ppkwm)
 	if err != nil {
 		return nil, err
 	}

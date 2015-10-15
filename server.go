@@ -221,7 +221,7 @@ func createMessage(msg *outgoingMessage) ([]byte, error) {
 	}
 	if msg.attachment != nil {
 		dm.Attachments = []*textsecure.AttachmentPointer{
-			&textsecure.AttachmentPointer{
+			{
 				Id:          &msg.attachment.id,
 				ContentType: &msg.attachment.ct,
 				Key:         msg.attachment.keys,
