@@ -4,7 +4,7 @@ This is a Go package implementing the TextSecure **push data** (i.e. not encrypt
 
 The included sample command line app can send and receive text messages and attachments and supports group chat.
 
-**The API presented by the package is subject to change.**
+**The API presented by the package is in flux**,  mainly driven by the needs of https://github.com/janimo/textsecure-qml
 
 Automatically generated documentation can be found on [GoDoc] (https://godoc.org/github.com/janimo/textsecure)
 
