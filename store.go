@@ -223,6 +223,34 @@ func (s *store) IsTrustedIdentity(id string, key *axolotl.IdentityKey) bool {
 	return bytes.Equal(b, key.Key()[:])
 }
 
+// MyIdentityKey returns our serialized public identity key
+func MyIdentityKey() []byte {
+	return identityKey.PublicKey.Serialize()
+}
+
+// UnknownContactError is returned when an unknown group id is encountered
+type UnknownContactError struct {
+	id string
+}
+
+func (err UnknownContactError) Error() string {
+	return fmt.Sprintf("unknown contact ID %s", err.id)
+}
+
+// ContactIdentityKey returns the serialized public key of the given contact
+func ContactIdentityKey(id string) ([]byte, error) {
+	s := textSecureStore
+	idkeyfile := filepath.Join(s.identityDir, "remote_"+recID(id))
+	if !exists(idkeyfile) {
+		return nil, UnknownContactError{id}
+	}
+	b, err := s.readFile(idkeyfile)
+	if err != nil {
+		return nil, err
+	}
+	return append([]byte{5}, b...), nil
+}
+
 // Prekey and signed prekey store
 
 func (s *store) preKeysFilePath(id uint32) string {
