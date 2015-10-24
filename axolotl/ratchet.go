@@ -46,7 +46,7 @@ func newRootKey(key []byte) *rootKey {
 func (r *rootKey) createChain(theirRatchetKey *ECPublicKey, ourRatchetKey *ECKeyPair) (*derivedKeys, error) {
 	var keyMaterial [32]byte
 	calculateAgreement(&keyMaterial, theirRatchetKey.Key(), ourRatchetKey.PrivateKey.Key())
-	b, err := deriveSecrets(keyMaterial[:], r.Key[:], []byte("WhisperRatchet"), 64)
+	b, err := DeriveSecrets(keyMaterial[:], r.Key[:], []byte("WhisperRatchet"), 64)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ func (c *chainKey) getNextChainKey() *chainKey {
 
 func (c *chainKey) getMessageKeys() (*messageKeys, error) {
 	b := c.getBaseMaterial(messageKeySeed)
-	okm, err := deriveSecrets(b, nil, []byte("WhisperMessageKeys"), 80)
+	okm, err := DeriveSecrets(b, nil, []byte("WhisperMessageKeys"), 80)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +123,7 @@ type derivedKeys struct {
 }
 
 func calculateDerivedKeys(version byte, keyMaterial []byte) (*derivedKeys, error) {
-	b, err := deriveSecrets(keyMaterial, nil, []byte("WhisperText"), 64)
+	b, err := DeriveSecrets(keyMaterial, nil, []byte("WhisperText"), 64)
 	if err != nil {
 		return nil, err
 	}
@@ -134,9 +134,9 @@ func calculateDerivedKeys(version byte, keyMaterial []byte) (*derivedKeys, error
 	return dk, nil
 }
 
-// deriveSecrets derives the requested number of bytes using HKDF, given
+// DeriveSecrets derives the requested number of bytes using HKDF, given
 // the inputKeyMaterial, salt and the info
-func deriveSecrets(inputKeyMaterial, salt, info []byte, size int) ([]byte, error) {
+func DeriveSecrets(inputKeyMaterial, salt, info []byte, size int) ([]byte, error) {
 	hkdf := hkdf.New(sha256.New, inputKeyMaterial, salt, info)
 
 	secrets := make([]byte, size)
