@@ -106,13 +106,13 @@ func updateGroup(gr *textsecure.GroupContext) error {
 	hexid := idToHex(gr.GetId())
 
 	var r io.Reader
-	var err error
 
 	if av := gr.GetAvatar(); av != nil {
-		r, err = handleSingleAttachment(av)
+		att, err := handleSingleAttachment(av)
 		if err != nil {
 			return err
 		}
+		r = att.R
 	}
 
 	groups[hexid] = &Group{

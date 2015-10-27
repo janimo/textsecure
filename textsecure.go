@@ -138,12 +138,18 @@ func EndSession(tel string, msg string) (uint64, error) {
 	return ts, nil
 }
 
+// Attachment represents an attachment received from a peer
+type Attachment struct {
+	R        io.Reader
+	MimeType string
+}
+
 // Message represents a message received from the peer.
 // It can optionally include attachments and be sent to a group.
 type Message struct {
 	source      string
 	message     string
-	attachments []io.Reader
+	attachments []*Attachment
 	group       *Group
 	timestamp   uint64
 	flags       uint32
@@ -160,7 +166,7 @@ func (m *Message) Message() string {
 }
 
 // Attachments returns the list of attachments on the message.
-func (m *Message) Attachments() []io.Reader {
+func (m *Message) Attachments() []*Attachment {
 	return m.attachments
 }
 

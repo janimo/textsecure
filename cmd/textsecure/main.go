@@ -133,7 +133,7 @@ func messageHandler(msg *textsecure.Message) {
 	}
 
 	for _, a := range msg.Attachments() {
-		handleAttachment(msg.Source(), a)
+		handleAttachment(msg.Source(), a.R)
 	}
 
 	// if no peer was specified on the command line, start a conversation with the first one contacting us
