@@ -619,7 +619,7 @@ func (sc *SessionCipher) decrypt(sr *SessionRecord, ciphertext *WhisperMessage) 
 			return b, nil
 		}
 	}
-	return nil, &InvalidMessageError{"no valid sessions"}
+	return nil, InvalidMessageError{"no valid sessions"}
 }
 
 func (ss *sessionState) decrypt(ciphertext *WhisperMessage) ([]byte, error) {
