@@ -211,6 +211,11 @@ func (s *store) SaveIdentity(id string, key *axolotl.IdentityKey) error {
 }
 
 func (s *store) IsTrustedIdentity(id string, key *axolotl.IdentityKey) bool {
+	if config.AlwaysTrustPeerID {
+		// Workaround until we handle peer reregistering situations
+		// more securely and with a better UI.
+		return true
+	}
 	idkeyfile := filepath.Join(s.identityDir, "remote_"+id)
 	// Trust on first use (TOFU)
 	if !exists(idkeyfile) {

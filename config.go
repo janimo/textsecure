@@ -21,6 +21,7 @@ type Config struct {
 	StoragePassword    string `yaml:"storagePassword"`    // Password to the storage
 	LogLevel           string `yaml:"loglevel"`           // Verbosity of the logging messages
 	UserAgent          string `yaml:"userAgent"`          // Override for the default HTTP User Agent header field
+	AlwaysTrustPeerID  bool   `yaml:"alwaysTrustPeerID"`  // Workaround until proper handling of peer reregistering with new ID.
 }
 
 // ReadConfig reads a YAML config file
