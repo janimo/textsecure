@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 	"time"
 
@@ -129,8 +130,8 @@ func registerPreKeys() error {
 }
 
 // GET /v2/keys/{number}/{device_id}?relay={relay}
-func getPreKeys(tel string) (*preKeyResponse, error) {
-	resp, err := transport.get(fmt.Sprintf(prekeyDevicePath, tel, "*"))
+func getPreKeys(tel string, deviceID string) (*preKeyResponse, error) {
+	resp, err := transport.get(fmt.Sprintf(prekeyDevicePath, tel, deviceID))
 	if err != nil {
 		return nil, err
 	}
@@ -279,55 +280,55 @@ func stripPadding(msg []byte) []byte {
 	return msg
 }
 
-func makePreKeyBundle(tel string) (*axolotl.PreKeyBundle, error) {
-	pkr, err := getPreKeys(tel)
+func makePreKeyBundle(tel string, deviceID uint32) (*axolotl.PreKeyBundle, error) {
+	pkr, err := getPreKeys(tel, strconv.Itoa(int(deviceID)))
 	if err != nil {
 		return nil, err
 	}
 
-	ndev := len(pkr.Devices)
-
-	pkbs := make([]*axolotl.PreKeyBundle, ndev)
-
-	for i, d := range pkr.Devices {
-		if d.PreKey == nil {
-			return nil, fmt.Errorf("no prekey for contact %s, device %d\n", tel, i)
-		}
-
-		decPK, err := decodeKey(d.PreKey.PublicKey)
-		if err != nil {
-			return nil, err
-		}
-
-		if d.SignedPreKey == nil {
-			return nil, fmt.Errorf("no signed prekey for contact %s, device %d\n", tel, i)
-		}
-
-		decSPK, err := decodeKey(d.SignedPreKey.PublicKey)
-		if err != nil {
-			return nil, err
-		}
-
-		decSig, err := decodeSignature(d.SignedPreKey.Signature)
-		if err != nil {
-			return nil, err
-		}
-
-		decIK, err := decodeKey(pkr.IdentityKey)
-		if err != nil {
-			return nil, err
-		}
-
-		pkbs[i], err = axolotl.NewPreKeyBundle(
-			d.RegistrationID, d.DeviceID, d.PreKey.ID,
-			axolotl.NewECPublicKey(decPK), int32(d.SignedPreKey.ID), axolotl.NewECPublicKey(decSPK),
-			decSig, axolotl.NewIdentityKey(decIK))
-		if err != nil {
-			return nil, err
-		}
+	if len(pkr.Devices) != 1 {
+		return nil, fmt.Errorf("no prekeys for contact %s, device %d\n", tel, deviceID)
 	}
 
-	return pkbs[0], nil
+	d := pkr.Devices[0]
+
+	if d.PreKey == nil {
+		return nil, fmt.Errorf("no prekey for contact %s, device %d\n", tel, deviceID)
+	}
+
+	decPK, err := decodeKey(d.PreKey.PublicKey)
+	if err != nil {
+		return nil, err
+	}
+
+	if d.SignedPreKey == nil {
+		return nil, fmt.Errorf("no signed prekey for contact %s, device %d\n", tel, deviceID)
+	}
+
+	decSPK, err := decodeKey(d.SignedPreKey.PublicKey)
+	if err != nil {
+		return nil, err
+	}
+
+	decSig, err := decodeSignature(d.SignedPreKey.Signature)
+	if err != nil {
+		return nil, err
+	}
+
+	decIK, err := decodeKey(pkr.IdentityKey)
+	if err != nil {
+		return nil, err
+	}
+
+	pkb, err := axolotl.NewPreKeyBundle(
+		d.RegistrationID, d.DeviceID, d.PreKey.ID,
+		axolotl.NewECPublicKey(decPK), int32(d.SignedPreKey.ID), axolotl.NewECPublicKey(decSPK),
+		decSig, axolotl.NewIdentityKey(decIK))
+	if err != nil {
+		return nil, err
+	}
+
+	return pkb, nil
 }
 
 type att struct {
@@ -337,39 +338,44 @@ type att struct {
 }
 
 func buildMessage(msg *outgoingMessage) ([]jsonMessage, error) {
-	devid := uint32(1) //FIXME: support multiple destination devices
+	devids := []uint32{1} //FIXME: support multiple destination devices
 	paddedMessage, err := createMessage(msg)
 	if err != nil {
 		return nil, err
 	}
 	recid := recID(msg.tel)
-	if !textSecureStore.ContainsSession(recid, devid) {
-		pkb, err := makePreKeyBundle(msg.tel)
+	messages := []jsonMessage{}
+
+	for _, devid := range devids {
+		if !textSecureStore.ContainsSession(recid, devid) {
+			pkb, err := makePreKeyBundle(msg.tel, devid)
+			if err != nil {
+				return nil, err
+			}
+			sb := axolotl.NewSessionBuilder(textSecureStore, textSecureStore, textSecureStore, textSecureStore, recid, pkb.DeviceID)
+			err = sb.BuildSenderSession(pkb)
+			if err != nil {
+				return nil, err
+			}
+		}
+		sc := axolotl.NewSessionCipher(textSecureStore, textSecureStore, textSecureStore, textSecureStore, recid, devid)
+		encryptedMessage, messageType, err := sc.SessionEncryptMessage(paddedMessage)
 		if err != nil {
 			return nil, err
 		}
-		sb := axolotl.NewSessionBuilder(textSecureStore, textSecureStore, textSecureStore, textSecureStore, recid, pkb.DeviceID)
-		err = sb.BuildSenderSession(pkb)
+
+		rrID, err := sc.GetRemoteRegistrationID()
 		if err != nil {
 			return nil, err
 		}
-	}
-	sc := axolotl.NewSessionCipher(textSecureStore, textSecureStore, textSecureStore, textSecureStore, recid, devid)
-	encryptedMessage, messageType, err := sc.SessionEncryptMessage(paddedMessage)
-	if err != nil {
-		return nil, err
+		messages = append(messages, jsonMessage{
+			Type:               messageType,
+			DestDeviceID:       devid,
+			DestRegistrationID: rrID,
+			Body:               base64.StdEncoding.EncodeToString(encryptedMessage),
+		})
 	}
 
-	rrID, err := sc.GetRemoteRegistrationID()
-	if err != nil {
-		return nil, err
-	}
-	messages := []jsonMessage{{
-		Type:               messageType,
-		DestDeviceID:       devid,
-		DestRegistrationID: rrID,
-		Body:               base64.StdEncoding.EncodeToString(encryptedMessage),
-	}}
 	return messages, nil
 }
 
