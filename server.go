@@ -96,6 +96,21 @@ func verifyCode(code string) error {
 	return nil
 }
 
+type jsonDeviceCode struct {
+	VerificationCode string `json:"verificationCode"`
+}
+
+func getNewDeviceVerificationCode() (string, error) {
+	resp, err := transport.get(provisioningCodePath)
+	if err != nil {
+		return "", err
+	}
+	dec := json.NewDecoder(resp.Body)
+	var c jsonDeviceCode
+	dec.Decode(&c)
+	return c.VerificationCode, nil
+}
+
 // PUT /v2/keys/
 func registerPreKeys() error {
 	body, err := json.MarshalIndent(preKeys, "", "")
