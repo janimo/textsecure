@@ -16,6 +16,8 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/janimo/textsecure/axolotl"
 	"github.com/janimo/textsecure/protobuf"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 var (
@@ -337,8 +339,7 @@ type att struct {
 	keys []byte
 }
 
-func buildMessage(msg *outgoingMessage) ([]jsonMessage, error) {
-	devids := []uint32{1} //FIXME: support multiple destination devices
+func buildMessage(msg *outgoingMessage, devices []uint32) ([]jsonMessage, error) {
 	paddedMessage, err := createMessage(msg)
 	if err != nil {
 		return nil, err
@@ -346,7 +347,7 @@ func buildMessage(msg *outgoingMessage) ([]jsonMessage, error) {
 	recid := recID(msg.tel)
 	messages := []jsonMessage{}
 
-	for _, devid := range devids {
+	for _, devid := range devices {
 		if !textSecureStore.ContainsSession(recid, devid) {
 			pkb, err := makePreKeyBundle(msg.tel, devid)
 			if err != nil {
@@ -397,12 +398,14 @@ type jsonStaleDevices struct {
 // ErrRemoteGone is returned when the peer reinstalled and lost its session state.
 var ErrRemoteGone = errors.New("the remote device is gone (probably reinstalled)")
 
-func sendMessage(msg *outgoingMessage) (uint64, error) {
-	m := make(map[string]interface{})
-	bm, err := buildMessage(msg)
+var deviceLists = map[string][]uint32{}
+
+func buildAndSendMessage(msg *outgoingMessage) (uint64, error) {
+	bm, err := buildMessage(msg, deviceLists[msg.tel])
 	if err != nil {
 		return 0, err
 	}
+	m := make(map[string]interface{})
 	m["messages"] = bm
 	now := uint64(time.Now().UnixNano() / 1000000)
 	m["timestamp"] = now
@@ -415,17 +418,47 @@ func sendMessage(msg *outgoingMessage) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
+	if resp.Status == mismatchedDevicesStatus {
+		dec := json.NewDecoder(resp.Body)
+		var j jsonMismatchedDevices
+		dec.Decode(&j)
+		log.Debugf("Mismatched devices: %+v\n", j)
+		devs := []uint32{}
+		for _, id := range deviceLists[msg.tel] {
+			in := true
+			for _, eid := range j.ExtraDevices {
+				if id == eid {
+					in = false
+					break
+				}
+			}
+			if in {
+				devs = append(devs, id)
+			}
+		}
+		deviceLists[msg.tel] = append(devs, j.MissingDevices...)
+		return buildAndSendMessage(msg)
+	}
 	if resp.Status == staleDevicesStatus {
 		dec := json.NewDecoder(resp.Body)
 		var j jsonStaleDevices
 		dec.Decode(&j)
+		log.Debugf("Stale devices: %+v\n", j)
 		for _, id := range j.StaleDevices {
 			textSecureStore.DeleteSession(recID(msg.tel), id)
 		}
-		return 0, ErrRemoteGone
+		return buildAndSendMessage(msg)
 	}
 	if resp.isError() {
 		return 0, resp
 	}
 	return now, nil
+}
+
+func sendMessage(msg *outgoingMessage) (uint64, error) {
+	if _, ok := deviceLists[msg.tel]; !ok {
+		deviceLists[msg.tel] = []uint32{1}
+	}
+	ts, err := buildAndSendMessage(msg)
+	return ts, err
 }
