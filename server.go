@@ -379,6 +379,21 @@ func buildMessage(msg *outgoingMessage) ([]jsonMessage, error) {
 	return messages, nil
 }
 
+var (
+	mismatchedDevicesStatus = 409
+	staleDevicesStatus      = 410
+	rateLimitExceededStatus = 413
+)
+
+type jsonMismatchedDevices struct {
+	MissingDevices []uint32 `json:"missingDevices"`
+	ExtraDevices   []uint32 `json:"extraDevices"`
+}
+
+type jsonStaleDevices struct {
+	StaleDevices []uint32 `json:"staleDevices"`
+}
+
 // ErrRemoteGone is returned when the peer reinstalled and lost its session state.
 var ErrRemoteGone = errors.New("the remote device is gone (probably reinstalled)")
 
@@ -400,8 +415,13 @@ func sendMessage(msg *outgoingMessage) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-	if resp.Status == 410 {
-		textSecureStore.DeleteSession(recID(msg.tel), uint32(1))
+	if resp.Status == staleDevicesStatus {
+		dec := json.NewDecoder(resp.Body)
+		var j jsonStaleDevices
+		dec.Decode(&j)
+		for _, id := range j.StaleDevices {
+			textSecureStore.DeleteSession(recID(msg.tel), id)
+		}
 		return 0, ErrRemoteGone
 	}
 	if resp.isError() {
