@@ -21,8 +21,9 @@ import (
 )
 
 var (
-	createAccountPath = "/v1/accounts/%s/code/%s"
-	verifyAccountPath = "/v1/accounts/code/%s"
+	createAccountPath      = "/v1/accounts/%s/code/%s"
+	verifyAccountPath      = "/v1/accounts/code/%s"
+	registerUPSAccountPath = "/v1/accounts/ups/"
 
 	prekeyMetadataPath = "/v2/keys/"
 	prekeyPath         = "/v2/keys/%s"
@@ -90,6 +91,28 @@ func verifyCode(code string) error {
 		return err
 	}
 	resp, err := transport.putJSON(fmt.Sprintf(verifyAccountPath, code), body)
+	if err != nil {
+		return err
+	}
+	if resp.isError() {
+		return resp
+	}
+	return nil
+}
+
+type upsRegistration struct {
+	UPSRegistrationID string `json:"upsRegistrationId"`
+}
+
+func registerWithUPS(token string) error {
+	reg := upsRegistration{
+		UPSRegistrationID: token,
+	}
+	body, err := json.Marshal(reg)
+	if err != nil {
+		return err
+	}
+	resp, err := transport.putJSON(registerUPSAccountPath, body)
 	if err != nil {
 		return err
 	}
