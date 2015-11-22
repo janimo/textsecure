@@ -98,6 +98,19 @@ func sendMessage(isGroup bool, to, message string) error {
 	return err
 }
 
+func sendAttachment(isGroup bool, to, message string, f io.Reader) error {
+	var err error
+	if isGroup {
+		_, err = textsecure.SendGroupAttachment(to, message, f)
+	} else {
+		_, err = textsecure.SendAttachment(to, message, f)
+		if nerr, ok := err.(axolotl.NotTrustedError); ok {
+			log.Fatalf("Peer identity not trusted. Remove the file .storage/identity/remote_%s to approve\n", nerr.ID)
+		}
+	}
+	return err
+}
+
 // conversationLoop sends messages read from the console
 func conversationLoop(isGroup bool) {
 	for {
@@ -250,7 +263,7 @@ func main() {
 					log.Fatal(err)
 				}
 
-				_, err = textsecure.SendAttachment(to, message, f)
+				err = sendAttachment(group, to, message, f)
 				if err != nil {
 					log.Fatal(err)
 				}
