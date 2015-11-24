@@ -356,12 +356,6 @@ func makePreKeyBundle(tel string, deviceID uint32) (*axolotl.PreKeyBundle, error
 	return pkb, nil
 }
 
-type att struct {
-	id   uint64
-	ct   string
-	keys []byte
-}
-
 func buildMessage(msg *outgoingMessage, devices []uint32) ([]jsonMessage, error) {
 	paddedMessage, err := createMessage(msg)
 	if err != nil {

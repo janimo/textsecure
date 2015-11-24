@@ -90,6 +90,12 @@ func needsRegistration() bool {
 
 var identityKey *axolotl.IdentityKeyPair
 
+type att struct {
+	id   uint64
+	ct   string
+	keys []byte
+}
+
 type outgoingMessage struct {
 	tel        string
 	msg        string
