@@ -104,7 +104,8 @@ type upsRegistration struct {
 	UPSRegistrationID string `json:"upsRegistrationId"`
 }
 
-func registerWithUPS(token string) error {
+// RegisterWithUPS registers our Ubuntu push client token with the server.
+func RegisterWithUPS(token string) error {
 	reg := upsRegistration{
 		UPSRegistrationID: token,
 	}
