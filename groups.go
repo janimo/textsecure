@@ -12,8 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/janimo/textsecure/3rd_party/magic"
 	"github.com/janimo/textsecure/protobuf"
-	"github.com/janimo/textsecure/vendor/magic"
 	"gopkg.in/yaml.v2"
 )
 

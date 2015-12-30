@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/janimo/textsecure/vendor/magic"
+	"github.com/janimo/textsecure/3rd_party/magic"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/janimo/textsecure/axolotl"
