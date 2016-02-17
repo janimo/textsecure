@@ -305,6 +305,7 @@ type SyncMessage struct {
 	Contacts         *SyncMessage_Contacts `protobuf:"bytes,2,opt,name=contacts" json:"contacts,omitempty"`
 	Groups           *SyncMessage_Groups   `protobuf:"bytes,3,opt,name=groups" json:"groups,omitempty"`
 	Request          *SyncMessage_Request  `protobuf:"bytes,4,opt,name=request" json:"request,omitempty"`
+	Read             []*SyncMessage_Read   `protobuf:"bytes,5,rep,name=read" json:"read,omitempty"`
 	XXX_unrecognized []byte                `json:"-"`
 }
 
@@ -336,6 +337,13 @@ func (m *SyncMessage) GetGroups() *SyncMessage_Groups {
 func (m *SyncMessage) GetRequest() *SyncMessage_Request {
 	if m != nil {
 		return m.Request
+	}
+	return nil
+}
+
+func (m *SyncMessage) GetRead() []*SyncMessage_Read {
+	if m != nil {
+		return m.Read
 	}
 	return nil
 }
@@ -416,6 +424,30 @@ func (*SyncMessage_Request) ProtoMessage()    {}
 func (m *SyncMessage_Request) GetType() SyncMessage_Request_Type {
 	if m != nil && m.Type != nil {
 		return *m.Type
+	}
+	return 0
+}
+
+type SyncMessage_Read struct {
+	Sender           *string `protobuf:"bytes,1,opt,name=sender" json:"sender,omitempty"`
+	Timestamp        *uint64 `protobuf:"varint,2,opt,name=timestamp" json:"timestamp,omitempty"`
+	XXX_unrecognized []byte  `json:"-"`
+}
+
+func (m *SyncMessage_Read) Reset()         { *m = SyncMessage_Read{} }
+func (m *SyncMessage_Read) String() string { return proto.CompactTextString(m) }
+func (*SyncMessage_Read) ProtoMessage()    {}
+
+func (m *SyncMessage_Read) GetSender() string {
+	if m != nil && m.Sender != nil {
+		return *m.Sender
+	}
+	return ""
+}
+
+func (m *SyncMessage_Read) GetTimestamp() uint64 {
+	if m != nil && m.Timestamp != nil {
+		return *m.Timestamp
 	}
 	return 0
 }
@@ -577,12 +609,15 @@ type GroupDetails struct {
 	Name             *string              `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
 	Members          []string             `protobuf:"bytes,3,rep,name=members" json:"members,omitempty"`
 	Avatar           *GroupDetails_Avatar `protobuf:"bytes,4,opt,name=avatar" json:"avatar,omitempty"`
+	Active           *bool                `protobuf:"varint,5,opt,name=active,def=1" json:"active,omitempty"`
 	XXX_unrecognized []byte               `json:"-"`
 }
 
 func (m *GroupDetails) Reset()         { *m = GroupDetails{} }
 func (m *GroupDetails) String() string { return proto.CompactTextString(m) }
 func (*GroupDetails) ProtoMessage()    {}
+
+const Default_GroupDetails_Active bool = true
 
 func (m *GroupDetails) GetId() []byte {
 	if m != nil {
@@ -610,6 +645,13 @@ func (m *GroupDetails) GetAvatar() *GroupDetails_Avatar {
 		return m.Avatar
 	}
 	return nil
+}
+
+func (m *GroupDetails) GetActive() bool {
+	if m != nil && m.Active != nil {
+		return *m.Active
+	}
+	return Default_GroupDetails_Active
 }
 
 type GroupDetails_Avatar struct {
