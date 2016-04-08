@@ -131,7 +131,7 @@ func messageHandler(msg *textsecure.Message) {
 	if echo {
 		to := msg.Source()
 		if msg.Group() != nil {
-			to = msg.Group().Name
+			to = msg.Group().Hexid
 		}
 		err := sendMessage(msg.Group() != nil, to, msg.Message())
 
