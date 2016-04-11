@@ -155,7 +155,7 @@ func messageHandler(msg *textsecure.Message) {
 		isGroup := false
 		if msg.Group() != nil {
 			isGroup = true
-			to = msg.Group().Name
+			to = msg.Group().Hexid
 		}
 		go conversationLoop(isGroup)
 	}
