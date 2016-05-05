@@ -202,7 +202,6 @@ func addNewDevice(ephemeralId, publicKey, verificationCode string) error {
 	}
 
 	url := fmt.Sprintf(provisioningMessagePath, ephemeralId)
-	fmt.Printf("ProvisionMessage Path: %s\n", url)
 	resp, err := transport.putJSON(url, body)
 	if err != nil {
 		return err
