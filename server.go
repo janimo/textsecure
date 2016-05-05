@@ -32,6 +32,7 @@ var (
 
 	provisioningCodePath    = "/v1/devices/provisioning/code"
 	provisioningMessagePath = "/v1/provisioning/%s"
+	devicePath              = "/v1/devices/%s"
 
 	directoryTokensPath    = "/v1/directory/tokens"
 	directoryVerifyPath    = "/v1/directory/%s"
@@ -136,6 +137,80 @@ func getNewDeviceVerificationCode() (string, error) {
 	var c jsonDeviceCode
 	dec.Decode(&c)
 	return c.VerificationCode, nil
+}
+
+type DeviceInfo struct {
+	ID       uint32 `json:"id"`
+	Name     string `json:"name"`
+	Created  uint64 `json:"created"`
+	LastSeen uint64 `json:"lastSeen"`
+}
+
+func getLinkedDevices() ([]DeviceInfo, error) {
+	type jsonDevices struct {
+		DeviceList []DeviceInfo `json:"devices"`
+	}
+	devices := &jsonDevices{}
+
+	resp, err := transport.get(fmt.Sprintf(devicePath, ""))
+	if err != nil {
+		return devices.DeviceList, err
+	}
+
+	dec := json.NewDecoder(resp.Body)
+	err = dec.Decode(&devices)
+	if err != nil {
+		return devices.DeviceList, nil
+	}
+
+	return devices.DeviceList, nil
+}
+
+func unlinkDevice(id int) error {
+	_, err := transport.del(fmt.Sprintf(devicePath, strconv.Itoa(id)))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func addNewDevice(ephemeralId, publicKey, verificationCode string) error {
+	decPk, err := decodeKey(publicKey)
+	if err != nil {
+		return err
+	}
+
+	theirPublicKey := axolotl.NewECPublicKey(decPk)
+
+	pm := &textsecure.ProvisionMessage{
+		IdentityKeyPublic:  identityKey.PublicKey.Serialize(),
+		IdentityKeyPrivate: identityKey.PrivateKey.Key()[:],
+		Number:             &config.Tel,
+		ProvisioningCode:   &verificationCode,
+	}
+
+	ciphertext, err := provisioningCipher(pm, theirPublicKey)
+	if err != nil {
+		return err
+	}
+
+	jsonBody := make(map[string]string)
+	jsonBody["body"] = base64.StdEncoding.EncodeToString(ciphertext)
+	body, err := json.Marshal(jsonBody)
+	if err != nil {
+		return err
+	}
+
+	url := fmt.Sprintf(provisioningMessagePath, ephemeralId)
+	fmt.Printf("ProvisionMessage Path: %s\n", url)
+	resp, err := transport.putJSON(url, body)
+	if err != nil {
+		return err
+	}
+	if resp.isError() {
+		return resp
+	}
+	return nil
 }
 
 // PUT /v2/keys/

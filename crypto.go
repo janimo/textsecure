@@ -15,6 +15,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+
+	"github.com/golang/protobuf/proto"
+	"github.com/janimo/textsecure/axolotl"
+	"github.com/janimo/textsecure/protobuf"
+	"golang.org/x/crypto/curve25519"
 )
 
 // randBytes returns a sequence of random bytes from the CSPRNG
@@ -93,4 +98,45 @@ func aesDecrypt(key, ciphertext []byte) ([]byte, error) {
 		return nil, fmt.Errorf("pad value (%d) larger than AES blocksize (%d)", pad, aes.BlockSize)
 	}
 	return ciphertext[aes.BlockSize : len(ciphertext)-int(pad)], nil
+}
+
+// ProvisioningCipher
+func provisioningCipher(pm *textsecure.ProvisionMessage, theirPublicKey *axolotl.ECPublicKey) ([]byte, error) {
+	ourKeyPair := axolotl.GenerateIdentityKeyPair()
+
+	version := []byte{0x01}
+	var sharedKey [32]byte
+	curve25519.ScalarMult(&sharedKey, ourKeyPair.PrivateKey.Key(), theirPublicKey.Key())
+	derivedSecret, err := axolotl.DeriveSecrets(sharedKey[:], nil, []byte("TextSecure Provisioning Message"), 64)
+
+	if err != nil {
+		return nil, err
+	}
+
+	aesKey := derivedSecret[:32]
+	macKey := derivedSecret[32:]
+	message, err := proto.Marshal(pm)
+	if err != nil {
+		return nil, err
+	}
+
+	ciphertext, err := aesEncrypt(aesKey, message)
+	if err != nil {
+		return nil, err
+	}
+
+	m := hmac.New(sha256.New, macKey)
+	m.Write(append(version[:], ciphertext[:]...))
+	mac := m.Sum(nil)
+	body := []byte{}
+	body = append(body, version[:]...)
+	body = append(body, ciphertext[:]...)
+	body = append(body, mac[:]...)
+
+	pe := &textsecure.ProvisionEnvelope{
+		PublicKey: ourKeyPair.PublicKey.Serialize(),
+		Body:      body,
+	}
+
+	return proto.Marshal(pe)
 }

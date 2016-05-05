@@ -104,6 +104,26 @@ type outgoingMessage struct {
 	flags      uint32
 }
 
+// LinkedDevices returns the list of linked devices
+func LinkedDevices() ([]DeviceInfo, error) {
+	return getLinkedDevices()
+}
+
+// UnlinkDevice removes a linked device
+func UnlinkDevice(id int) error {
+	return unlinkDevice(id)
+}
+
+// NewDeviceVerificationCode returns the verification code for linking devices
+func NewDeviceVerificationCode() (string, error) {
+	return getNewDeviceVerificationCode()
+}
+
+// AddDevice links a new device
+func AddDevice(ephemeralId, publicKey, verificationCode string) error {
+	return addNewDevice(ephemeralId, publicKey, verificationCode)
+}
+
 // SendMessage sends the given text message to the given contact.
 func SendMessage(tel, msg string) (uint64, error) {
 	omsg := &outgoingMessage{

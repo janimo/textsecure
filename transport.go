@@ -36,6 +36,7 @@ func (r *response) Error() string {
 
 type transporter interface {
 	get(url string) (*response, error)
+	del(url string) (*response, error)
 	putJSON(url string, body []byte) (*response, error)
 	putBinary(url string, body []byte) (*response, error)
 }
@@ -88,6 +89,30 @@ func (ht *httpTransporter) get(url string) (*response, error) {
 	}
 
 	log.Debugf("GET %s %d\n", url, r.Status)
+
+	return r, err
+}
+
+func (ht *httpTransporter) del(url string) (*response, error) {
+	req, err := http.NewRequest("DELETE", ht.baseURL+url, nil)
+	if err != nil {
+		return nil, err
+	}
+	if config.UserAgent != "" {
+		req.Header.Set("User-Agent", config.UserAgent)
+	}
+	req.SetBasicAuth(ht.user, ht.pass)
+	resp, err := ht.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	r := &response{}
+	if resp != nil {
+		r.Status = resp.StatusCode
+		r.Body = resp.Body
+	}
+
+	log.Debugf("DELETE %s %d\n", url, r.Status)
 
 	return r, err
 }
