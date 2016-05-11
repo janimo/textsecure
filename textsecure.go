@@ -220,6 +220,8 @@ type Client struct {
 	GetLocalContacts    func() ([]Contact, error)
 	MessageHandler      func(*Message)
 	ReceiptHandler      func(string, uint32, uint64)
+	SyncReadHandler     func(string, uint64)
+	SyncSentHandler     func(*Message)
 	RegistrationDone    func()
 }
 
@@ -373,8 +375,12 @@ func handleMessage(src string, timestamp uint64, b []byte, legacy bool) error {
 	}
 	if dm := content.GetDataMessage(); dm != nil {
 		return handleDataMessage(src, timestamp, dm)
+	} else if sm := content.GetSyncMessage(); sm != nil && config.Tel == src {
+		return handleSyncMessage(src, timestamp, sm)
 	}
-	return handleSyncMessage(src, timestamp, content.GetSyncMessage())
+
+	log.Errorf("Unknown message content received")
+	return nil
 }
 
 // EndSessionFlag signals that this message resets the session

@@ -11,17 +11,18 @@ import (
 
 // Config holds application configuration settings
 type Config struct {
-	Tel                string `yaml:"tel"`                // Our telephone number
-	Server             string `yaml:"server"`             // The TextSecure server URL
-	RootCA             string `yaml:"rootCA"`             // The TLS signing certificate of the server we connect to
-	ProxyServer        string `yaml:"proxy"`              // HTTP Proxy URL if one is being used
-	VerificationType   string `yaml:"verificationType"`   // Code verification method during registration (SMS/VOICE/DEV)
-	StorageDir         string `yaml:"storageDir"`         // Directory for the persistent storage
-	UnencryptedStorage bool   `yaml:"unencryptedStorage"` // Whether to store plaintext keys and session state (only for development)
-	StoragePassword    string `yaml:"storagePassword"`    // Password to the storage
-	LogLevel           string `yaml:"loglevel"`           // Verbosity of the logging messages
-	UserAgent          string `yaml:"userAgent"`          // Override for the default HTTP User Agent header field
-	AlwaysTrustPeerID  bool   `yaml:"alwaysTrustPeerID"`  // Workaround until proper handling of peer reregistering with new ID.
+	Tel                   string `yaml:"tel"`                   // Our telephone number
+	Server                string `yaml:"server"`                // The TextSecure server URL
+	RootCA                string `yaml:"rootCA"`                // The TLS signing certificate of the server we connect to
+	ProxyServer           string `yaml:"proxy"`                 // HTTP Proxy URL if one is being used
+	VerificationType      string `yaml:"verificationType"`      // Code verification method during registration (SMS/VOICE/DEV)
+	StorageDir            string `yaml:"storageDir"`            // Directory for the persistent storage
+	UnencryptedStorage    bool   `yaml:"unencryptedStorage"`    // Whether to store plaintext keys and session state (only for development)
+	StoragePassword       string `yaml:"storagePassword"`       // Password to the storage
+	LogLevel              string `yaml:"loglevel"`              // Verbosity of the logging messages
+	UserAgent             string `yaml:"userAgent"`             // Override for the default HTTP User Agent header field
+	AlwaysTrustPeerID     bool   `yaml:"alwaysTrustPeerID"`     // Workaround until proper handling of peer reregistering with new ID.
+	EnableMultiDeviceSync bool   `yaml:"enableMultiDeviceSync"` // Enable multi-device synchronization
 }
 
 // ReadConfig reads a YAML config file
