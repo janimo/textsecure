@@ -20,7 +20,7 @@ func handleSyncMessage(src string, timestamp uint64, sm *textsecure.SyncMessage)
 	}
 
 	if sm.GetSent() != nil {
-		return handleSyncSent(sm.GetSent())
+		return handleSyncSent(sm.GetSent(), timestamp)
 	} else if sm.GetRequest() != nil {
 		return handleSyncRequest(sm.GetRequest())
 	} else if sm.GetRead() != nil {
@@ -33,7 +33,7 @@ func handleSyncMessage(src string, timestamp uint64, sm *textsecure.SyncMessage)
 }
 
 // handleSyncSent handles sync sent messages
-func handleSyncSent(s *textsecure.SyncMessage_Sent) error {
+func handleSyncSent(s *textsecure.SyncMessage_Sent, ts uint64) error {
 	dm := s.GetMessage()
 	dest := s.GetDestination()
 	timestamp := s.GetTimestamp()
@@ -67,7 +67,7 @@ func handleSyncSent(s *textsecure.SyncMessage_Sent) error {
 	}
 
 	if client.SyncSentHandler != nil {
-		client.SyncSentHandler(msg)
+		client.SyncSentHandler(msg, ts)
 	}
 
 	return nil

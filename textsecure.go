@@ -221,7 +221,7 @@ type Client struct {
 	MessageHandler      func(*Message)
 	ReceiptHandler      func(string, uint32, uint64)
 	SyncReadHandler     func(string, uint64)
-	SyncSentHandler     func(*Message)
+	SyncSentHandler     func(*Message, uint64)
 	RegistrationDone    func()
 }
 
