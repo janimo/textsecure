@@ -427,7 +427,7 @@ func makePreKeyBundle(tel string, deviceID uint32) (*axolotl.PreKeyBundle, error
 	return pkb, nil
 }
 
-func buildMessage(tel string, paddedMessage []byte, devices []uint32) ([]jsonMessage, error) {
+func buildMessage(tel string, paddedMessage []byte, devices []uint32, isSync bool) ([]jsonMessage, error) {
 	recid := recID(tel)
 	messages := []jsonMessage{}
 
@@ -453,12 +453,21 @@ func buildMessage(tel string, paddedMessage []byte, devices []uint32) ([]jsonMes
 		if err != nil {
 			return nil, err
 		}
-		messages = append(messages, jsonMessage{
+
+		jmsg := jsonMessage{
 			Type:               messageType,
 			DestDeviceID:       devid,
 			DestRegistrationID: rrID,
-			Content:            base64.StdEncoding.EncodeToString(encryptedMessage),
-		})
+		}
+
+		if isSync {
+			jmsg.Content = base64.StdEncoding.EncodeToString(encryptedMessage)
+		} else {
+			// Use legacy Body for data messages. It seems that iOS devices do
+			// not support Content yet?
+			jmsg.Body = base64.StdEncoding.EncodeToString(encryptedMessage)
+		}
+		messages = append(messages, jmsg)
 	}
 
 	return messages, nil
@@ -489,8 +498,8 @@ var ErrRemoteGone = errors.New("the remote device is gone (probably reinstalled)
 
 var deviceLists = map[string][]uint32{}
 
-func buildAndSendMessage(tel string, paddedMessage []byte) (*sendMessageResponse, error) {
-	bm, err := buildMessage(tel, paddedMessage, deviceLists[tel])
+func buildAndSendMessage(tel string, paddedMessage []byte, isSync bool) (*sendMessageResponse, error) {
+	bm, err := buildMessage(tel, paddedMessage, deviceLists[tel], isSync)
 	if err != nil {
 		return nil, err
 	}
@@ -527,7 +536,7 @@ func buildAndSendMessage(tel string, paddedMessage []byte) (*sendMessageResponse
 			}
 		}
 		deviceLists[tel] = append(devs, j.MissingDevices...)
-		return buildAndSendMessage(tel, paddedMessage)
+		return buildAndSendMessage(tel, paddedMessage, isSync)
 	}
 	if resp.Status == staleDevicesStatus {
 		dec := json.NewDecoder(resp.Body)
@@ -537,7 +546,7 @@ func buildAndSendMessage(tel string, paddedMessage []byte) (*sendMessageResponse
 		for _, id := range j.StaleDevices {
 			textSecureStore.DeleteSession(recID(tel), id)
 		}
-		return buildAndSendMessage(tel, paddedMessage)
+		return buildAndSendMessage(tel, paddedMessage, isSync)
 	}
 	if resp.isError() {
 		return nil, resp
@@ -559,16 +568,12 @@ func sendMessage(msg *outgoingMessage) (uint64, error) {
 
 	dm := createMessage(msg)
 
-	content := &textsecure.Content{
-		DataMessage: dm,
-	}
-
-	b, err := proto.Marshal(content)
+	b, err := proto.Marshal(dm)
 	if err != nil {
 		return 0, err
 	}
 
-	resp, err := buildAndSendMessage(msg.tel, padMessage(b))
+	resp, err := buildAndSendMessage(msg.tel, padMessage(b), false)
 	if err != nil {
 		return 0, err
 	}
@@ -610,6 +615,6 @@ func sendSyncMessage(sm *textsecure.SyncMessage) (uint64, error) {
 		return 0, err
 	}
 
-	resp, err := buildAndSendMessage(config.Tel, padMessage(b))
+	resp, err := buildAndSendMessage(config.Tel, padMessage(b), true)
 	return resp.Timestamp, err
 }
