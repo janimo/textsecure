@@ -264,7 +264,7 @@ func main() {
 		}
 
 		for _, d := range devs {
-			fmt.Printf("ID: %d\n", d.ID)
+			log.Printf("ID: %d\n", d.ID)
 			log.Printf("Name: %s\n", d.Name)
 			log.Printf("Created: %d\n", d.Created)
 			log.Printf("LastSeen: %d\n", d.LastSeen)
