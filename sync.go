@@ -1,10 +1,9 @@
 package textsecure
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
-	"io/ioutil"
-	"os"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/golang/protobuf/proto"
@@ -93,11 +92,7 @@ func sendContactUpdate() error {
 		return fmt.Errorf("could not get local contacts: %s", err)
 	}
 
-	tmp, err := ioutil.TempFile(config.StorageDir, "multidevice-contact-update")
-	if err != nil {
-		return err
-	}
-	defer os.Remove(tmp.Name())
+	var buf bytes.Buffer
 
 	for _, c := range lc {
 		cd := &textsecure.ContactDetails{
@@ -112,14 +107,11 @@ func sendContactUpdate() error {
 			continue
 		}
 
-		tmp.Write(varint32(len(b)))
-		tmp.Write(b)
+		buf.Write(varint32(len(b)))
+		buf.Write(b)
 	}
 
-	tmp.Sync()
-	tmp.Seek(0, 0)
-
-	a, err := uploadAttachment(tmp, "application/octet-stream")
+	a, err := uploadAttachment(&buf, "application/octet-stream")
 	if err != nil {
 		return err
 	}
@@ -142,11 +134,7 @@ func sendContactUpdate() error {
 func sendGroupUpdate() error {
 	log.Debugf("Sending group SyncMessage")
 
-	tmp, err := ioutil.TempFile(config.StorageDir, "multidevice-group-update")
-	if err != nil {
-		return err
-	}
-	defer os.Remove(tmp.Name())
+	var buf bytes.Buffer
 
 	for _, g := range groups {
 		gd := &textsecure.GroupDetails{
@@ -163,14 +151,11 @@ func sendGroupUpdate() error {
 			continue
 		}
 
-		tmp.Write(varint32(len(b)))
-		tmp.Write(b)
+		buf.Write(varint32(len(b)))
+		buf.Write(b)
 	}
 
-	tmp.Sync()
-	tmp.Seek(0, 0)
-
-	a, err := uploadAttachment(tmp, "application/octet-stream")
+	a, err := uploadAttachment(&buf, "application/octet-stream")
 	if err != nil {
 		return err
 	}
