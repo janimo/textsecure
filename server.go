@@ -578,7 +578,7 @@ func sendMessage(msg *outgoingMessage) (uint64, error) {
 		return 0, err
 	}
 
-	if resp.NeedsSync && config.EnableMultiDeviceSync {
+	if resp.NeedsSync {
 		log.Debugf("Needs sync. destination: %s", msg.tel)
 		sm := &textsecure.SyncMessage{
 			Sent: &textsecure.SyncMessage_Sent{

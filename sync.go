@@ -13,10 +13,6 @@ import (
 // handleSyncMessage handles an incoming SyncMessage.
 func handleSyncMessage(src string, timestamp uint64, sm *textsecure.SyncMessage) error {
 	log.Debugf("SyncMessage recieved at %d", timestamp)
-	if !config.EnableMultiDeviceSync {
-		log.Debugf("Multi-Device sync is disabled. Ignoring message")
-		return nil
-	}
 
 	if sm.GetSent() != nil {
 		return handleSyncSent(sm.GetSent(), timestamp)
