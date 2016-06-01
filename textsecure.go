@@ -104,6 +104,26 @@ type outgoingMessage struct {
 	flags      uint32
 }
 
+// LinkedDevices returns the list of linked devices
+func LinkedDevices() ([]DeviceInfo, error) {
+	return getLinkedDevices()
+}
+
+// UnlinkDevice removes a linked device
+func UnlinkDevice(id int) error {
+	return unlinkDevice(id)
+}
+
+// NewDeviceVerificationCode returns the verification code for linking devices
+func NewDeviceVerificationCode() (string, error) {
+	return getNewDeviceVerificationCode()
+}
+
+// AddDevice links a new device
+func AddDevice(ephemeralId, publicKey, verificationCode string) error {
+	return addNewDevice(ephemeralId, publicKey, verificationCode)
+}
+
 // SendMessage sends the given text message to the given contact.
 func SendMessage(tel, msg string) (uint64, error) {
 	omsg := &outgoingMessage{
@@ -200,6 +220,8 @@ type Client struct {
 	GetLocalContacts    func() ([]Contact, error)
 	MessageHandler      func(*Message)
 	ReceiptHandler      func(string, uint32, uint64)
+	SyncReadHandler     func(string, uint64)
+	SyncSentHandler     func(*Message, uint64)
 	RegistrationDone    func()
 }
 
@@ -353,8 +375,12 @@ func handleMessage(src string, timestamp uint64, b []byte, legacy bool) error {
 	}
 	if dm := content.GetDataMessage(); dm != nil {
 		return handleDataMessage(src, timestamp, dm)
+	} else if sm := content.GetSyncMessage(); sm != nil && config.Tel == src {
+		return handleSyncMessage(src, timestamp, sm)
 	}
-	return handleSyncMessage(src, timestamp, content.GetSyncMessage())
+
+	log.Errorf("Unknown message content received")
+	return nil
 }
 
 // EndSessionFlag signals that this message resets the session

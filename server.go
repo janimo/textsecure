@@ -32,6 +32,7 @@ var (
 
 	provisioningCodePath    = "/v1/devices/provisioning/code"
 	provisioningMessagePath = "/v1/provisioning/%s"
+	devicePath              = "/v1/devices/%s"
 
 	directoryTokensPath    = "/v1/directory/tokens"
 	directoryVerifyPath    = "/v1/directory/%s"
@@ -136,6 +137,79 @@ func getNewDeviceVerificationCode() (string, error) {
 	var c jsonDeviceCode
 	dec.Decode(&c)
 	return c.VerificationCode, nil
+}
+
+type DeviceInfo struct {
+	ID       uint32 `json:"id"`
+	Name     string `json:"name"`
+	Created  uint64 `json:"created"`
+	LastSeen uint64 `json:"lastSeen"`
+}
+
+func getLinkedDevices() ([]DeviceInfo, error) {
+	type jsonDevices struct {
+		DeviceList []DeviceInfo `json:"devices"`
+	}
+	devices := &jsonDevices{}
+
+	resp, err := transport.get(fmt.Sprintf(devicePath, ""))
+	if err != nil {
+		return devices.DeviceList, err
+	}
+
+	dec := json.NewDecoder(resp.Body)
+	err = dec.Decode(&devices)
+	if err != nil {
+		return devices.DeviceList, nil
+	}
+
+	return devices.DeviceList, nil
+}
+
+func unlinkDevice(id int) error {
+	_, err := transport.del(fmt.Sprintf(devicePath, strconv.Itoa(id)))
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func addNewDevice(ephemeralId, publicKey, verificationCode string) error {
+	decPk, err := decodeKey(publicKey)
+	if err != nil {
+		return err
+	}
+
+	theirPublicKey := axolotl.NewECPublicKey(decPk)
+
+	pm := &textsecure.ProvisionMessage{
+		IdentityKeyPublic:  identityKey.PublicKey.Serialize(),
+		IdentityKeyPrivate: identityKey.PrivateKey.Key()[:],
+		Number:             &config.Tel,
+		ProvisioningCode:   &verificationCode,
+	}
+
+	ciphertext, err := provisioningCipher(pm, theirPublicKey)
+	if err != nil {
+		return err
+	}
+
+	jsonBody := make(map[string]string)
+	jsonBody["body"] = base64.StdEncoding.EncodeToString(ciphertext)
+	body, err := json.Marshal(jsonBody)
+	if err != nil {
+		return err
+	}
+
+	url := fmt.Sprintf(provisioningMessagePath, ephemeralId)
+	resp, err := transport.putJSON(url, body)
+	if err != nil {
+		return err
+	}
+	if resp.isError() {
+		return resp
+	}
+	return nil
 }
 
 // PUT /v2/keys/
@@ -256,7 +330,7 @@ type jsonMessage struct {
 	Relay              string `json:"relay,omitempty"`
 }
 
-func createMessage(msg *outgoingMessage) ([]byte, error) {
+func createMessage(msg *outgoingMessage) *textsecure.DataMessage {
 	dm := &textsecure.DataMessage{}
 	if msg.msg != "" {
 		dm.Body = &msg.msg
@@ -281,11 +355,7 @@ func createMessage(msg *outgoingMessage) ([]byte, error) {
 
 	dm.Flags = &msg.flags
 
-	b, err := proto.Marshal(dm)
-	if err != nil {
-		return nil, err
-	}
-	return padMessage(b), nil
+	return dm
 }
 
 func padMessage(msg []byte) []byte {
@@ -357,17 +427,13 @@ func makePreKeyBundle(tel string, deviceID uint32) (*axolotl.PreKeyBundle, error
 	return pkb, nil
 }
 
-func buildMessage(msg *outgoingMessage, devices []uint32) ([]jsonMessage, error) {
-	paddedMessage, err := createMessage(msg)
-	if err != nil {
-		return nil, err
-	}
-	recid := recID(msg.tel)
+func buildMessage(tel string, paddedMessage []byte, devices []uint32, isSync bool) ([]jsonMessage, error) {
+	recid := recID(tel)
 	messages := []jsonMessage{}
 
 	for _, devid := range devices {
 		if !textSecureStore.ContainsSession(recid, devid) {
-			pkb, err := makePreKeyBundle(msg.tel, devid)
+			pkb, err := makePreKeyBundle(tel, devid)
 			if err != nil {
 				return nil, err
 			}
@@ -387,12 +453,21 @@ func buildMessage(msg *outgoingMessage, devices []uint32) ([]jsonMessage, error)
 		if err != nil {
 			return nil, err
 		}
-		messages = append(messages, jsonMessage{
+
+		jmsg := jsonMessage{
 			Type:               messageType,
 			DestDeviceID:       devid,
 			DestRegistrationID: rrID,
-			Body:               base64.StdEncoding.EncodeToString(encryptedMessage),
-		})
+		}
+
+		if isSync {
+			jmsg.Content = base64.StdEncoding.EncodeToString(encryptedMessage)
+		} else {
+			// Use legacy Body for data messages. It seems that iOS devices do
+			// not support Content yet?
+			jmsg.Body = base64.StdEncoding.EncodeToString(encryptedMessage)
+		}
+		messages = append(messages, jmsg)
 	}
 
 	return messages, nil
@@ -413,36 +488,42 @@ type jsonStaleDevices struct {
 	StaleDevices []uint32 `json:"staleDevices"`
 }
 
+type sendMessageResponse struct {
+	NeedsSync bool   `json:"needsSync"`
+	Timestamp uint64 `json:"-"`
+}
+
 // ErrRemoteGone is returned when the peer reinstalled and lost its session state.
 var ErrRemoteGone = errors.New("the remote device is gone (probably reinstalled)")
 
 var deviceLists = map[string][]uint32{}
 
-func buildAndSendMessage(msg *outgoingMessage) (uint64, error) {
-	bm, err := buildMessage(msg, deviceLists[msg.tel])
+func buildAndSendMessage(tel string, paddedMessage []byte, isSync bool) (*sendMessageResponse, error) {
+	bm, err := buildMessage(tel, paddedMessage, deviceLists[tel], isSync)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	m := make(map[string]interface{})
 	m["messages"] = bm
 	now := uint64(time.Now().UnixNano() / 1000000)
 	m["timestamp"] = now
-	m["destination"] = msg.tel
-	body, err := json.MarshalIndent(m, "", "    ")
+	m["destination"] = tel
+	body, err := json.Marshal(m)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	resp, err := transport.putJSON(fmt.Sprintf(messagePath, msg.tel), body)
+	resp, err := transport.putJSON(fmt.Sprintf(messagePath, tel), body)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
+
 	if resp.Status == mismatchedDevicesStatus {
 		dec := json.NewDecoder(resp.Body)
 		var j jsonMismatchedDevices
 		dec.Decode(&j)
 		log.Debugf("Mismatched devices: %+v\n", j)
 		devs := []uint32{}
-		for _, id := range deviceLists[msg.tel] {
+		for _, id := range deviceLists[tel] {
 			in := true
 			for _, eid := range j.ExtraDevices {
 				if id == eid {
@@ -454,8 +535,8 @@ func buildAndSendMessage(msg *outgoingMessage) (uint64, error) {
 				devs = append(devs, id)
 			}
 		}
-		deviceLists[msg.tel] = append(devs, j.MissingDevices...)
-		return buildAndSendMessage(msg)
+		deviceLists[tel] = append(devs, j.MissingDevices...)
+		return buildAndSendMessage(tel, paddedMessage, isSync)
 	}
 	if resp.Status == staleDevicesStatus {
 		dec := json.NewDecoder(resp.Body)
@@ -463,20 +544,77 @@ func buildAndSendMessage(msg *outgoingMessage) (uint64, error) {
 		dec.Decode(&j)
 		log.Debugf("Stale devices: %+v\n", j)
 		for _, id := range j.StaleDevices {
-			textSecureStore.DeleteSession(recID(msg.tel), id)
+			textSecureStore.DeleteSession(recID(tel), id)
 		}
-		return buildAndSendMessage(msg)
+		return buildAndSendMessage(tel, paddedMessage, isSync)
 	}
 	if resp.isError() {
-		return 0, resp
+		return nil, resp
 	}
-	return now, nil
+
+	var smRes sendMessageResponse
+	dec := json.NewDecoder(resp.Body)
+	dec.Decode(&smRes)
+	smRes.Timestamp = now
+
+	log.Debugf("SendMessageResponse: %+v\n", smRes)
+	return &smRes, nil
 }
 
 func sendMessage(msg *outgoingMessage) (uint64, error) {
 	if _, ok := deviceLists[msg.tel]; !ok {
 		deviceLists[msg.tel] = []uint32{1}
 	}
-	ts, err := buildAndSendMessage(msg)
-	return ts, err
+
+	dm := createMessage(msg)
+
+	b, err := proto.Marshal(dm)
+	if err != nil {
+		return 0, err
+	}
+
+	resp, err := buildAndSendMessage(msg.tel, padMessage(b), false)
+	if err != nil {
+		return 0, err
+	}
+
+	if resp.NeedsSync {
+		log.Debugf("Needs sync. destination: %s", msg.tel)
+		sm := &textsecure.SyncMessage{
+			Sent: &textsecure.SyncMessage_Sent{
+				Destination: &msg.tel,
+				Timestamp:   &resp.Timestamp,
+				Message:     dm,
+			},
+		}
+
+		_, serr := sendSyncMessage(sm)
+		if serr != nil {
+			log.WithFields(log.Fields{
+				"error":       serr,
+				"destination": msg.tel,
+				"timestamp":   resp.Timestamp,
+			}).Error("Failed to send sync message")
+		}
+	}
+
+	return resp.Timestamp, err
+}
+
+func sendSyncMessage(sm *textsecure.SyncMessage) (uint64, error) {
+	if _, ok := deviceLists[config.Tel]; !ok {
+		deviceLists[config.Tel] = []uint32{1}
+	}
+
+	content := &textsecure.Content{
+		SyncMessage: sm,
+	}
+
+	b, err := proto.Marshal(content)
+	if err != nil {
+		return 0, err
+	}
+
+	resp, err := buildAndSendMessage(config.Tel, padMessage(b), true)
+	return resp.Timestamp, err
 }

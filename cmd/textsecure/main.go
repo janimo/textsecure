@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -21,16 +22,19 @@ import (
 // or carry on a conversation with another client
 
 var (
-	echo       bool
-	to         string
-	group      bool
-	message    string
-	attachment string
-	newgroup   string
-	leavegroup string
-	endsession bool
-	configDir  string
-	stress     int
+	echo         bool
+	to           string
+	group        bool
+	message      string
+	attachment   string
+	newgroup     string
+	leavegroup   string
+	endsession   bool
+	showdevices  bool
+	linkdevice   string
+	unlinkdevice int
+	configDir    string
+	stress       int
 )
 
 func init() {
@@ -42,6 +46,9 @@ func init() {
 	flag.StringVar(&newgroup, "newgroup", "", "Create a group, the argument has the format 'name:member1:member2'")
 	flag.StringVar(&leavegroup, "leavegroup", "", "Leave a group named by the argument")
 	flag.BoolVar(&endsession, "endsession", false, "Terminate session with peer")
+	flag.BoolVar(&showdevices, "showdevices", false, "Show linked devices")
+	flag.StringVar(&linkdevice, "linkdevice", "", "Link a new device, the argument is a url in the format 'tsdevice:/?uuid=xxx&pub_key=yyy'")
+	flag.IntVar(&unlinkdevice, "unlinkdevice", 0, "Unlink a device, the argument is the id of the device to delete")
 	flag.IntVar(&stress, "stress", 0, "Automatically send many messages to the peer")
 	flag.StringVar(&configDir, "config", ".config", "Location of config dir")
 }
@@ -219,6 +226,51 @@ func main() {
 	err := textsecure.Setup(client)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if linkdevice != "" {
+		log.Printf("Linking new device with url: %s", linkdevice)
+		url, err := url.Parse(linkdevice)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		uuid := url.Query().Get("uuid")
+		pk := url.Query().Get("pub_key")
+		code, err := textsecure.NewDeviceVerificationCode()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		err = textsecure.AddDevice(uuid, pk, code)
+		if err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
+
+	if unlinkdevice > 0 {
+		err = textsecure.UnlinkDevice(unlinkdevice)
+		if err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
+
+	if showdevices {
+		devs, err := textsecure.LinkedDevices()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		for _, d := range devs {
+			log.Printf("ID: %d\n", d.ID)
+			log.Printf("Name: %s\n", d.Name)
+			log.Printf("Created: %d\n", d.Created)
+			log.Printf("LastSeen: %d\n", d.LastSeen)
+			log.Println("============")
+		}
+		return
 	}
 
 	if !echo {
