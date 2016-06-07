@@ -1,156 +1,77 @@
-// Copyright (c) 2014 Canonical Ltd.
-// Licensed under the GPLv3, see the COPYING file for details.
-
 package textsecure
 
 import (
+	"crypto/tls"
 	"errors"
+	"fmt"
 	"net"
-	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"strings"
 	"time"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/gorilla/websocket"
 	"github.com/janimo/textsecure/protobuf"
-	"golang.org/x/net/websocket"
-
-	"crypto/tls"
 
 	log "github.com/Sirupsen/logrus"
 )
 
-type wsConn struct {
-	conn    *websocket.Conn
-	id      uint64
-	closing bool
+const (
+	// Time allowed to write a message to the peer.
+	writeWait = 25 * time.Second
+
+	// Time allowed to read the next pong message from the peer.
+	pongWait = 60 * time.Second
+
+	// Send pings to peer with this period. Must be less than pongWait.
+	pingPeriod = (pongWait * 9) / 10
+
+	// Signal websocket endpoint
+	websocketPath = "/v1/websocket/"
+)
+
+// Conn is a wrapper for the websocket connection
+type Conn struct {
+	// The websocket connection
+	ws *websocket.Conn
+
+	// Buffered channel of outbound messages
+	send chan []byte
 }
 
-var wsconn *wsConn
+var wsconn *Conn
 
-// set up a tunnel via HTTP CONNECT
-// see https://gist.github.com/madmo/8548738
-func httpConnect(proxy string, wsConfig *websocket.Config) (net.Conn, error) {
-	p, err := net.Dial("tcp", proxy)
-	if err != nil {
-		return nil, err
-	}
-
-	req := http.Request{
-		Method: "CONNECT",
-		URL:    &url.URL{},
-		Host:   wsConfig.Location.Host,
-	}
-
-	cc := httputil.NewClientConn(p, nil)
-	cc.Do(&req)
-	if err != nil && err != httputil.ErrPersistEOF {
-		return nil, err
-	}
-
-	conn, _ := cc.Hijack()
-	return conn, nil
-}
-
-func newWSConn(originURL, user, pass string) (*wsConn, error) {
+// Connect to Signal websocket API at originURL with user and pass credentials
+func (c *Conn) connect(originURL, user, pass string) error {
 	v := url.Values{}
 	v.Set("login", user)
 	v.Set("password", pass)
 	params := v.Encode()
 	wsURL := strings.Replace(originURL, "http", "ws", 1) + "?" + params
+	u, _ := url.Parse(wsURL)
 
-	wsConfig, err := websocket.NewConfig(wsURL, originURL)
-	if err != nil {
-		return nil, err
+	log.Debugf("Websocket Connecting to %s", originURL)
+
+	var err error
+	d := &websocket.Dialer{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
 	}
-	wsConfig.TlsConfig = &tls.Config{RootCAs: rootCA}
+	d.NetDial = func(network, addr string) (net.Conn, error) { return net.Dial(network, u.Host) }
+	d.TLSClientConfig = &tls.Config{RootCAs: rootCA}
 
-	var wsc *websocket.Conn
-
-	req := http.Request{
-		URL: &url.URL{},
-	}
-
-	proxyURL, err := getProxy(&req)
-	if err != nil {
-		return nil, err
-	}
-	if proxyURL == nil {
-		wsc, err = websocket.DialConfig(wsConfig)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		conn, err := httpConnect(proxyURL.Host, wsConfig)
-		if err != nil {
-			return nil, err
-		}
-		if wsConfig.Location.Scheme == "wss" {
-			conn = tls.Client(conn, wsConfig.TlsConfig)
-		}
-
-		wsc, err = websocket.NewClient(wsConfig, conn)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return &wsConn{conn: wsc}, nil
-}
-
-func (wsc *wsConn) send(b []byte) error {
-	return websocket.Message.Send(wsc.conn, b)
-}
-
-func (wsc *wsConn) receive() ([]byte, error) {
-	var b []byte
-	err := websocket.Message.Receive(wsc.conn, &b)
-	if err != nil {
-		return nil, err
-	}
-
-	return b, nil
-}
-
-func (wsc *wsConn) close() error {
-	return wsc.conn.Close()
-}
-
-func (wsc *wsConn) sendRequest(verb, path string, body []byte, id *uint64) error {
-	typ := textsecure.WebSocketMessage_REQUEST
-
-	wsm := &textsecure.WebSocketMessage{
-		Type: &typ,
-		Request: &textsecure.WebSocketRequestMessage{
-			Verb: &verb,
-			Path: &path,
-			Body: body,
-			Id:   id,
-		},
-	}
-
-	b, err := proto.Marshal(wsm)
+	c.ws, _, err = d.Dial(u.String(), nil)
 	if err != nil {
 		return err
 	}
-	return wsc.send(b)
+
+	log.Debugf("Websocket Connected successfully")
+
+	return nil
 }
 
-func (wsc *wsConn) keepAlive() {
-	for {
-		if wsc.closing {
-			return
-		}
-		err := wsc.sendRequest("GET", "/v1/keepalive", nil, nil)
-		if err != nil {
-			log.Error(err)
-			return
-		}
-		time.Sleep(time.Second * 15)
-	}
-}
-
-func (wsc *wsConn) sendAck(id uint64) error {
+// Send ack response message
+func (c *Conn) sendAck(id uint64) error {
 	typ := textsecure.WebSocketMessage_RESPONSE
 	message := "OK"
 	status := uint32(200)
@@ -168,52 +89,112 @@ func (wsc *wsConn) sendAck(id uint64) error {
 	if err != nil {
 		return err
 	}
-	return wsc.send(b)
+
+	c.send <- b
+	return nil
+}
+
+// write writes a message with the given message type and payload.
+func (c *Conn) write(mt int, payload []byte) error {
+	c.ws.SetWriteDeadline(time.Now().Add(writeWait))
+	return c.ws.WriteMessage(mt, payload)
+}
+
+// writeWorker writes messages to websocket connection
+func (c *Conn) writeWorker() {
+	ticker := time.NewTicker(pingPeriod)
+	defer func() {
+		log.Debugf("Closing writeWorker")
+		ticker.Stop()
+		c.ws.Close()
+	}()
+	for {
+		select {
+		case message, ok := <-c.send:
+			if !ok {
+				log.Errorf("Failed to read message from channel")
+				c.write(websocket.CloseMessage, []byte{})
+				return
+			}
+
+			log.Debugf("Websocket sending message")
+			if err := c.write(websocket.BinaryMessage, message); err != nil {
+				log.WithFields(log.Fields{
+					"error": err,
+				}).Error("Failed to send websocket message")
+				return
+			}
+		case <-ticker.C:
+			log.Debugf("Sending websocket ping message")
+			if err := c.write(websocket.PingMessage, []byte{}); err != nil {
+				log.WithFields(log.Fields{
+					"error": err,
+				}).Error("Failed to send websocket ping message")
+				return
+			}
+		}
+	}
 }
 
 // StartListening connects to the server and handles incoming websocket messages.
 func StartListening() error {
 	var err error
-	wsconn, err = newWSConn(config.Server+"/v1/websocket/", config.Tel, registrationInfo.password)
+
+	wsconn = &Conn{send: make(chan []byte, 256)}
+
+	err = wsconn.connect(config.Server+websocketPath, config.Tel, registrationInfo.password)
 	if err != nil {
 		return err
 	}
 
-	go wsconn.keepAlive()
+	defer wsconn.ws.Close()
+
+	// Can only have a single goroutine call write methods
+	go wsconn.writeWorker()
+
+	wsconn.ws.SetReadDeadline(time.Now().Add(pongWait))
+	wsconn.ws.SetPongHandler(func(string) error {
+		log.Debugf("Received websocket pong message")
+		wsconn.ws.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
 
 	for {
-		bmsg, err := wsconn.receive()
+		_, bmsg, err := wsconn.ws.ReadMessage()
 		if err != nil {
-			log.Error(err)
-			break
-		}
-
-		//do not handle and ack the message if closing
-
-		if wsconn.closing {
-			break
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
+				log.Debugf("Websocket UnexpectedCloseError: %s", err)
+			}
+			return err
 		}
 
 		wsm := &textsecure.WebSocketMessage{}
 		err = proto.Unmarshal(bmsg, wsm)
 		if err != nil {
-			log.Error(err)
+			log.WithFields(log.Fields{
+				"error": err,
+			}).Error("Failed to unmarshal websocket message")
 			continue
 		}
 		m := wsm.GetRequest().GetBody()
 		err = handleReceivedMessage(m)
 		if err != nil {
-			log.Error(err)
+			log.WithFields(log.Fields{
+				"error": err,
+			}).Error("Failed to handle received message")
 			continue
 		}
 		err = wsconn.sendAck(wsm.GetRequest().GetId())
 		if err != nil {
-			log.Error(err)
+			log.WithFields(log.Fields{
+				"error": err,
+			}).Error("Failed to send ack")
 			break
 		}
+
 	}
-	wsconn.close()
-	return err
+
+	return fmt.Errorf("Connection closed")
 }
 
 // ErrNotListening is returned when trying to stop listening when there's no
@@ -225,6 +206,10 @@ func StopListening() error {
 	if wsconn == nil {
 		return ErrNotListening
 	}
-	wsconn.closing = true
+
+	if wsconn.ws != nil {
+		wsconn.ws.Close()
+	}
+
 	return nil
 }
