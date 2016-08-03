@@ -12,8 +12,11 @@ import (
 	"os"
 	"strings"
 
+	"bytes"
+
+	"bitbucket.org/taruti/mimemagic"
+
 	"github.com/golang/protobuf/proto"
-	"github.com/janimo/textsecure/3rd_party/magic"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/janimo/textsecure/axolotl"
@@ -133,10 +136,17 @@ func SendMessage(tel, msg string) (uint64, error) {
 	return sendMessage(omsg)
 }
 
+func MIMETypeFromReader(r io.Reader) (mime string, reader io.Reader) {
+	var buf bytes.Buffer
+	io.CopyN(&buf, r, 1024)
+	mime = mimemagic.Match("", buf.Bytes())
+	return mime, io.MultiReader(&buf, r)
+}
+
 // SendAttachment sends the contents of a reader, along
 // with an optional message to a given contact.
 func SendAttachment(tel, msg string, r io.Reader) (uint64, error) {
-	ct, r := magic.MIMETypeFromReader(r)
+	ct, r := MIMETypeFromReader(r)
 	a, err := uploadAttachment(r, ct)
 	if err != nil {
 		return 0, err

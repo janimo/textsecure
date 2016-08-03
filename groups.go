@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/janimo/textsecure/3rd_party/magic"
 	"github.com/janimo/textsecure/protobuf"
 	"gopkg.in/yaml.v2"
 )
@@ -222,7 +221,7 @@ func SendGroupMessage(hexid string, msg string) (uint64, error) {
 
 // SendGroupAttachment sends an attachment to a given group.
 func SendGroupAttachment(hexid string, msg string, r io.Reader) (uint64, error) {
-	ct, r := magic.MIMETypeFromReader(r)
+	ct, r := MIMETypeFromReader(r)
 	a, err := uploadAttachment(r, ct)
 	if err != nil {
 		return 0, err
