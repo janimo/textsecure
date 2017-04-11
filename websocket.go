@@ -174,22 +174,31 @@ func StartListening() error {
 			log.WithFields(log.Fields{
 				"error": err,
 			}).Error("Failed to unmarshal websocket message")
-			continue
+			return err
 		}
+
 		m := wsm.GetRequest().GetBody()
-		err = handleReceivedMessage(m)
-		if err != nil {
+
+		if len(m) > 0 {
+			err = handleReceivedMessage(m)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"error": err,
+				}).Error("Failed to handle received message")
+				return err
+			}
+		} else {
 			log.WithFields(log.Fields{
-				"error": err,
-			}).Error("Failed to handle received message")
-			continue
+				"source": wsm.GetRequest().GetId(),
+			}).Warn("Zero byte message received. Ignoring")
 		}
+
 		err = wsconn.sendAck(wsm.GetRequest().GetId())
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error": err,
 			}).Error("Failed to send ack")
-			break
+			return err
 		}
 
 	}
