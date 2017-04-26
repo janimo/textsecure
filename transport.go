@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 
@@ -59,10 +60,19 @@ func getProxy(req *http.Request) (*url.URL, error) {
 }
 
 func newHTTPTransporter(baseURL, user, pass string) *httpTransporter {
+	u, _ := url.Parse(baseURL)
+	host, _, err := net.SplitHostPort(u.Host)
+	if err != nil {
+		host = u.Host
+	}
+
 	client := &http.Client{
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{RootCAs: rootCA},
-			Proxy:           getProxy,
+			TLSClientConfig: &tls.Config{
+				RootCAs:    rootCA,
+				ServerName: host,
+			},
+			Proxy: getProxy,
 		},
 	}
 

@@ -64,7 +64,15 @@ func newWSConn(originURL, user, pass string) (*wsConn, error) {
 	if err != nil {
 		return nil, err
 	}
-	wsConfig.TlsConfig = &tls.Config{RootCAs: rootCA}
+	host, _, err := net.SplitHostPort(wsConfig.Location.Host)
+	if err != nil {
+		host = wsConfig.Location.Host
+	}
+
+	wsConfig.TlsConfig = &tls.Config{
+		RootCAs:    rootCA,
+		ServerName: host,
+	}
 
 	var wsc *websocket.Conn
 
