@@ -35,6 +35,7 @@ var (
 	unlinkdevice int
 	configDir    string
 	stress       int
+	raw          bool
 )
 
 func init() {
@@ -51,6 +52,7 @@ func init() {
 	flag.IntVar(&unlinkdevice, "unlinkdevice", 0, "Unlink a device, the argument is the id of the device to delete")
 	flag.IntVar(&stress, "stress", 0, "Automatically send many messages to the peer")
 	flag.StringVar(&configDir, "config", ".config", "Location of config dir")
+        flag.BoolVar(&raw, "raw", false, "raw mode, disable ansi colors")
 }
 
 var (
@@ -121,7 +123,12 @@ func sendAttachment(isGroup bool, to, message string, f io.Reader) error {
 // conversationLoop sends messages read from the console
 func conversationLoop(isGroup bool) {
 	for {
-		message := readLine(fmt.Sprintf("%s>", blue))
+		var message string
+		if raw {
+			message = readLine(fmt.Sprintf(""))
+		} else {
+			message = readLine(fmt.Sprintf("%s>", blue))
+		}
 		if message == "" {
 			continue
 		}
@@ -149,7 +156,9 @@ func messageHandler(msg *textsecure.Message) {
 	}
 
 	if msg.Message() != "" {
-		fmt.Printf("\r                                               %s%s\n>", pretty(msg), blue)
+		if ! raw {
+			fmt.Printf("\r                                               %s%s\n>", pretty(msg), blue)
+		}
 	}
 
 	for _, a := range msg.Attachments() {
@@ -194,7 +203,11 @@ func pretty(msg *textsecure.Message) string {
 	if msg.Group() != nil {
 		src = src + "[" + msg.Group().Name + "]"
 	}
-	return fmt.Sprintf("%s%s %s%s %s%s", yellow, timestamp(msg), red, src, green, msg.Message())
+	if raw {
+		return fmt.Sprintf("%s %s %s", timestamp(msg), src, msg.Message())
+	} else {
+		return fmt.Sprintf("%s%s %s%s %s%s", yellow, timestamp(msg), red, src, green, msg.Message())
+	}
 }
 
 // getName returns the local contact name corresponding to a phone number,
