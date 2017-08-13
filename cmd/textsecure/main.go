@@ -159,9 +159,6 @@ func messageHandler(msg *textsecure.Message) {
 		if ! raw {
 			fmt.Printf("\r                                               %s%s\n>", pretty(msg), blue)
 		}
-		if hook != "" {
-			exec.Command(hook,msg.Message()).Start()
-		}
 	}
 
 	for _, a := range msg.Attachments() {
