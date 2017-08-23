@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/url"
 	"os"
+        "os/exec"
 	"strings"
 	"time"
 
@@ -35,6 +36,7 @@ var (
 	unlinkdevice int
 	configDir    string
 	stress       int
+	hook         string
 )
 
 func init() {
@@ -51,6 +53,7 @@ func init() {
 	flag.IntVar(&unlinkdevice, "unlinkdevice", 0, "Unlink a device, the argument is the id of the device to delete")
 	flag.IntVar(&stress, "stress", 0, "Automatically send many messages to the peer")
 	flag.StringVar(&configDir, "config", ".config", "Location of config dir")
+        flag.StringVar(&hook, "hook", "", "Program/Script to call when message is received (e.g. for bot usage)")
 }
 
 var (
@@ -150,6 +153,9 @@ func messageHandler(msg *textsecure.Message) {
 
 	if msg.Message() != "" {
 		fmt.Printf("\r                                               %s%s\n>", pretty(msg), blue)
+		if hook != "" {
+			exec.Command(hook,pretty(msg)).Start()
+		}
 	}
 
 	for _, a := range msg.Attachments() {
