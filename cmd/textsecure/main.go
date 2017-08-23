@@ -28,6 +28,7 @@ var (
 	message      string
 	attachment   string
 	newgroup     string
+	updategroup  string
 	leavegroup   string
 	endsession   bool
 	showdevices  bool
@@ -44,6 +45,7 @@ func init() {
 	flag.StringVar(&message, "message", "", "Single message to send, then exit")
 	flag.StringVar(&attachment, "attachment", "", "File to attach")
 	flag.StringVar(&newgroup, "newgroup", "", "Create a group, the argument has the format 'name:member1:member2'")
+	flag.StringVar(&updategroup, "updategroup", "", "Update a group, the argument has the format 'hexid:name:member1:member2'")
 	flag.StringVar(&leavegroup, "leavegroup", "", "Leave a group named by the argument")
 	flag.BoolVar(&endsession, "endsession", false, "Terminate session with peer")
 	flag.BoolVar(&showdevices, "showdevices", false, "Show linked devices")
@@ -287,6 +289,11 @@ func main() {
 		if newgroup != "" {
 			s := strings.Split(newgroup, ":")
 			textsecure.NewGroup(s[0], s[1:])
+			return
+		}
+		if updategroup != "" {
+			s := strings.Split(updategroup, ":")
+			textsecure.UpdateGroup(s[0], s[1], s[2:])
 			return
 		}
 		if leavegroup != "" {
