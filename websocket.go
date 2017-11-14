@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aebruno/textsecure/protobuf"
 	"github.com/golang/protobuf/proto"
 	"github.com/gorilla/websocket"
-	"github.com/janimo/textsecure/protobuf"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -72,13 +72,13 @@ func (c *Conn) connect(originURL, user, pass string) error {
 
 // Send ack response message
 func (c *Conn) sendAck(id uint64) error {
-	typ := textsecure.WebSocketMessage_RESPONSE
+	typ := signalservice.WebSocketMessage_RESPONSE
 	message := "OK"
 	status := uint32(200)
 
-	wsm := &textsecure.WebSocketMessage{
+	wsm := &signalservice.WebSocketMessage{
 		Type: &typ,
-		Response: &textsecure.WebSocketResponseMessage{
+		Response: &signalservice.WebSocketResponseMessage{
 			Id:      &id,
 			Status:  &status,
 			Message: &message,
@@ -168,7 +168,7 @@ func StartListening() error {
 			return err
 		}
 
-		wsm := &textsecure.WebSocketMessage{}
+		wsm := &signalservice.WebSocketMessage{}
 		err = proto.Unmarshal(bmsg, wsm)
 		if err != nil {
 			log.WithFields(log.Fields{

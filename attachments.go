@@ -5,6 +5,7 @@ package textsecure
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"io"
@@ -12,13 +13,13 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/janimo/textsecure/protobuf"
+	textsecure "github.com/aebruno/textsecure/protobuf"
 )
 
 // getAttachment downloads an encrypted attachment blob from the given URL
 func getAttachment(url string) (io.ReadCloser, error) {
 	req, err := http.NewRequest("GET", url, nil)
-	req.Header.Add("Content-type", "application/octet-stream")
+	req.Header.Add("Content-Type", "application/octet-stream")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
@@ -28,21 +29,25 @@ func getAttachment(url string) (io.ReadCloser, error) {
 }
 
 // putAttachment uploads an encrypted attachment to the given URL
-func putAttachment(url string, body []byte) error {
+func putAttachment(url string, body []byte) ([]byte, error) {
 	br := bytes.NewReader(body)
 	req, err := http.NewRequest("PUT", url, br)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	req.Header.Add("Content-type", "application/octet-stream")
-	req.Header.Add("Content-length", strconv.Itoa(len(body)))
+	req.Header.Add("Content-Type", "application/octet-stream")
+	req.Header.Add("Content-Length", strconv.Itoa(len(body)))
 	resp, err := http.DefaultClient.Do(req)
-
 	if resp != nil && (resp.StatusCode < 200 || resp.StatusCode >= 300) {
-		return fmt.Errorf("HTTP status %d\n", resp.StatusCode)
+		return nil, fmt.Errorf("HTTP status %d\n", resp.StatusCode)
 	}
 
-	return err
+	defer resp.Body.Close()
+
+	hasher := sha256.New()
+	hasher.Write(body)
+
+	return hasher.Sum(nil), nil
 }
 
 // uploadAttachment encrypts, authenticates and uploads a given attachment to a location requested from the server
@@ -56,6 +61,8 @@ func uploadAttachment(r io.Reader, ct string) (*att, error) {
 		return nil, err
 	}
 
+	plaintextLength := len(b)
+
 	e, err := aesEncrypt(keys[:32], b)
 	if err != nil {
 		return nil, err
@@ -67,11 +74,12 @@ func uploadAttachment(r io.Reader, ct string) (*att, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = putAttachment(location, m)
+	digest, err := putAttachment(location, m)
 	if err != nil {
 		return nil, err
 	}
-	return &att{id, ct, keys}, nil
+
+	return &att{id, ct, keys, digest, uint32(plaintextLength)}, nil
 }
 
 // ErrInvalidMACForAttachment signals that the downloaded attachment has an invalid MAC.
@@ -102,6 +110,9 @@ func handleSingleAttachment(a *textsecure.AttachmentPointer) (*Attachment, error
 	if err != nil {
 		return nil, err
 	}
+
+	// TODO: verify digest
+
 	return &Attachment{bytes.NewReader(b), a.GetContentType()}, nil
 }
 
