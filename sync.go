@@ -6,12 +6,12 @@ import (
 	"fmt"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/aebruno/textsecure/protobuf"
 	"github.com/golang/protobuf/proto"
-	"github.com/janimo/textsecure/protobuf"
 )
 
 // handleSyncMessage handles an incoming SyncMessage.
-func handleSyncMessage(src string, timestamp uint64, sm *textsecure.SyncMessage) error {
+func handleSyncMessage(src string, timestamp uint64, sm *signalservice.SyncMessage) error {
 	log.Debugf("SyncMessage recieved at %d", timestamp)
 
 	if sm.GetSent() != nil {
@@ -28,7 +28,7 @@ func handleSyncMessage(src string, timestamp uint64, sm *textsecure.SyncMessage)
 }
 
 // handleSyncSent handles sync sent messages
-func handleSyncSent(s *textsecure.SyncMessage_Sent, ts uint64) error {
+func handleSyncSent(s *signalservice.SyncMessage_Sent, ts uint64) error {
 	dm := s.GetMessage()
 	dest := s.GetDestination()
 	timestamp := s.GetTimestamp()
@@ -69,10 +69,10 @@ func handleSyncSent(s *textsecure.SyncMessage_Sent, ts uint64) error {
 }
 
 // handleSyncRequestMessage
-func handleSyncRequest(request *textsecure.SyncMessage_Request) error {
-	if request.GetType() == textsecure.SyncMessage_Request_CONTACTS {
+func handleSyncRequest(request *signalservice.SyncMessage_Request) error {
+	if request.GetType() == signalservice.SyncMessage_Request_CONTACTS {
 		return sendContactUpdate()
-	} else if request.GetType() == textsecure.SyncMessage_Request_GROUPS {
+	} else if request.GetType() == signalservice.SyncMessage_Request_GROUPS {
 		return sendGroupUpdate()
 	}
 
@@ -91,7 +91,7 @@ func sendContactUpdate() error {
 	var buf bytes.Buffer
 
 	for _, c := range lc {
-		cd := &textsecure.ContactDetails{
+		cd := &signalservice.ContactDetails{
 			Number: &c.Tel,
 			Name:   &c.Name,
 			// TODO: handle avatars
@@ -112,9 +112,9 @@ func sendContactUpdate() error {
 		return err
 	}
 
-	sm := &textsecure.SyncMessage{
-		Contacts: &textsecure.SyncMessage_Contacts{
-			Blob: &textsecure.AttachmentPointer{
+	sm := &signalservice.SyncMessage{
+		Contacts: &signalservice.SyncMessage_Contacts{
+			Blob: &signalservice.AttachmentPointer{
 				Id:          &a.id,
 				ContentType: &a.ct,
 				Key:         a.keys,
@@ -133,7 +133,7 @@ func sendGroupUpdate() error {
 	var buf bytes.Buffer
 
 	for _, g := range groups {
-		gd := &textsecure.GroupDetails{
+		gd := &signalservice.GroupDetails{
 			Id:      g.ID,
 			Name:    &g.Name,
 			Members: g.Members,
@@ -156,9 +156,9 @@ func sendGroupUpdate() error {
 		return err
 	}
 
-	sm := &textsecure.SyncMessage{
-		Groups: &textsecure.SyncMessage_Groups{
-			Blob: &textsecure.AttachmentPointer{
+	sm := &signalservice.SyncMessage{
+		Groups: &signalservice.SyncMessage_Groups{
+			Blob: &signalservice.AttachmentPointer{
 				Id:          &a.id,
 				ContentType: &a.ct,
 				Key:         a.keys,
@@ -170,7 +170,7 @@ func sendGroupUpdate() error {
 	return err
 }
 
-func handleSyncRead(readMessages []*textsecure.SyncMessage_Read) error {
+func handleSyncRead(readMessages []*signalservice.SyncMessage_Read) error {
 	if client.SyncReadHandler != nil {
 		for _, s := range readMessages {
 			client.SyncReadHandler(s.GetSender(), s.GetTimestamp())

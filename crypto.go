@@ -16,9 +16,9 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/aebruno/textsecure/axolotl"
+	"github.com/aebruno/textsecure/protobuf"
 	"github.com/golang/protobuf/proto"
-	"github.com/janimo/textsecure/axolotl"
-	"github.com/janimo/textsecure/protobuf"
 	"golang.org/x/crypto/curve25519"
 )
 
@@ -101,7 +101,7 @@ func aesDecrypt(key, ciphertext []byte) ([]byte, error) {
 }
 
 // ProvisioningCipher
-func provisioningCipher(pm *textsecure.ProvisionMessage, theirPublicKey *axolotl.ECPublicKey) ([]byte, error) {
+func provisioningCipher(pm *signalservice.ProvisionMessage, theirPublicKey *axolotl.ECPublicKey) ([]byte, error) {
 	ourKeyPair := axolotl.GenerateIdentityKeyPair()
 
 	version := []byte{0x01}
@@ -133,7 +133,7 @@ func provisioningCipher(pm *textsecure.ProvisionMessage, theirPublicKey *axolotl
 	body = append(body, ciphertext[:]...)
 	body = append(body, mac[:]...)
 
-	pe := &textsecure.ProvisionEnvelope{
+	pe := &signalservice.ProvisionEnvelope{
 		PublicKey: ourKeyPair.PublicKey.Serialize(),
 		Body:      body,
 	}

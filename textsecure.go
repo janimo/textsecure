@@ -19,8 +19,8 @@ import (
 	"github.com/golang/protobuf/proto"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/janimo/textsecure/axolotl"
-	"github.com/janimo/textsecure/protobuf"
+	"github.com/aebruno/textsecure/axolotl"
+	"github.com/aebruno/textsecure/protobuf"
 )
 
 // Generate a random 16 byte string used for HTTP Basic Authentication to the server
@@ -94,9 +94,11 @@ func needsRegistration() bool {
 var identityKey *axolotl.IdentityKeyPair
 
 type att struct {
-	id   uint64
-	ct   string
-	keys []byte
+	id     uint64
+	ct     string
+	keys   []byte
+	digest []byte
+	size   uint32
 }
 
 type outgoingMessage struct {
@@ -164,7 +166,7 @@ func EndSession(tel string, msg string) (uint64, error) {
 	omsg := &outgoingMessage{
 		tel:   tel,
 		msg:   msg,
-		flags: uint32(textsecure.DataMessage_END_SESSION),
+		flags: uint32(signalservice.DataMessage_END_SESSION),
 	}
 	ts, err := sendMessage(omsg)
 	if err != nil {
@@ -356,7 +358,7 @@ func registerDevice() error {
 	return nil
 }
 
-func handleReceipt(env *textsecure.Envelope) {
+func handleReceipt(env *signalservice.Envelope) {
 	if client.ReceiptHandler != nil {
 		client.ReceiptHandler(env.GetSource(), env.GetSourceDevice(), env.GetTimestamp())
 	}
@@ -366,23 +368,15 @@ func recID(source string) string {
 	return source[1:]
 }
 
-func handleMessage(src string, timestamp uint64, b []byte, legacy bool) error {
+func handleMessage(src string, timestamp uint64, b []byte) error {
 	b = stripPadding(b)
 
-	if legacy {
-		dm := &textsecure.DataMessage{}
-		err := proto.Unmarshal(b, dm)
-		if err != nil {
-			return err
-		}
-		return handleDataMessage(src, timestamp, dm)
-	}
-
-	content := &textsecure.Content{}
+	content := &signalservice.Content{}
 	err := proto.Unmarshal(b, content)
 	if err != nil {
 		return err
 	}
+
 	if dm := content.GetDataMessage(); dm != nil {
 		return handleDataMessage(src, timestamp, dm)
 	} else if sm := content.GetSyncMessage(); sm != nil && config.Tel == src {
@@ -396,9 +390,9 @@ func handleMessage(src string, timestamp uint64, b []byte, legacy bool) error {
 // EndSessionFlag signals that this message resets the session
 var EndSessionFlag uint32 = 1
 
-func handleFlags(src string, dm *textsecure.DataMessage) (uint32, error) {
+func handleFlags(src string, dm *signalservice.DataMessage) (uint32, error) {
 	flags := uint32(0)
-	if dm.GetFlags() == uint32(textsecure.DataMessage_END_SESSION) {
+	if dm.GetFlags() == uint32(signalservice.DataMessage_END_SESSION) {
 		flags = EndSessionFlag
 		textSecureStore.DeleteAllSessions(recID(src))
 	}
@@ -406,7 +400,7 @@ func handleFlags(src string, dm *textsecure.DataMessage) (uint32, error) {
 }
 
 // handleDataMessage handles an incoming DataMessage and calls client callbacks
-func handleDataMessage(src string, timestamp uint64, dm *textsecure.DataMessage) error {
+func handleDataMessage(src string, timestamp uint64, dm *signalservice.DataMessage) error {
 	flags, err := handleFlags(src, dm)
 	if err != nil {
 		return err
@@ -437,13 +431,6 @@ func handleDataMessage(src string, timestamp uint64, dm *textsecure.DataMessage)
 	return nil
 }
 
-func getMessage(env *textsecure.Envelope) ([]byte, bool) {
-	if msg := env.GetContent(); msg != nil {
-		return msg, false
-	}
-	return env.GetLegacyMessage(), true
-}
-
 // MessageTypeNotImplementedError is raised in the unlikely event that an unhandled protocol message type is received.
 type MessageTypeNotImplementedError struct {
 	typ uint32
@@ -471,7 +458,7 @@ func handleReceivedMessage(msg []byte) error {
 	if err != nil {
 		return err
 	}
-	env := &textsecure.Envelope{}
+	env := &signalservice.Envelope{}
 	err = proto.Unmarshal(plaintext, env)
 	if err != nil {
 		return err
@@ -480,11 +467,11 @@ func handleReceivedMessage(msg []byte) error {
 	recid := recID(env.GetSource())
 	sc := axolotl.NewSessionCipher(textSecureStore, textSecureStore, textSecureStore, textSecureStore, recid, env.GetSourceDevice())
 	switch *env.Type {
-	case textsecure.Envelope_RECEIPT:
+	case signalservice.Envelope_RECEIPT:
 		handleReceipt(env)
 		return nil
-	case textsecure.Envelope_CIPHERTEXT:
-		msg, legacy := getMessage(env)
+	case signalservice.Envelope_CIPHERTEXT:
+		msg := env.GetContent()
 		wm, err := axolotl.LoadWhisperMessage(msg)
 		if err != nil {
 			return err
@@ -501,13 +488,13 @@ func handleReceivedMessage(msg []byte) error {
 		if err != nil {
 			return err
 		}
-		err = handleMessage(env.GetSource(), env.GetTimestamp(), b, legacy)
+		err = handleMessage(env.GetSource(), env.GetTimestamp(), b)
 		if err != nil {
 			return err
 		}
 
-	case textsecure.Envelope_PREKEY_BUNDLE:
-		msg, legacy := getMessage(env)
+	case signalservice.Envelope_PREKEY_BUNDLE:
+		msg := env.GetContent()
 		pkwm, err := axolotl.LoadPreKeyWhisperMessage(msg)
 		if err != nil {
 			return err
@@ -528,7 +515,7 @@ func handleReceivedMessage(msg []byte) error {
 		if err != nil {
 			return err
 		}
-		err = handleMessage(env.GetSource(), env.GetTimestamp(), b, legacy)
+		err = handleMessage(env.GetSource(), env.GetTimestamp(), b)
 		if err != nil {
 			return err
 		}
