@@ -9,10 +9,10 @@ import (
 	"errors"
 	"fmt"
 
+	protobuf "github.com/aebruno/textsecure/axolotl/protobuf"
+	"github.com/aebruno/textsecure/curve25519sign"
+	"github.com/aebruno/textsecure/protobuf"
 	"github.com/golang/protobuf/proto"
-	protobuf "github.com/janimo/textsecure/axolotl/protobuf"
-	"github.com/janimo/textsecure/curve25519sign"
-	"github.com/janimo/textsecure/protobuf"
 )
 
 type sessionState struct {
@@ -548,7 +548,7 @@ func (sc *SessionCipher) SessionEncryptMessage(plaintext []byte) ([]byte, int32,
 		return nil, 0, err
 	}
 	msg := wm.serialize()
-	msgType := int32(textsecure.Envelope_CIPHERTEXT)
+	msgType := int32(signalservice.Envelope_CIPHERTEXT)
 
 	if ss.hasUnacknowledgedPreKeyMessage() {
 		items := ss.getUnacknowledgedPreKeyMessageItems()
@@ -559,7 +559,7 @@ func (sc *SessionCipher) SessionEncryptMessage(plaintext []byte) ([]byte, int32,
 			return nil, 0, nil
 		}
 		msg = pkwm.serialize()
-		msgType = int32(textsecure.Envelope_PREKEY_BUNDLE)
+		msgType = int32(signalservice.Envelope_PREKEY_BUNDLE)
 	}
 
 	ss.setSenderChainKey(chainKey.getNextChainKey())

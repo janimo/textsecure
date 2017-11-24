@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/janimo/textsecure"
-	"github.com/janimo/textsecure/axolotl"
+	"github.com/aebruno/textsecure"
+	"github.com/aebruno/textsecure/axolotl"
 	"golang.org/x/crypto/ssh/terminal"
 )
 

@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/janimo/textsecure/protobuf"
+	"github.com/aebruno/textsecure/protobuf"
 	"gopkg.in/yaml.v2"
 )
 
@@ -101,7 +101,7 @@ func removeMember(tel string, members []string) []string {
 }
 
 // updateGroup updates a group's state based on an incoming message.
-func updateGroup(gr *textsecure.GroupContext) error {
+func updateGroup(gr *signalservice.GroupContext) error {
 	hexid := idToHex(gr.GetId())
 
 	var r io.Reader
@@ -152,7 +152,7 @@ var GroupUpdateFlag uint32 = 1
 var GroupLeaveFlag uint32 = 2
 
 // handleGroups is the main entry point for handling the group metadata on messages.
-func handleGroups(src string, dm *textsecure.DataMessage) (*Group, error) {
+func handleGroups(src string, dm *signalservice.DataMessage) (*Group, error) {
 	gr := dm.GetGroup()
 	if gr == nil {
 		return nil, nil
@@ -160,17 +160,17 @@ func handleGroups(src string, dm *textsecure.DataMessage) (*Group, error) {
 	hexid := idToHex(gr.GetId())
 
 	switch gr.GetType() {
-	case textsecure.GroupContext_UPDATE:
+	case signalservice.GroupContext_UPDATE:
 		if err := updateGroup(gr); err != nil {
 			return nil, err
 		}
 		groups[hexid].Flags = GroupUpdateFlag
-	case textsecure.GroupContext_DELIVER:
+	case signalservice.GroupContext_DELIVER:
 		if _, ok := groups[hexid]; !ok {
 			return nil, UnknownGroupIDError{hexid}
 		}
 		groups[hexid].Flags = 0
-	case textsecure.GroupContext_QUIT:
+	case signalservice.GroupContext_QUIT:
 		if err := quitGroup(src, hexid); err != nil {
 			return nil, err
 		}
@@ -184,7 +184,7 @@ type groupMessage struct {
 	id      []byte
 	name    string
 	members []string
-	typ     textsecure.GroupContext_Type
+	typ     signalservice.GroupContext_Type
 }
 
 func sendGroupHelper(hexid string, msg string, a *att) (uint64, error) {
@@ -202,7 +202,7 @@ func sendGroupHelper(hexid string, msg string, a *att) (uint64, error) {
 				attachment: a,
 				group: &groupMessage{
 					id:  g.ID,
-					typ: textsecure.GroupContext_DELIVER,
+					typ: signalservice.GroupContext_DELIVER,
 				},
 			}
 			ts, err = sendMessage(omsg)
@@ -273,7 +273,7 @@ func sendUpdate(g *Group) error {
 					id:      g.ID,
 					name:    g.Name,
 					members: g.Members,
-					typ:     textsecure.GroupContext_UPDATE,
+					typ:     signalservice.GroupContext_UPDATE,
 				},
 			}
 			_, err := sendMessage(omsg)
@@ -327,7 +327,7 @@ func LeaveGroup(hexid string) error {
 				tel: m,
 				group: &groupMessage{
 					id:  g.ID,
-					typ: textsecure.GroupContext_QUIT,
+					typ: signalservice.GroupContext_QUIT,
 				},
 			}
 			_, err := sendMessage(omsg)
