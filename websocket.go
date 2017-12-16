@@ -185,7 +185,6 @@ func StartListening() error {
 				log.WithFields(log.Fields{
 					"error": err,
 				}).Error("Failed to handle received message")
-				return err
 			}
 		} else {
 			log.WithFields(log.Fields{
