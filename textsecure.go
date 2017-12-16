@@ -472,6 +472,9 @@ func handleReceivedMessage(msg []byte) error {
 		return nil
 	case signalservice.Envelope_CIPHERTEXT:
 		msg := env.GetContent()
+		if msg == nil {
+			return errors.New("Legacy messages unsupported")
+		}
 		wm, err := axolotl.LoadWhisperMessage(msg)
 		if err != nil {
 			return err
