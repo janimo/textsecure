@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aebruno/textsecure/axolotl"
+	"github.com/aebruno/textsecure/protobuf"
 	"github.com/golang/protobuf/proto"
-	"github.com/janimo/textsecure/axolotl"
-	"github.com/janimo/textsecure/protobuf"
 
 	log "github.com/Sirupsen/logrus"
 )
@@ -182,7 +182,7 @@ func addNewDevice(ephemeralId, publicKey, verificationCode string) error {
 
 	theirPublicKey := axolotl.NewECPublicKey(decPk)
 
-	pm := &textsecure.ProvisionMessage{
+	pm := &signalservice.ProvisionMessage{
 		IdentityKeyPublic:  identityKey.PublicKey.Serialize(),
 		IdentityKeyPrivate: identityKey.PrivateKey.Key()[:],
 		Number:             &config.Tel,
@@ -325,27 +325,28 @@ type jsonMessage struct {
 	Type               int32  `json:"type"`
 	DestDeviceID       uint32 `json:"destinationDeviceId"`
 	DestRegistrationID uint32 `json:"destinationRegistrationId"`
-	Body               string `json:"body"`
 	Content            string `json:"content"`
 	Relay              string `json:"relay,omitempty"`
 }
 
-func createMessage(msg *outgoingMessage) *textsecure.DataMessage {
-	dm := &textsecure.DataMessage{}
+func createMessage(msg *outgoingMessage) *signalservice.DataMessage {
+	dm := &signalservice.DataMessage{}
 	if msg.msg != "" {
 		dm.Body = &msg.msg
 	}
 	if msg.attachment != nil {
-		dm.Attachments = []*textsecure.AttachmentPointer{
+		dm.Attachments = []*signalservice.AttachmentPointer{
 			{
 				Id:          &msg.attachment.id,
 				ContentType: &msg.attachment.ct,
-				Key:         msg.attachment.keys,
+				Key:         msg.attachment.keys[:],
+				Digest:      msg.attachment.digest[:],
+				Size:        &msg.attachment.size,
 			},
 		}
 	}
 	if msg.group != nil {
-		dm.Group = &textsecure.GroupContext{
+		dm.Group = &signalservice.GroupContext{
 			Id:      msg.group.id,
 			Type:    &msg.group.typ,
 			Name:    &msg.group.name,
@@ -460,13 +461,7 @@ func buildMessage(tel string, paddedMessage []byte, devices []uint32, isSync boo
 			DestRegistrationID: rrID,
 		}
 
-		if isSync {
-			jmsg.Content = base64.StdEncoding.EncodeToString(encryptedMessage)
-		} else {
-			// Use legacy Body for data messages. It seems that iOS devices do
-			// not support Content yet?
-			jmsg.Body = base64.StdEncoding.EncodeToString(encryptedMessage)
-		}
+		jmsg.Content = base64.StdEncoding.EncodeToString(encryptedMessage)
 		messages = append(messages, jmsg)
 	}
 
@@ -568,7 +563,11 @@ func sendMessage(msg *outgoingMessage) (uint64, error) {
 
 	dm := createMessage(msg)
 
-	b, err := proto.Marshal(dm)
+	content := &signalservice.Content{
+		DataMessage: dm,
+	}
+
+	b, err := proto.Marshal(content)
 	if err != nil {
 		return 0, err
 	}
@@ -580,8 +579,8 @@ func sendMessage(msg *outgoingMessage) (uint64, error) {
 
 	if resp.NeedsSync {
 		log.Debugf("Needs sync. destination: %s", msg.tel)
-		sm := &textsecure.SyncMessage{
-			Sent: &textsecure.SyncMessage_Sent{
+		sm := &signalservice.SyncMessage{
+			Sent: &signalservice.SyncMessage_Sent{
 				Destination: &msg.tel,
 				Timestamp:   &resp.Timestamp,
 				Message:     dm,
@@ -601,12 +600,12 @@ func sendMessage(msg *outgoingMessage) (uint64, error) {
 	return resp.Timestamp, err
 }
 
-func sendSyncMessage(sm *textsecure.SyncMessage) (uint64, error) {
+func sendSyncMessage(sm *signalservice.SyncMessage) (uint64, error) {
 	if _, ok := deviceLists[config.Tel]; !ok {
 		deviceLists[config.Tel] = []uint32{1}
 	}
 
-	content := &textsecure.Content{
+	content := &signalservice.Content{
 		SyncMessage: sm,
 	}
 

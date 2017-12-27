@@ -7,7 +7,7 @@ import (
 	"crypto/hmac"
 	"errors"
 
-	protobuf "github.com/janimo/textsecure/axolotl/protobuf"
+	protobuf "github.com/aebruno/textsecure/axolotl/protobuf"
 
 	"github.com/golang/protobuf/proto"
 )
@@ -39,13 +39,17 @@ var ErrIncompleteWhisperMessage = errors.New("incomplete WhisperMessage")
 
 // LoadWhisperMessage creates a WhisperMessage from serialized bytes.
 func LoadWhisperMessage(serialized []byte) (*WhisperMessage, error) {
+	if len(serialized) == 0 || len(serialized)-macLength < 1 {
+		return nil, ErrIncompleteWhisperMessage
+	}
+
 	version := highBitsToInt(serialized[0])
 	message := serialized[1 : len(serialized)-macLength]
 
 	if version != currentVersion {
 		return nil, UnsupportedVersionError{version}
 	}
-	pwm := &protobuf.WhisperMessage{}
+	pwm := &protobuf.SignalMessage{}
 	err := proto.Unmarshal(message, pwm)
 	if err != nil {
 		return nil, err
@@ -73,7 +77,7 @@ func newWhisperMessage(messageVersion byte, macKey []byte, ratchetKey *ECPublicK
 
 	version := makeVersionByte(messageVersion, currentVersion)
 
-	pwm := &protobuf.WhisperMessage{
+	pwm := &protobuf.SignalMessage{
 		RatchetKey:      ratchetKey.Serialize(),
 		Counter:         &counter,
 		PreviousCounter: &previousCounter,
@@ -148,7 +152,7 @@ func LoadPreKeyWhisperMessage(serialized []byte) (*PreKeyWhisperMessage, error) 
 		return nil, UnsupportedVersionError{version}
 	}
 
-	ppkwm := &protobuf.PreKeyWhisperMessage{}
+	ppkwm := &protobuf.PreKeySignalMessage{}
 	err := proto.Unmarshal(serialized[1:], ppkwm)
 	if err != nil {
 		return nil, err
@@ -181,7 +185,7 @@ func LoadPreKeyWhisperMessage(serialized []byte) (*PreKeyWhisperMessage, error) 
 
 func newPreKeyWhisperMessage(messageVersion byte, registrationID, preKeyID, signedPreKeyID uint32, baseKey *ECPublicKey, identityKey *IdentityKey, wm *WhisperMessage) (*PreKeyWhisperMessage, error) {
 
-	ppkwm := &protobuf.PreKeyWhisperMessage{
+	ppkwm := &protobuf.PreKeySignalMessage{
 		RegistrationId: &registrationID,
 		PreKeyId:       &preKeyID,
 		SignedPreKeyId: &signedPreKeyID,

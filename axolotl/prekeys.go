@@ -6,8 +6,8 @@ package axolotl
 // PreKey and SignedPreKey support
 
 import (
+	protobuf "github.com/aebruno/textsecure/axolotl/protobuf"
 	"github.com/golang/protobuf/proto"
-	protobuf "github.com/janimo/textsecure/axolotl/protobuf"
 )
 
 var maxValue uint32 = 0xFFFFFF
