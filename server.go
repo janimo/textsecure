@@ -17,7 +17,7 @@ import (
 	"github.com/aebruno/textsecure/protobuf"
 	"github.com/golang/protobuf/proto"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
