@@ -126,7 +126,7 @@ func (c *Conn) writeWorker() {
 			}
 		case <-ticker.C:
 			log.Debugf("Sending websocket ping message")
-			if err := c.write(websocket.PingMessage, []byte{}); err != nil {
+			if err := c.write(websocket.PingMessage, nil); err != nil {
 				log.WithFields(log.Fields{
 					"error": err,
 				}).Error("Failed to send websocket ping message")
@@ -162,7 +162,7 @@ func StartListening() error {
 	for {
 		_, bmsg, err := wsconn.ws.ReadMessage()
 		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Debugf("Websocket UnexpectedCloseError: %s", err)
 			}
 			return err
