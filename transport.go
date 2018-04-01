@@ -62,9 +62,9 @@ func getProxy(req *http.Request) (*url.URL, error) {
 func newHTTPClient() *http.Client {
 	client := &http.Client{
 		Transport: &http.Transport{
-			TLSHandshakeTimeout: 15 * time.Second,
+			TLSHandshakeTimeout: 30 * time.Second,
 		},
-		Timeout: 30 * time.Second,
+		Timeout: 45 * time.Second,
 	}
 
 	return client
