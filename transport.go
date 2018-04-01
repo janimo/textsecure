@@ -64,7 +64,7 @@ func newHTTPClient() *http.Client {
 		Transport: &http.Transport{
 			TLSHandshakeTimeout: 15 * time.Second,
 		},
-		Timeout: 15 * time.Second,
+		Timeout: 30 * time.Second,
 	}
 
 	return client
