@@ -382,7 +382,8 @@ func handleMessage(src string, timestamp uint64, b []byte) error {
 	} else if sm := content.GetSyncMessage(); sm != nil && config.Tel == src {
 		return handleSyncMessage(src, timestamp, sm)
 	}
-
+	//FIXME get the right content
+	// log.Errorf(content)
 	log.Errorf("Unknown message content received")
 	return nil
 }
