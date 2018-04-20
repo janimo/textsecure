@@ -30,7 +30,6 @@ func getAttachment(url string) (io.ReadCloser, error) {
 
 // putAttachment uploads an encrypted attachment to the given URL
 func putAttachment(url string, body []byte) ([]byte, error) {
-	fmt.Printf(url)
 	br := bytes.NewReader(body)
 	req, err := http.NewRequest("PUT", url, br)
 	if err != nil {

@@ -446,11 +446,6 @@ var ErrInvalidMACForMessage = errors.New("invalid MAC for incoming message")
 
 // Authenticate and decrypt a received message
 func handleReceivedMessage(msg []byte) error {
-	// ignore empty messages
-	if len(msg) == 0 {
-		return nil
-	}
-
 	macpos := len(msg) - 10
 	tmac := msg[macpos:]
 	aesKey := registrationInfo.signalingKey[:32]

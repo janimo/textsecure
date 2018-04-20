@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/url"
 	"os"
+        "os/exec"
 	"strings"
 	"time"
 
@@ -28,6 +29,7 @@ var (
 	message      string
 	attachment   string
 	newgroup     string
+	updategroup  string
 	leavegroup   string
 	endsession   bool
 	showdevices  bool
@@ -35,6 +37,8 @@ var (
 	unlinkdevice int
 	configDir    string
 	stress       int
+	hook         string
+	raw          bool
 )
 
 func init() {
@@ -44,6 +48,7 @@ func init() {
 	flag.StringVar(&message, "message", "", "Single message to send, then exit")
 	flag.StringVar(&attachment, "attachment", "", "File to attach")
 	flag.StringVar(&newgroup, "newgroup", "", "Create a group, the argument has the format 'name:member1:member2'")
+	flag.StringVar(&updategroup, "updategroup", "", "Update a group, the argument has the format 'hexid:name:member1:member2'")
 	flag.StringVar(&leavegroup, "leavegroup", "", "Leave a group named by the argument")
 	flag.BoolVar(&endsession, "endsession", false, "Terminate session with peer")
 	flag.BoolVar(&showdevices, "showdevices", false, "Show linked devices")
@@ -51,6 +56,8 @@ func init() {
 	flag.IntVar(&unlinkdevice, "unlinkdevice", 0, "Unlink a device, the argument is the id of the device to delete")
 	flag.IntVar(&stress, "stress", 0, "Automatically send many messages to the peer")
 	flag.StringVar(&configDir, "config", ".config", "Location of config dir")
+        flag.StringVar(&hook, "hook", "", "Program/Script to call when message is received (e.g. for bot usage)")
+        flag.BoolVar(&raw, "raw", false, "raw mode, disable ansi colors")
 }
 
 var (
@@ -121,7 +128,12 @@ func sendAttachment(isGroup bool, to, message string, f io.Reader) error {
 // conversationLoop sends messages read from the console
 func conversationLoop(isGroup bool) {
 	for {
-		message := readLine(fmt.Sprintf("%s>", blue))
+		var message string
+		if raw {
+			message = readLine(fmt.Sprintf(""))
+		} else {
+			message = readLine(fmt.Sprintf("%s>", blue))
+		}
 		if message == "" {
 			continue
 		}
@@ -150,6 +162,12 @@ func messageHandler(msg *textsecure.Message) {
 
 	if msg.Message() != "" {
 		fmt.Printf("\r                                               %s%s\n>", pretty(msg), blue)
+		if hook != "" {
+			exec.Command(hook,pretty(msg)).Start()
+		}
+		if ! raw {
+			fmt.Printf("\r                                               %s%s\n>", pretty(msg), blue)
+		}
 	}
 
 	for _, a := range msg.Attachments() {
@@ -194,7 +212,11 @@ func pretty(msg *textsecure.Message) string {
 	if msg.Group() != nil {
 		src = src + "[" + msg.Group().Name + "]"
 	}
-	return fmt.Sprintf("%s%s %s%s %s%s", yellow, timestamp(msg), red, src, green, msg.Message())
+	if raw {
+		return fmt.Sprintf("%s %s %s", timestamp(msg), src, msg.Message())
+	} else {
+		return fmt.Sprintf("%s%s %s%s %s%s", yellow, timestamp(msg), red, src, green, msg.Message())
+	}
 }
 
 // getName returns the local contact name corresponding to a phone number,
@@ -287,6 +309,11 @@ func main() {
 		if newgroup != "" {
 			s := strings.Split(newgroup, ":")
 			textsecure.NewGroup(s[0], s[1:])
+			return
+		}
+		if updategroup != "" {
+			s := strings.Split(updategroup, ":")
+			textsecure.UpdateGroup(s[0], s[1], s[2:])
 			return
 		}
 		if leavegroup != "" {
