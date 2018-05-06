@@ -20,7 +20,9 @@ import (
 func getAttachment(url string) (io.ReadCloser, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Add("Content-Type", "application/octet-stream")
-	resp, err := http.DefaultClient.Do(req)
+
+	client := newHTTPClient()
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -37,12 +39,17 @@ func putAttachment(url string, body []byte) ([]byte, error) {
 	}
 	req.Header.Add("Content-Type", "application/octet-stream")
 	req.Header.Add("Content-Length", strconv.Itoa(len(body)))
-	resp, err := http.DefaultClient.Do(req)
-	if resp != nil && (resp.StatusCode < 200 || resp.StatusCode >= 300) {
+
+	client := newHTTPClient()
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("HTTP status %d\n", resp.StatusCode)
 	}
-
-	defer resp.Body.Close()
 
 	hasher := sha256.New()
 	hasher.Write(body)

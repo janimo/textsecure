@@ -18,7 +18,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/aebruno/textsecure/axolotl"
 	"github.com/aebruno/textsecure/protobuf"
 )
