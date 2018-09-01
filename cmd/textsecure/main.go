@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -11,9 +12,11 @@ import (
 	"net/url"
 	"os"
         "os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
+	"gopkg.in/yaml.v2"
 
 	"github.com/aebruno/textsecure"
 	"github.com/aebruno/textsecure/axolotl"
@@ -238,12 +241,74 @@ func registrationDone() {
 	log.Println("Registration done.")
 }
 
+type GroupFile struct {
+	ID      []byte
+	Hexid   string
+	Flags   uint32
+	Name    string
+	Members []string
+	Avatar  io.Reader `yaml:"-"`
+}
+
+type Group struct {
+    Name string    `json:"name"`
+}
+
+func GroupsHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type","application/json")
+
+	data := make(map[string]Group)
+
+	filepath.Walk(".storage/groups", func(path string, info os.FileInfo, e error) error {
+		if info.Mode().IsRegular() {
+			b, err := ioutil.ReadFile(path)
+			if err != nil {
+				return err
+			}
+
+			group := &GroupFile{}
+			err = yaml.Unmarshal(b, group)
+			if err != nil {
+				return err
+			}
+			data[group.Hexid] = Group{Name: group.Name}
+		}
+		return nil
+	})
+	json.NewEncoder(w).Encode(data)
+}
+
+func RekeyHandler(w http.ResponseWriter, r *http.Request) {
+        w.Header().Set("Content-Type","application/json")
+
+	if r.Method != "DELETE" {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "{\"success\": false}")
+	}
+
+	identity := r.URL.Path[len("/rekey/"):]
+	isIdentity := regexp.MustCompile(`^\d*$`).MatchString(identity)
+	if isIdentity {
+		filename := []string{".storage/identity/remote", identity}
+		err := os.Remove(strings.Join(filename, "_"))
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+                        fmt.Fprintf(w, "{\"success\": false, \"error\": %s}", err)
+		}
+		fmt.Fprintf(w, "{\"success\": true}")
+	} else {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "{\"success\": false}")
+	}
+}
+
 func GatewayHandler(w http.ResponseWriter, r *http.Request) {
 
         w.Header().Set("Content-Type","application/json")
 
         if r.Method != "POST" {
-                fmt.Fprintf(w, "Error Method")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "{\"success\": false}")
         }
 
         message := r.FormValue("message")
@@ -253,12 +318,14 @@ func GatewayHandler(w http.ResponseWriter, r *http.Request) {
 		isGroup := regexp.MustCompile(`^([a-fA-F\d]{32})$`).MatchString(to)
 		err := sendMessage(isGroup, to, message)
 		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
 	                fmt.Fprintf(w, "{\"success\": false, \"error\": %s}", err)
 			log.Println(err)
 		} else {
 	                fmt.Fprintf(w, "{\"success\": true}")
 		}
         } else {
+		w.WriteHeader(http.StatusInternalServerError)
                 fmt.Fprintf(w, "{\"success\": false, \"error\": \"form fileds message and to are required\"}")
         }
 }
@@ -283,6 +350,8 @@ func main() {
 
 	if gateway {
 		http.HandleFunc("/", GatewayHandler)
+		http.HandleFunc("/groups", GroupsHandler)
+		http.HandleFunc("/rekey/", RekeyHandler)
 		log.Fatal(http.ListenAndServe(bind, nil))
 	}
 
