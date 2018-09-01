@@ -7,9 +7,11 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
         "os/exec"
+	"regexp"
 	"strings"
 	"time"
 
@@ -39,6 +41,8 @@ var (
 	stress       int
 	hook         string
 	raw          bool
+	gateway      bool
+	bind         string
 )
 
 func init() {
@@ -58,6 +62,8 @@ func init() {
 	flag.StringVar(&configDir, "config", ".config", "Location of config dir")
         flag.StringVar(&hook, "hook", "", "Program/Script to call when message is received (e.g. for bot usage)")
         flag.BoolVar(&raw, "raw", false, "raw mode, disable ansi colors")
+        flag.BoolVar(&gateway, "gateway", false, "http gateway mode")
+        flag.StringVar(&bind, "bind", "localhost:5000", "bind address and port when in gateway-mode")
 }
 
 var (
@@ -232,6 +238,31 @@ func registrationDone() {
 	log.Println("Registration done.")
 }
 
+func GatewayHandler(w http.ResponseWriter, r *http.Request) {
+
+        w.Header().Set("Content-Type","application/json")
+
+        if r.Method != "POST" {
+                fmt.Fprintf(w, "Error Method")
+        }
+
+        message := r.FormValue("message")
+        to := r.FormValue("to")
+
+        if len(message) > 0 && len(to) > 0 {
+		isGroup := regexp.MustCompile(`^([a-fA-F\d]{32})$`).MatchString(to)
+		err := sendMessage(isGroup, to, message)
+		if err != nil {
+	                fmt.Fprintf(w, "{\"success\": false, \"error\": %s}", err)
+			log.Println(err)
+		} else {
+	                fmt.Fprintf(w, "{\"success\": true}")
+		}
+        } else {
+                fmt.Fprintf(w, "{\"success\": false, \"error\": \"form fileds message and to are required\"}")
+        }
+}
+
 var telToName map[string]string
 
 func main() {
@@ -248,6 +279,11 @@ func main() {
 	err := textsecure.Setup(client)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if gateway {
+		http.HandleFunc("/", GatewayHandler)
+		log.Fatal(http.ListenAndServe(bind, nil))
 	}
 
 	if linkdevice != "" {
