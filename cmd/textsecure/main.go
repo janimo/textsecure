@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-        "os/exec"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -63,10 +63,10 @@ func init() {
 	flag.IntVar(&unlinkdevice, "unlinkdevice", 0, "Unlink a device, the argument is the id of the device to delete")
 	flag.IntVar(&stress, "stress", 0, "Automatically send many messages to the peer")
 	flag.StringVar(&configDir, "config", ".config", "Location of config dir")
-        flag.StringVar(&hook, "hook", "", "Program/Script to call when message is received (e.g. for bot usage)")
-        flag.BoolVar(&raw, "raw", false, "raw mode, disable ansi colors")
-        flag.BoolVar(&gateway, "gateway", false, "http gateway mode")
-        flag.StringVar(&bind, "bind", "localhost:5000", "bind address and port when in gateway-mode")
+	flag.StringVar(&hook, "hook", "", "Program/Script to call when message is received (e.g. for bot usage)")
+	flag.BoolVar(&raw, "raw", false, "raw mode, disable ansi colors")
+	flag.BoolVar(&gateway, "gateway", false, "http gateway mode")
+	flag.StringVar(&bind, "bind", "localhost:5000", "bind address and port when in gateway-mode")
 }
 
 var (
@@ -284,7 +284,7 @@ func GroupsHandler(w http.ResponseWriter, r *http.Request) {
 
 // RekeyHandler will delete existing peer identity
 func RekeyHandler(w http.ResponseWriter, r *http.Request) {
-        w.Header().Set("Content-Type","application/json")
+	w.Header().Set("Content-Type","application/json")
 
 	if r.Method != "DELETE" {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -298,7 +298,7 @@ func RekeyHandler(w http.ResponseWriter, r *http.Request) {
 		err := os.Remove(strings.Join(filename, "_"))
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-                        fmt.Fprintf(w, "{\"success\": false, \"error\": \"identity %s not found\"}", identity)
+			fmt.Fprintf(w, "{\"success\": false, \"error\": \"identity %s not found\"}", identity)
 		} else {
 			fmt.Fprintf(w, "{\"success\": true}")
 		}
@@ -308,43 +308,85 @@ func RekeyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// GatewayHandler to receive POST data, process and send
-func GatewayHandler(w http.ResponseWriter, r *http.Request) {
+// GatewaySend sends pre-processed messages
+func GatewaySend(to string, message string) (bool, string) {
+	var errormessage string
+	isGroup := regexp.MustCompile(`^([a-fA-F\d]{32})$`).MatchString(to)
+	err := sendMessage(isGroup, to, message)
+	if err != nil {
+		switch {
+		case regexp.MustCompile(`status code 413`).MatchString(err.Error()):
+			errormessage = "signal api rate limit reached"
+		case regexp.MustCompile(`remote identity \d+ is not trusted`).MatchString(err.Error()):
+			errormessage = "remote identity is not trusted"
+		default:
+			errormessage = strings.Trim(err.Error(), "\n")
+		}
+		return false, errormessage
+	}
+	return true, "OK"
+}
 
-        w.Header().Set("Content-Type","application/json")
-
-        if r.Method != "POST" {
+// JSONHandler to receive POST json request, process and send
+func JSONHandler(w http.ResponseWriter, r *http.Request) {
+	messageField := os.Getenv("JSON_MESSAGE")
+	if messageField == "" {
+		messageField = "message"
+	}
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "{\"success\": false}")
-        }
+	}
+	var data map[string]interface{}
+	result := json.Unmarshal([]byte(body), &data)
+	if result != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "{\"success\": false}")
+	}
+	message := data[messageField]
+	if message == nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "{\"success\": false, \"error\": \"json request contains empty item %s\"}", messageField)
+		return
+	}
+	to := r.URL.Path[len("/json/"):]
+	sendError, errormessage := GatewaySend(to, message.(string))
+	if sendError == false {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "{\"success\": false, \"error\": \"%s\"}", errormessage)
+	} else {
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, "{\"success\": true}")
+	}
+}
 
-        message := r.FormValue("message")
-        to := r.FormValue("to")
+// GatewayHandler to receive POST form data, process and send
+func GatewayHandler(w http.ResponseWriter, r *http.Request) {
 
-        if len(message) > 0 && len(to) > 0 {
-		httpstatus := http.StatusOK
-		errormessage := "unknown"
-		isGroup := regexp.MustCompile(`^([a-fA-F\d]{32})$`).MatchString(to)
-		err := sendMessage(isGroup, to, message)
-		if err != nil {
-			switch {
-			case regexp.MustCompile(`status code 413`).MatchString(err.Error()):
-				httpstatus = http.StatusRequestEntityTooLarge
-				errormessage = "signal api rate limit reached"
-			case regexp.MustCompile(`remote identity \d+ is not trusted`).MatchString(err.Error()):
-				httpstatus = http.StatusInternalServerError
-				errormessage = "remote identity is not trusted"
-			}
-			w.WriteHeader(httpstatus)
+	w.Header().Set("Content-Type","application/json")
+
+	if r.Method != "POST" {
+	w.WriteHeader(http.StatusInternalServerError)
+	fmt.Fprintf(w, "{\"success\": false}")
+	}
+
+	message := r.FormValue("message")
+	to := r.FormValue("to")
+
+	if len(message) > 0 && len(to) > 0 {
+		sendError, errormessage := GatewaySend(to, message)
+		if sendError == false {
+			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprintf(w, "{\"success\": false, \"error\": \"%s\"}", errormessage)
 		} else {
-			w.WriteHeader(httpstatus)
-	                fmt.Fprintf(w, "{\"success\": true}")
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprintf(w, "{\"success\": true}")
 		}
-        } else {
+	} else {
 		w.WriteHeader(http.StatusInternalServerError)
-                fmt.Fprintf(w, "{\"success\": false, \"error\": \"form fields message and to are required\"}")
-        }
+		fmt.Fprintf(w, "{\"success\": false, \"error\": \"form fields message and to are required\"}")
+	}
 }
 
 var telToName map[string]string
@@ -369,6 +411,7 @@ func main() {
 		http.HandleFunc("/", GatewayHandler)
 		http.HandleFunc("/groups", GroupsHandler)
 		http.HandleFunc("/rekey/", RekeyHandler)
+		http.HandleFunc("/json/", JSONHandler)
 		log.Fatal(http.ListenAndServe(bind, nil))
 	}
 
