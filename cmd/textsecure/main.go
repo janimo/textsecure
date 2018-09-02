@@ -172,9 +172,9 @@ func messageHandler(msg *textsecure.Message) {
 	if msg.Message() != "" {
 		fmt.Printf("\r                                               %s%s\n>", pretty(msg), blue)
 		if hook != "" {
-			hook_process := exec.Command(hook,pretty(msg))
-			hook_process.Start()
-			hook_process.Wait()
+			hookProcess := exec.Command(hook,pretty(msg))
+			hookProcess.Start()
+			hookProcess.Wait()
 		}
 		if ! raw {
 			fmt.Printf("\r                                               %s%s\n>", pretty(msg), blue)
@@ -225,9 +225,8 @@ func pretty(msg *textsecure.Message) string {
 	}
 	if raw {
 		return fmt.Sprintf("%s %s %s", timestamp(msg), src, msg.Message())
-	} else {
-		return fmt.Sprintf("%s%s %s%s %s%s", yellow, timestamp(msg), red, src, green, msg.Message())
 	}
+	return fmt.Sprintf("%s%s %s%s %s%s", yellow, timestamp(msg), red, src, green, msg.Message())
 }
 
 // getName returns the local contact name corresponding to a phone number,
@@ -243,6 +242,7 @@ func registrationDone() {
 	log.Println("Registration done.")
 }
 
+// GroupFile loads group info from file
 type GroupFile struct {
 	ID      []byte
 	Hexid   string
@@ -252,10 +252,12 @@ type GroupFile struct {
 	Avatar  io.Reader `yaml:"-"`
 }
 
+// Group as json object for output
 type Group struct {
-    Name string    `json:"name"`
+	Name string    `json:"name"`
 }
 
+// GroupsHandler will return all known groups as json
 func GroupsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type","application/json")
 
@@ -280,6 +282,7 @@ func GroupsHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(data)
 }
 
+// RekeyHandler will delete existing peer identity
 func RekeyHandler(w http.ResponseWriter, r *http.Request) {
         w.Header().Set("Content-Type","application/json")
 
@@ -305,6 +308,7 @@ func RekeyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GatewayHandler to receive POST data, process and send
 func GatewayHandler(w http.ResponseWriter, r *http.Request) {
 
         w.Header().Set("Content-Type","application/json")
