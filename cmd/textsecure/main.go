@@ -115,7 +115,7 @@ func sendMessage(isGroup bool, to, message string) error {
 	} else {
 		_, err = textsecure.SendMessage(to, message)
 		if nerr, ok := err.(axolotl.NotTrustedError); ok {
-			log.Fatalf("Peer identity not trusted. Remove the file .storage/identity/remote_%s to approve\n", nerr.ID)
+			fmt.Printf("Peer identity not trusted. Remove the file .storage/identity/remote_%s to approve\n", nerr.ID)
 		}
 	}
 	return err
@@ -128,7 +128,7 @@ func sendAttachment(isGroup bool, to, message string, f io.Reader) error {
 	} else {
 		_, err = textsecure.SendAttachment(to, message, f)
 		if nerr, ok := err.(axolotl.NotTrustedError); ok {
-			log.Fatalf("Peer identity not trusted. Remove the file .storage/identity/remote_%s to approve\n", nerr.ID)
+			fmt.Printf("Peer identity not trusted. Remove the file .storage/identity/remote_%s to approve\n", nerr.ID)
 		}
 	}
 	return err
@@ -172,7 +172,9 @@ func messageHandler(msg *textsecure.Message) {
 	if msg.Message() != "" {
 		fmt.Printf("\r                                               %s%s\n>", pretty(msg), blue)
 		if hook != "" {
-			exec.Command(hook,pretty(msg)).Start()
+			hook_process := exec.Command(hook,pretty(msg))
+			hook_process.Start()
+			hook_process.Wait()
 		}
 		if ! raw {
 			fmt.Printf("\r                                               %s%s\n>", pretty(msg), blue)
@@ -293,9 +295,10 @@ func RekeyHandler(w http.ResponseWriter, r *http.Request) {
 		err := os.Remove(strings.Join(filename, "_"))
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-                        fmt.Fprintf(w, "{\"success\": false, \"error\": %s}", err)
+                        fmt.Fprintf(w, "{\"success\": false, \"error\": \"identity %s not found\"}", identity)
+		} else {
+			fmt.Fprintf(w, "{\"success\": true}")
 		}
-		fmt.Fprintf(w, "{\"success\": true}")
 	} else {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "{\"success\": false}")
@@ -315,18 +318,28 @@ func GatewayHandler(w http.ResponseWriter, r *http.Request) {
         to := r.FormValue("to")
 
         if len(message) > 0 && len(to) > 0 {
+		httpstatus := http.StatusOK
+		errormessage := "unknown"
 		isGroup := regexp.MustCompile(`^([a-fA-F\d]{32})$`).MatchString(to)
 		err := sendMessage(isGroup, to, message)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-	                fmt.Fprintf(w, "{\"success\": false, \"error\": %s}", err)
-			log.Println(err)
+			switch {
+			case regexp.MustCompile(`status code 413`).MatchString(err.Error()):
+				httpstatus = http.StatusRequestEntityTooLarge
+				errormessage = "signal api rate limit reached"
+			case regexp.MustCompile(`remote identity \d+ is not trusted`).MatchString(err.Error()):
+				httpstatus = http.StatusInternalServerError
+				errormessage = "remote identity is not trusted"
+			}
+			w.WriteHeader(httpstatus)
+			fmt.Fprintf(w, "{\"success\": false, \"error\": \"%s\"}", errormessage)
 		} else {
+			w.WriteHeader(httpstatus)
 	                fmt.Fprintf(w, "{\"success\": true}")
 		}
         } else {
 		w.WriteHeader(http.StatusInternalServerError)
-                fmt.Fprintf(w, "{\"success\": false, \"error\": \"form fileds message and to are required\"}")
+                fmt.Fprintf(w, "{\"success\": false, \"error\": \"form fields message and to are required\"}")
         }
 }
 
