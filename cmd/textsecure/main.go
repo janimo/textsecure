@@ -320,7 +320,9 @@ func GatewaySend(to string, message string) (bool, string) {
 		case regexp.MustCompile(`status code 413`).MatchString(err.Error()):
 			errormessage = "signal api rate limit reached"
 		case regexp.MustCompile(`remote identity \d+ is not trusted`).MatchString(err.Error()):
-			errormessage = "remote identity is not trusted"
+			errormessage = "remote identity "
+			errormessage += to
+			errormessage += " is not trusted"
 		default:
 			errormessage = strings.Trim(err.Error(), "\n")
 		}
@@ -337,6 +339,7 @@ func JSONHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
+		log.Println("Error: ", err.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "{\"success\": false}")
 		return
@@ -344,12 +347,14 @@ func JSONHandler(w http.ResponseWriter, r *http.Request) {
 	var data map[string]interface{}
 	result := json.Unmarshal([]byte(body), &data)
 	if result != nil {
+		log.Println("Error: ", result.Error())
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "{\"success\": false}")
 		return
 	}
 	message := data[messageField]
 	if message == nil {
+		log.Println("Error: json request contains empty item ", messageField)
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "{\"success\": false, \"error\": \"json request contains empty item %s\"}", messageField)
 		return
@@ -357,6 +362,7 @@ func JSONHandler(w http.ResponseWriter, r *http.Request) {
 	to := r.URL.Path[len("/json/"):]
 	sendError, errormessage := GatewaySend(to, message.(string))
 	if sendError == false {
+		log.Println("Error: ", errormessage)
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "{\"success\": false, \"error\": \"%s\"}", errormessage)
 		return
@@ -372,6 +378,7 @@ func GatewayHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type","application/json")
 
 	if r.Method != "POST" {
+	log.Println("Error: requires POST request")
 	w.WriteHeader(http.StatusInternalServerError)
 	fmt.Fprintf(w, "{\"success\": false}")
 	return
@@ -383,6 +390,7 @@ func GatewayHandler(w http.ResponseWriter, r *http.Request) {
 	if len(message) > 0 && len(to) > 0 {
 		sendError, errormessage := GatewaySend(to, message)
 		if sendError == false {
+			log.Println("Error: ", errormessage)
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprintf(w, "{\"success\": false, \"error\": \"%s\"}", errormessage)
 			return
@@ -391,6 +399,7 @@ func GatewayHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "{\"success\": true}")
 		return
 	}
+	log.Println("Error: form fields message and to are required")
 	w.WriteHeader(http.StatusInternalServerError)
 	fmt.Fprintf(w, "{\"success\": false, \"error\": \"form fields message and to are required\"}")
 	return
