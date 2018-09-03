@@ -311,10 +311,20 @@ func RekeyHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // GatewaySend sends pre-processed messages
-func GatewaySend(to string, message string) (bool, string) {
+func GatewaySend(to string, message string, filename string) (bool, string) {
 	var errormessage string
+	var err error
 	isGroup := regexp.MustCompile(`^([a-fA-F\d]{32})$`).MatchString(to)
-	err := sendMessage(isGroup, to, message)
+	if filename != "" {
+		f, fErr := os.Open(filename)
+		if fErr != nil {
+			return false, fErr.Error()
+		}
+		err = sendAttachment(isGroup, to, message, f)
+		os.Remove(filename)
+	} else {
+		err = sendMessage(isGroup, to, message)
+	}
 	if err != nil {
 		switch {
 		case regexp.MustCompile(`status code 413`).MatchString(err.Error()):
@@ -360,7 +370,7 @@ func JSONHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	to := r.URL.Path[len("/json/"):]
-	sendError, errormessage := GatewaySend(to, message.(string))
+	sendError, errormessage := GatewaySend(to, message.(string), "")
 	if sendError == false {
 		log.Println("Error: ", errormessage)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -375,20 +385,40 @@ func JSONHandler(w http.ResponseWriter, r *http.Request) {
 // GatewayHandler to receive POST form data, process and send
 func GatewayHandler(w http.ResponseWriter, r *http.Request) {
 
+	filename := ""
+
 	w.Header().Set("Content-Type","application/json")
 
 	if r.Method != "POST" {
-	log.Println("Error: requires POST request")
-	w.WriteHeader(http.StatusInternalServerError)
-	fmt.Fprintf(w, "{\"success\": false}")
-	return
+		log.Println("Error: requires POST request")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "{\"success\": false}")
+		return
 	}
 
 	message := r.FormValue("message")
 	to := r.FormValue("to")
+	file, header, err := r.FormFile("file")
+	if err == nil {
+		defer file.Close()
+		f, err := os.OpenFile("/tmp/" + header.Filename, os.O_WRONLY|os.O_CREATE, 0666)
+		if err != nil {
+			log.Println("Error: ", err.Error())
+		} else {
+			filename = "/tmp/" + header.Filename
+		}
+		defer f.Close()
+		io.Copy(f, file)
+	}
 
 	if len(message) > 0 && len(to) > 0 {
-		sendError, errormessage := GatewaySend(to, message)
+		sendError := false
+		errormessage := "OK"
+		if filename != "" {
+			sendError, errormessage = GatewaySend(to, message, filename)
+		} else {
+			sendError, errormessage = GatewaySend(to, message, "")
+		}
 		if sendError == false {
 			log.Println("Error: ", errormessage)
 			w.WriteHeader(http.StatusInternalServerError)
