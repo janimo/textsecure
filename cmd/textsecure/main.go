@@ -289,6 +289,7 @@ func RekeyHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "DELETE" {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "{\"success\": false}")
+		return
 	}
 
 	identity := r.URL.Path[len("/rekey/"):]
@@ -299,13 +300,14 @@ func RekeyHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprintf(w, "{\"success\": false, \"error\": \"identity %s not found\"}", identity)
-		} else {
-			fmt.Fprintf(w, "{\"success\": true}")
+			return
 		}
-	} else {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "{\"success\": false}")
+		fmt.Fprintf(w, "{\"success\": true}")
+		return
 	}
+	w.WriteHeader(http.StatusInternalServerError)
+	fmt.Fprintf(w, "{\"success\": false}")
+	return
 }
 
 // GatewaySend sends pre-processed messages
@@ -337,12 +339,14 @@ func JSONHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "{\"success\": false}")
+		return
 	}
 	var data map[string]interface{}
 	result := json.Unmarshal([]byte(body), &data)
 	if result != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "{\"success\": false}")
+		return
 	}
 	message := data[messageField]
 	if message == nil {
@@ -355,10 +359,11 @@ func JSONHandler(w http.ResponseWriter, r *http.Request) {
 	if sendError == false {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "{\"success\": false, \"error\": \"%s\"}", errormessage)
-	} else {
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "{\"success\": true}")
+		return
 	}
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "{\"success\": true}")
+	return
 }
 
 // GatewayHandler to receive POST form data, process and send
@@ -369,6 +374,7 @@ func GatewayHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 	w.WriteHeader(http.StatusInternalServerError)
 	fmt.Fprintf(w, "{\"success\": false}")
+	return
 	}
 
 	message := r.FormValue("message")
@@ -379,14 +385,15 @@ func GatewayHandler(w http.ResponseWriter, r *http.Request) {
 		if sendError == false {
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprintf(w, "{\"success\": false, \"error\": \"%s\"}", errormessage)
-		} else {
-			w.WriteHeader(http.StatusOK)
-			fmt.Fprintf(w, "{\"success\": true}")
+			return
 		}
-	} else {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "{\"success\": false, \"error\": \"form fields message and to are required\"}")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, "{\"success\": true}")
+		return
 	}
+	w.WriteHeader(http.StatusInternalServerError)
+	fmt.Fprintf(w, "{\"success\": false, \"error\": \"form fields message and to are required\"}")
+	return
 }
 
 var telToName map[string]string
