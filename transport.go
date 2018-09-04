@@ -75,7 +75,7 @@ func (ht *httpTransporter) get(url string) (*response, error) {
 		return nil, err
 	}
 	if config.UserAgent != "" {
-		req.Header.Set("User-Agent", config.UserAgent)
+		req.Header.Set("X-Signal-Agent", config.UserAgent)
 	}
 	req.SetBasicAuth(ht.user, ht.pass)
 	resp, err := ht.client.Do(req)
@@ -99,7 +99,7 @@ func (ht *httpTransporter) del(url string) (*response, error) {
 		return nil, err
 	}
 	if config.UserAgent != "" {
-		req.Header.Set("User-Agent", config.UserAgent)
+		req.Header.Set("X-Signal-Agent", config.UserAgent)
 	}
 	req.SetBasicAuth(ht.user, ht.pass)
 	resp, err := ht.client.Do(req)
@@ -124,9 +124,9 @@ func (ht *httpTransporter) put(url string, body []byte, ct string) (*response, e
 		return nil, err
 	}
 	if config.UserAgent != "" {
-		req.Header.Set("User-Agent", config.UserAgent)
+		req.Header.Set("X-Signal-Agent", config.UserAgent)
 	}
-	req.Header.Add("Content-type", ct)
+	req.Header.Add("Content-Type", ct)
 	req.SetBasicAuth(ht.user, ht.pass)
 	resp, err := ht.client.Do(req)
 	if err != nil {
