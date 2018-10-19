@@ -2,16 +2,21 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
-        "os/exec"
+	"os/exec"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
+	"gopkg.in/yaml.v2"
 
 	"github.com/aebruno/textsecure"
 	"github.com/aebruno/textsecure/axolotl"
@@ -39,6 +44,8 @@ var (
 	stress       int
 	hook         string
 	raw          bool
+	gateway      bool
+	bind         string
 )
 
 func init() {
@@ -56,8 +63,10 @@ func init() {
 	flag.IntVar(&unlinkdevice, "unlinkdevice", 0, "Unlink a device, the argument is the id of the device to delete")
 	flag.IntVar(&stress, "stress", 0, "Automatically send many messages to the peer")
 	flag.StringVar(&configDir, "config", ".config", "Location of config dir")
-        flag.StringVar(&hook, "hook", "", "Program/Script to call when message is received (e.g. for bot usage)")
-        flag.BoolVar(&raw, "raw", false, "raw mode, disable ansi colors")
+	flag.StringVar(&hook, "hook", "", "Program/Script to call when message is received (e.g. for bot usage)")
+	flag.BoolVar(&raw, "raw", false, "raw mode, disable ansi colors")
+	flag.BoolVar(&gateway, "gateway", false, "http gateway mode")
+	flag.StringVar(&bind, "bind", "localhost:5000", "bind address and port when in gateway-mode")
 }
 
 var (
@@ -106,7 +115,7 @@ func sendMessage(isGroup bool, to, message string) error {
 	} else {
 		_, err = textsecure.SendMessage(to, message)
 		if nerr, ok := err.(axolotl.NotTrustedError); ok {
-			log.Fatalf("Peer identity not trusted. Remove the file .storage/identity/remote_%s to approve\n", nerr.ID)
+			fmt.Printf("Peer identity not trusted. Remove the file .storage/identity/remote_%s to approve\n", nerr.ID)
 		}
 	}
 	return err
@@ -119,7 +128,7 @@ func sendAttachment(isGroup bool, to, message string, f io.Reader) error {
 	} else {
 		_, err = textsecure.SendAttachment(to, message, f)
 		if nerr, ok := err.(axolotl.NotTrustedError); ok {
-			log.Fatalf("Peer identity not trusted. Remove the file .storage/identity/remote_%s to approve\n", nerr.ID)
+			fmt.Printf("Peer identity not trusted. Remove the file .storage/identity/remote_%s to approve\n", nerr.ID)
 		}
 	}
 	return err
@@ -163,7 +172,9 @@ func messageHandler(msg *textsecure.Message) {
 	if msg.Message() != "" {
 		fmt.Printf("\r                                               %s%s\n>", pretty(msg), blue)
 		if hook != "" {
-			exec.Command(hook,pretty(msg)).Start()
+			hookProcess := exec.Command(hook,pretty(msg))
+			hookProcess.Start()
+			hookProcess.Wait()
 		}
 		if ! raw {
 			fmt.Printf("\r                                               %s%s\n>", pretty(msg), blue)
@@ -214,9 +225,8 @@ func pretty(msg *textsecure.Message) string {
 	}
 	if raw {
 		return fmt.Sprintf("%s %s %s", timestamp(msg), src, msg.Message())
-	} else {
-		return fmt.Sprintf("%s%s %s%s %s%s", yellow, timestamp(msg), red, src, green, msg.Message())
 	}
+	return fmt.Sprintf("%s%s %s%s %s%s", yellow, timestamp(msg), red, src, green, msg.Message())
 }
 
 // getName returns the local contact name corresponding to a phone number,
@@ -230,6 +240,199 @@ func getName(tel string) string {
 
 func registrationDone() {
 	log.Println("Registration done.")
+}
+
+// GroupFile loads group info from file
+type GroupFile struct {
+	ID      []byte
+	Hexid   string
+	Flags   uint32
+	Name    string
+	Members []string
+	Avatar  io.Reader `yaml:"-"`
+}
+
+// Group as json object for output
+type Group struct {
+	Name string    `json:"name"`
+}
+
+// GroupsHandler will return all known groups as json
+func GroupsHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type","application/json")
+
+	data := make(map[string]Group)
+
+	filepath.Walk(".storage/groups", func(path string, info os.FileInfo, e error) error {
+		if info.Mode().IsRegular() {
+			b, err := ioutil.ReadFile(path)
+			if err != nil {
+				return err
+			}
+
+			group := &GroupFile{}
+			err = yaml.Unmarshal(b, group)
+			if err != nil {
+				return err
+			}
+			data[group.Hexid] = Group{Name: group.Name}
+		}
+		return nil
+	})
+	json.NewEncoder(w).Encode(data)
+}
+
+// RekeyHandler will delete existing peer identity
+func RekeyHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type","application/json")
+
+	if r.Method != "DELETE" {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "{\"success\": false}")
+		return
+	}
+
+	identity := r.URL.Path[len("/rekey/"):]
+	isIdentity := regexp.MustCompile(`^\d*$`).MatchString(identity)
+	if isIdentity {
+		filename := []string{".storage/identity/remote", identity}
+		err := os.Remove(strings.Join(filename, "_"))
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "{\"success\": false, \"error\": \"identity %s not found\"}", identity)
+			return
+		}
+		fmt.Fprintf(w, "{\"success\": true}")
+		return
+	}
+	w.WriteHeader(http.StatusInternalServerError)
+	fmt.Fprintf(w, "{\"success\": false}")
+	return
+}
+
+// GatewaySend sends pre-processed messages
+func GatewaySend(to string, message string, filename string) (bool, string) {
+	var errormessage string
+	var err error
+	isGroup := regexp.MustCompile(`^([a-fA-F\d]{32})$`).MatchString(to)
+	if filename != "" {
+		f, fErr := os.Open(filename)
+		if fErr != nil {
+			return false, fErr.Error()
+		}
+		err = sendAttachment(isGroup, to, message, f)
+		os.Remove(filename)
+	} else {
+		err = sendMessage(isGroup, to, message)
+	}
+	if err != nil {
+		switch {
+		case regexp.MustCompile(`status code 413`).MatchString(err.Error()):
+			errormessage = "signal api rate limit reached"
+		case regexp.MustCompile(`remote identity \d+ is not trusted`).MatchString(err.Error()):
+			errormessage = "remote identity "
+			errormessage += to
+			errormessage += " is not trusted"
+		default:
+			errormessage = strings.Trim(err.Error(), "\n")
+		}
+		return false, errormessage
+	}
+	return true, "OK"
+}
+
+// JSONHandler to receive POST json request, process and send
+func JSONHandler(w http.ResponseWriter, r *http.Request) {
+	messageField := os.Getenv("JSON_MESSAGE")
+	if messageField == "" {
+		messageField = "message"
+	}
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Println("Error: ", err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "{\"success\": false}")
+		return
+	}
+	var data map[string]interface{}
+	result := json.Unmarshal([]byte(body), &data)
+	if result != nil {
+		log.Println("Error: ", result.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "{\"success\": false}")
+		return
+	}
+	message := data[messageField]
+	if message == nil {
+		log.Println("Error: json request contains empty item ", messageField)
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "{\"success\": false, \"error\": \"json request contains empty item %s\"}", messageField)
+		return
+	}
+	to := r.URL.Path[len("/json/"):]
+	sendError, errormessage := GatewaySend(to, message.(string), "")
+	if sendError == false {
+		log.Println("Error: ", errormessage)
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "{\"success\": false, \"error\": \"%s\"}", errormessage)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "{\"success\": true}")
+	return
+}
+
+// GatewayHandler to receive POST form data, process and send
+func GatewayHandler(w http.ResponseWriter, r *http.Request) {
+
+	filename := ""
+
+	w.Header().Set("Content-Type","application/json")
+
+	if r.Method != "POST" {
+		log.Println("Error: requires POST request")
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "{\"success\": false}")
+		return
+	}
+
+	message := r.FormValue("message")
+	to := r.FormValue("to")
+	file, header, err := r.FormFile("file")
+	if err == nil {
+		defer file.Close()
+		f, err := os.OpenFile("/tmp/" + header.Filename, os.O_WRONLY|os.O_CREATE, 0666)
+		if err != nil {
+			log.Println("Error: ", err.Error())
+		} else {
+			filename = "/tmp/" + header.Filename
+		}
+		defer f.Close()
+		io.Copy(f, file)
+	}
+
+	if len(message) > 0 && len(to) > 0 {
+		sendError := false
+		errormessage := "OK"
+		if filename != "" {
+			sendError, errormessage = GatewaySend(to, message, filename)
+		} else {
+			sendError, errormessage = GatewaySend(to, message, "")
+		}
+		if sendError == false {
+			log.Println("Error: ", errormessage)
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "{\"success\": false, \"error\": \"%s\"}", errormessage)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, "{\"success\": true}")
+		return
+	}
+	log.Println("Error: form fields message and to are required")
+	w.WriteHeader(http.StatusInternalServerError)
+	fmt.Fprintf(w, "{\"success\": false, \"error\": \"form fields message and to are required\"}")
+	return
 }
 
 var telToName map[string]string
@@ -248,6 +451,14 @@ func main() {
 	err := textsecure.Setup(client)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if gateway {
+		http.HandleFunc("/", GatewayHandler)
+		http.HandleFunc("/groups", GroupsHandler)
+		http.HandleFunc("/rekey/", RekeyHandler)
+		http.HandleFunc("/json/", JSONHandler)
+		log.Fatal(http.ListenAndServe(bind, nil))
 	}
 
 	if linkdevice != "" {
