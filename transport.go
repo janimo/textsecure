@@ -12,7 +12,7 @@ import (
 	"net/url"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 )
 
 var transport transporter

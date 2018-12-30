@@ -18,7 +18,7 @@ import (
 	"github.com/aebruno/textsecure/axolotl"
 	"golang.org/x/crypto/pbkdf2"
 
-	log "github.com/sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 )
 
 // store implements the PreKeyStore, SignedPreKeyStore,

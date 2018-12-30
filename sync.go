@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	log "github.com/sirupsen/logrus"
+	log "github.com/Sirupsen/logrus"
 	"github.com/aebruno/textsecure/protobuf"
 	"github.com/golang/protobuf/proto"
 )
