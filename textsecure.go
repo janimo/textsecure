@@ -381,10 +381,12 @@ func handleMessage(src string, timestamp uint64, b []byte) error {
 		return handleDataMessage(src, timestamp, dm)
 	} else if sm := content.GetSyncMessage(); sm != nil && config.Tel == src {
 		return handleSyncMessage(src, timestamp, sm)
+	} else if cm := content.GetCallMessage(); cm != nil {
+		return handleCallMessage(src, timestamp, cm)
 	}
 	//FIXME get the right content
 	// log.Errorf(content)
-	log.Errorf("Unknown message content received")
+	log.Errorf("Unknown message content received", content)
 	return nil
 }
 
@@ -424,6 +426,19 @@ func handleDataMessage(src string, timestamp uint64, dm *signalservice.DataMessa
 		group:       gr,
 		timestamp:   timestamp,
 		flags:       flags,
+	}
+
+	if client.MessageHandler != nil {
+		client.MessageHandler(msg)
+	}
+	return nil
+}
+func handleCallMessage(src string, timestamp uint64, cm *signalservice.CallMessage) error {
+
+	msg := &Message{
+		source:    src,
+		message:   "callMessage",
+		timestamp: timestamp,
 	}
 
 	if client.MessageHandler != nil {
