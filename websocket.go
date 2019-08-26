@@ -13,7 +13,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/gorilla/websocket"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -50,7 +50,7 @@ func (c *Conn) connect(originURL, user, pass string) error {
 	wsURL := strings.Replace(originURL, "http", "ws", 1) + "?" + params
 	u, _ := url.Parse(wsURL)
 
-	log.Debugf("Websocket Connecting to %s", originURL)
+	log.Debugf("Websocket Connecting to %s with user %s and pass %s", originURL, user, pass)
 
 	var err error
 	d := &websocket.Dialer{

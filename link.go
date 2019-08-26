@@ -3,7 +3,7 @@ package textsecure
 import (
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 var code2 string
