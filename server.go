@@ -162,9 +162,9 @@ func verifyCode(code string) error {
 	if resp.isError() {
 
 		if resp.Status == 423 {
-			// buf := new(bytes.Buffer)
-			// buf.ReadFrom(resp.Body)
-			// newStr := buf.String()
+			buf := new(bytes.Buffer)
+			buf.ReadFrom(resp.Body)
+			newStr := buf.String()
 			// fmt.Printf(newStr)
 			// v := RegistrationLockFailure{}
 			// err := json.NewDecoder(resp.Body).Decode(&v)
