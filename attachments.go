@@ -13,7 +13,7 @@ import (
 	"net/http"
 	"strconv"
 
-	textsecure "github.com/aebruno/textsecure/protobuf"
+	textsecure "github.com/nanu-c/textsecure/protobuf"
 )
 
 // getAttachment downloads an encrypted attachment blob from the given URL

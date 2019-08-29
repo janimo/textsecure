@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/aebruno/textsecure/protobuf"
+	"github.com/nanu-c/textsecure/protobuf"
 	"github.com/golang/protobuf/proto"
 )
 

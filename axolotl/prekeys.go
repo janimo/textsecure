@@ -6,7 +6,7 @@ package axolotl
 // PreKey and SignedPreKey support
 
 import (
-	protobuf "github.com/aebruno/textsecure/axolotl/protobuf"
+	protobuf "github.com/nanu-c/textsecure/axolotl/protobuf"
 	"github.com/golang/protobuf/proto"
 )
 

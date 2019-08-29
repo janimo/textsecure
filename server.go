@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aebruno/textsecure/axolotl"
-	"github.com/aebruno/textsecure/protobuf"
+	"github.com/nanu-c/textsecure/axolotl"
+	"github.com/nanu-c/textsecure/protobuf"
 	"github.com/golang/protobuf/proto"
 
 	log "github.com/sirupsen/logrus"

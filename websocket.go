@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aebruno/textsecure/protobuf"
+	"github.com/nanu-c/textsecure/protobuf"
 	"github.com/golang/protobuf/proto"
 	"github.com/gorilla/websocket"
 

@@ -18,8 +18,8 @@ import (
 
 	"github.com/golang/protobuf/proto"
 
-	"github.com/aebruno/textsecure/axolotl"
-	"github.com/aebruno/textsecure/protobuf"
+	"github.com/nanu-c/textsecure/axolotl"
+	"github.com/nanu-c/textsecure/protobuf"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -185,12 +185,20 @@ type Attachment struct {
 // Message represents a message received from the peer.
 // It can optionally include attachments and be sent to a group.
 type Message struct {
-	source      string
-	message     string
-	attachments []*Attachment
-	group       *Group
-	timestamp   uint64
-	flags       uint32
+	source                  string
+	message                 string
+	attachments             []*Attachment
+	group                   *Group
+	flags                   uint32
+	xpireTimer              uint32
+	ProfileKey              []byte
+	timestamp               uint64
+	quote                   signalservice.DataMessage_Quote
+	contact                 []*signalservice.DataMessage_Contact
+	preview                 []*signalservice.DataMessage_Preview
+	sticker                 signalservice.DataMessage_Sticker
+	requiredProtocolVersion uint32
+	isViewOnce              bool
 }
 
 // Source returns the ID of the sender of the message.
@@ -223,18 +231,25 @@ func (m *Message) Flags() uint32 {
 	return m.flags
 }
 
+func (m *Message) XpireTimer() uint32 {
+	fmt.Sprintf("ex %d", m.xpireTimer)
+	return m.xpireTimer
+}
+
 // Client contains application specific data and callbacks.
 type Client struct {
-	GetPhoneNumber      func() string
-	GetVerificationCode func() string
-	GetStoragePassword  func() string
-	GetConfig           func() (*Config, error)
-	GetLocalContacts    func() ([]Contact, error)
-	MessageHandler      func(*Message)
-	ReceiptHandler      func(string, uint32, uint64)
-	SyncReadHandler     func(string, uint64)
-	SyncSentHandler     func(*Message, uint64)
-	RegistrationDone    func()
+	GetPhoneNumber        func() string
+	GetVerificationCode   func() string
+	GetStoragePassword    func() string
+	GetConfig             func() (*Config, error)
+	GetLocalContacts      func() ([]Contact, error)
+	MessageHandler        func(*Message)
+	TypingMessageHandler  func(*Message)
+	ReceiptMessageHandler func(*Message)
+	ReceiptHandler        func(string, uint32, uint64)
+	SyncReadHandler       func(string, uint64)
+	SyncSentHandler       func(*Message, uint64)
+	RegistrationDone      func()
 }
 
 var (
@@ -383,7 +398,12 @@ func handleMessage(src string, timestamp uint64, b []byte) error {
 		return handleSyncMessage(src, timestamp, sm)
 	} else if cm := content.GetCallMessage(); cm != nil {
 		return handleCallMessage(src, timestamp, cm)
+	} else if rm := content.GetReceiptMessage(); rm != nil {
+		return handleReceiptMessage(src, timestamp, rm)
+	} else if tm := content.GetTypingMessage(); tm != nil {
+		return handleTypingMessage(src, timestamp, tm)
 	}
+
 	//FIXME get the right content
 	// log.Errorf(content)
 	log.Errorf("Unknown message content received", content)
@@ -418,7 +438,10 @@ func handleDataMessage(src string, timestamp uint64, dm *signalservice.DataMessa
 	if err != nil {
 		return err
 	}
-
+	et := dm.GetExpireTimer()
+	if err != nil {
+		return err
+	}
 	msg := &Message{
 		source:      src,
 		message:     dm.GetBody(),
@@ -426,6 +449,7 @@ func handleDataMessage(src string, timestamp uint64, dm *signalservice.DataMessa
 		group:       gr,
 		timestamp:   timestamp,
 		flags:       flags,
+		xpireTimer:  et,
 	}
 
 	if client.MessageHandler != nil {
@@ -443,6 +467,32 @@ func handleCallMessage(src string, timestamp uint64, cm *signalservice.CallMessa
 
 	if client.MessageHandler != nil {
 		client.MessageHandler(msg)
+	}
+	return nil
+}
+func handleTypingMessage(src string, timestamp uint64, cm *signalservice.TypingMessage) error {
+
+	msg := &Message{
+		source:    src,
+		message:   "typingMessage",
+		timestamp: timestamp,
+	}
+
+	if client.MessageHandler != nil {
+		client.TypingMessageHandler(msg)
+	}
+	return nil
+}
+func handleReceiptMessage(src string, timestamp uint64, cm *signalservice.ReceiptMessage) error {
+
+	msg := &Message{
+		source:    src,
+		message:   "receiptMessage",
+		timestamp: timestamp,
+	}
+
+	if client.MessageHandler != nil {
+		client.ReceiptMessageHandler(msg)
 	}
 	return nil
 }

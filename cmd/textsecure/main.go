@@ -18,8 +18,8 @@ import (
 	"time"
 	"gopkg.in/yaml.v2"
 
-	"github.com/aebruno/textsecure"
-	"github.com/aebruno/textsecure/axolotl"
+	"github.com/nanu-c/textsecure"
+	"github.com/nanu-c/textsecure/axolotl"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
