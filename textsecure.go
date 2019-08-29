@@ -232,7 +232,6 @@ func (m *Message) Flags() uint32 {
 }
 
 func (m *Message) XpireTimer() uint32 {
-	fmt.Sprintf("ex %d", m.xpireTimer)
 	return m.xpireTimer
 }
 
@@ -438,7 +437,6 @@ func handleDataMessage(src string, timestamp uint64, dm *signalservice.DataMessa
 	if err != nil {
 		return err
 	}
-	et := dm.GetExpireTimer()
 	if err != nil {
 		return err
 	}
@@ -449,7 +447,6 @@ func handleDataMessage(src string, timestamp uint64, dm *signalservice.DataMessa
 		group:       gr,
 		timestamp:   timestamp,
 		flags:       flags,
-		xpireTimer:  et,
 	}
 
 	if client.MessageHandler != nil {
