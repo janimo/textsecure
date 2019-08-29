@@ -18,9 +18,9 @@ import (
 
 	"github.com/golang/protobuf/proto"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/aebruno/textsecure/axolotl"
 	"github.com/aebruno/textsecure/protobuf"
+	log "github.com/sirupsen/logrus"
 )
 
 // Generate a random 16 byte string used for HTTP Basic Authentication to the server
