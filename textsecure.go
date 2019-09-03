@@ -333,6 +333,7 @@ func Setup(c *Client) error {
 	if err != nil {
 		return err
 	}
+	client.RegistrationDone()
 	setupTransporter()
 	identityKey, err = textSecureStore.GetIdentityKeyPair()
 	return err
@@ -366,7 +367,9 @@ func registerDevice() error {
 	if err != nil {
 		return err
 	}
+	client.RegistrationDone()
 	if client.RegistrationDone != nil {
+		fmt.Println("RegistrationDone__")
 		client.RegistrationDone()
 	}
 	return nil
