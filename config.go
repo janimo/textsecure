@@ -6,7 +6,7 @@ package textsecure
 import (
 	"io/ioutil"
 
-	"gopkg.in/yaml.v2"
+	"github.com/go-yaml/yaml"
 )
 
 // Config holds application configuration settings
