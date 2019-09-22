@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/nanu-c/textsecure/axolotl"
 	"github.com/nanu-c/textsecure/protobuf"
-	"github.com/golang/protobuf/proto"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -350,6 +350,10 @@ func GetRegisteredContacts() ([]Contact, error) {
 		return nil, err
 	}
 	resp, err := transport.putJSON(directoryTokensPath, body)
+	if resp.Status == 413 {
+		log.Println("Rate limit exceeded while refreshing contacts: 413")
+		return nil, errors.New("Rate limit exceeded: 413")
+	}
 	if err != nil {
 		return nil, err
 	}
