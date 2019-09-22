@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nanu-c/textsecure/protobuf"
 	"github.com/golang/protobuf/proto"
 	"github.com/gorilla/websocket"
+	"github.com/nanu-c/textsecure/protobuf"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -50,7 +50,8 @@ func (c *Conn) connect(originURL, user, pass string) error {
 	wsURL := strings.Replace(originURL, "http", "ws", 1) + "?" + params
 	u, _ := url.Parse(wsURL)
 
-	log.Debugf("Websocket Connecting to %s with user %s and pass %s", originURL, user, pass)
+	log.Debugf("Websocket Connecting to signal-server")
+	// log.Debugf("Websocket Connecting to %s with user %s and pass %s", originURL, user, pass)
 
 	var err error
 	d := &websocket.Dialer{
@@ -144,6 +145,7 @@ func StartListening() error {
 
 	err = wsconn.connect(config.Server+websocketPath, config.Tel, registrationInfo.password)
 	if err != nil {
+		log.Errorf(err.Error())
 		return err
 	}
 
@@ -187,9 +189,15 @@ func StartListening() error {
 				}).Error("Failed to handle received message")
 			}
 		} else {
-			log.WithFields(log.Fields{
-				"source": wsm.GetRequest().GetId(),
-			}).Warn("Zero byte message received. Ignoring")
+			log.Debugln(wsm.GetRequest())
+			if wsm.GetRequest().GetPath() == "/api/v1/queue/empty" {
+				log.Println("No new messages")
+			} else {
+				log.WithFields(log.Fields{
+					"source": wsm.GetRequest().GetId(),
+				}).Warn("Zero byte message received. Ignoring")
+			}
+
 		}
 
 		err = wsconn.sendAck(wsm.GetRequest().GetId())
