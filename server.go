@@ -4,24 +4,24 @@
 package textsecure
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/aebruno/textsecure/axolotl"
-	"github.com/aebruno/textsecure/protobuf"
 	"github.com/golang/protobuf/proto"
+	"github.com/nanu-c/textsecure/axolotl"
+	"github.com/nanu-c/textsecure/protobuf"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
-	createAccountPath      = "/v1/accounts/%s/code/%s"
+	createAccountPath      = "/v1/accounts/%s/code/%s?client=%s"
 	verifyAccountPath      = "/v1/accounts/code/%s"
 	registerUPSAccountPath = "/v1/accounts/ups/"
 
@@ -46,10 +46,26 @@ var (
 // RegistrationInfo holds the data required to be identified by and
 // to communicate with the push server.
 // The data is generated once at install time and stored locally.
+/**
+ * Verify a Signal Service account with a received SMS or voice verification code.
+ *
+ * @param verificationCode The verification code received via SMS or Voice
+ *                         (see {@link #requestSmsVerificationCode} and
+ *                         {@link #requestVoiceVerificationCode}).
+ * @param signalingKey 52 random bytes.  A 32 byte AES key and a 20 byte Hmac256 key,
+ *                     concatenated.
+ * @param signalProtocolRegistrationId A random 14-bit number that identifies this Signal install.
+ *                                     This value should remain consistent across registrations for the
+ *                                     same install, but probabilistically differ across registrations
+ *                                     for separate installs.
+ *
+ * @throws IOException
+ */
 type RegistrationInfo struct {
 	password       string
 	registrationID uint32
 	signalingKey   []byte
+	captchaToken   string
 }
 
 var registrationInfo RegistrationInfo
@@ -57,35 +73,82 @@ var registrationInfo RegistrationInfo
 // Registration
 
 func requestCode(tel, method string) (string, error) {
-	resp, err := transport.get(fmt.Sprintf(createAccountPath, method, tel))
+	fmt.Println("request verification code for ", tel)
+	resp, err := transport.get(fmt.Sprintf(createAccountPath, method, tel, "android"))
 	if err != nil {
+		fmt.Println(err.Error())
 		return "", err
 	}
-	defer resp.Body.Close()
-	// unofficial dev method, useful for development, with no telephony account needed on the server
-	if method == "dev" {
-		code := make([]byte, 7)
-		l, err := resp.Body.Read(code)
-		if err == nil || (err == io.EOF && l == 7) {
-			return string(code[:3]) + string(code[4:]), nil
+	if resp.isError() {
+		if resp.Status == 402 {
+			fmt.Println(resp.Body)
+			buf := new(bytes.Buffer)
+			buf.ReadFrom(resp.Body)
+			newStr := buf.String()
+			fmt.Printf(newStr)
+			defer resp.Body.Close()
+
+			return "", errors.New("Need to solve captcha")
+		} else if resp.Status == 413 {
+			fmt.Println(resp.Body)
+			buf := new(bytes.Buffer)
+			buf.ReadFrom(resp.Body)
+			newStr := buf.String()
+			fmt.Printf(newStr)
+			defer resp.Body.Close()
+
+			return "", errors.New("Rate Limit Exeded")
+		} else {
+			fmt.Println(resp.Status)
+			defer resp.Body.Close()
+
+			return "", errors.New("Error, see logs")
 		}
-		return "", err
+	} else {
+		defer resp.Body.Close()
+		return "", nil
 	}
-	return "", nil
+	// unofficial dev method, useful for development, with no telephony account needed on the server
+	// if method == "dev" {
+	// 	code := make([]byte, 7)
+	// 	l, err := resp.Body.Read(code)
+	// 	if err == nil || (err == io.EOF && l == 7) {
+	// 		return string(code[:3]) + string(code[4:]), nil
+	// 	}
+	// 	return "", err
+	// }
+	// return "", nil
 }
 
-type verificationData struct {
+type AccountAttributes struct {
 	SignalingKey    string `json:"signalingKey"`
 	RegistrationID  uint32 `json:"registrationId"`
 	FetchesMessages bool   `json:"fetchesMessages"`
+	Video           bool   `json:"video"`
+	Voice           bool   `json:"voice"`
+	// Pin                            *string `json:"pin"`
+	// UnidentifiedAccessKey          *byte `json:"unidentifiedAccessKey"`
+	// UnrestrictedUnidentifiedAccess *bool `json:"unrestrictedUnidentifiedAccess"`
+}
+type RegistrationLockFailure struct {
+	TimeRemaining      string `json:"timeRemaining"`
+	StorageCredentials uint32 `json:"storageCredentials"`
 }
 
 func verifyCode(code string) error {
+	fmt.Println("code1: " + code)
+
 	code = strings.Replace(code, "-", "", -1)
-	vd := verificationData{
+
+	vd := AccountAttributes{
 		SignalingKey:    base64.StdEncoding.EncodeToString(registrationInfo.signalingKey),
-		FetchesMessages: true,
 		RegistrationID:  registrationInfo.registrationID,
+		FetchesMessages: true,
+		Voice:           false,
+		Video:           false,
+		// Pin:             nil,
+		// UnidentifiedAccessKey:          nil,
+		// UnrestrictedUnidentifiedAccess: nil,
 	}
 	body, err := json.Marshal(vd)
 	if err != nil {
@@ -93,10 +156,25 @@ func verifyCode(code string) error {
 	}
 	resp, err := transport.putJSON(fmt.Sprintf(verifyAccountPath, code), body)
 	if err != nil {
+		fmt.Println(err.Error())
 		return err
 	}
 	if resp.isError() {
-		return resp
+
+		if resp.Status == 423 {
+			buf := new(bytes.Buffer)
+			buf.ReadFrom(resp.Body)
+			newStr := buf.String()
+			// fmt.Printf(newStr)
+			// v := RegistrationLockFailure{}
+			// err := json.NewDecoder(resp.Body).Decode(&v)
+			// if err != nil {
+			// 	return err
+			// }
+			return errors.New(fmt.Sprintf("RegistrationLockFailure \n Time to wait \n %s", newStr))
+		} else {
+			return resp
+		}
 	}
 	return nil
 }
@@ -272,6 +350,10 @@ func GetRegisteredContacts() ([]Contact, error) {
 		return nil, err
 	}
 	resp, err := transport.putJSON(directoryTokensPath, body)
+	if resp.Status == 413 {
+		log.Println("Rate limit exceeded while refreshing contacts: 413")
+		return nil, errors.New("Rate limit exceeded: 413")
+	}
 	if err != nil {
 		return nil, err
 	}

@@ -18,9 +18,9 @@ import (
 
 	"github.com/golang/protobuf/proto"
 
-	log "github.com/Sirupsen/logrus"
-	"github.com/aebruno/textsecure/axolotl"
-	"github.com/aebruno/textsecure/protobuf"
+	"github.com/nanu-c/textsecure/axolotl"
+	"github.com/nanu-c/textsecure/protobuf"
+	log "github.com/sirupsen/logrus"
 )
 
 // Generate a random 16 byte string used for HTTP Basic Authentication to the server
@@ -185,12 +185,20 @@ type Attachment struct {
 // Message represents a message received from the peer.
 // It can optionally include attachments and be sent to a group.
 type Message struct {
-	source      string
-	message     string
-	attachments []*Attachment
-	group       *Group
-	timestamp   uint64
-	flags       uint32
+	source                  string
+	message                 string
+	attachments             []*Attachment
+	group                   *Group
+	flags                   uint32
+	xpireTimer              uint32
+	ProfileKey              []byte
+	timestamp               uint64
+	quote                   signalservice.DataMessage_Quote
+	contact                 []*signalservice.DataMessage_Contact
+	preview                 []*signalservice.DataMessage_Preview
+	sticker                 signalservice.DataMessage_Sticker
+	requiredProtocolVersion uint32
+	isViewOnce              bool
 }
 
 // Source returns the ID of the sender of the message.
@@ -223,18 +231,24 @@ func (m *Message) Flags() uint32 {
 	return m.flags
 }
 
+func (m *Message) XpireTimer() uint32 {
+	return m.xpireTimer
+}
+
 // Client contains application specific data and callbacks.
 type Client struct {
-	GetPhoneNumber      func() string
-	GetVerificationCode func() string
-	GetStoragePassword  func() string
-	GetConfig           func() (*Config, error)
-	GetLocalContacts    func() ([]Contact, error)
-	MessageHandler      func(*Message)
-	ReceiptHandler      func(string, uint32, uint64)
-	SyncReadHandler     func(string, uint64)
-	SyncSentHandler     func(*Message, uint64)
-	RegistrationDone    func()
+	GetPhoneNumber        func() string
+	GetVerificationCode   func() string
+	GetStoragePassword    func() string
+	GetConfig             func() (*Config, error)
+	GetLocalContacts      func() ([]Contact, error)
+	MessageHandler        func(*Message)
+	TypingMessageHandler  func(*Message)
+	ReceiptMessageHandler func(*Message)
+	ReceiptHandler        func(string, uint32, uint64)
+	SyncReadHandler       func(string, uint64)
+	SyncSentHandler       func(*Message, uint64)
+	RegistrationDone      func()
 }
 
 var (
@@ -319,6 +333,7 @@ func Setup(c *Client) error {
 	if err != nil {
 		return err
 	}
+	client.RegistrationDone()
 	setupTransporter()
 	identityKey, err = textSecureStore.GetIdentityKeyPair()
 	return err
@@ -352,7 +367,9 @@ func registerDevice() error {
 	if err != nil {
 		return err
 	}
+	client.RegistrationDone()
 	if client.RegistrationDone != nil {
+		fmt.Println("RegistrationDone__")
 		client.RegistrationDone()
 	}
 	return nil
@@ -381,9 +398,17 @@ func handleMessage(src string, timestamp uint64, b []byte) error {
 		return handleDataMessage(src, timestamp, dm)
 	} else if sm := content.GetSyncMessage(); sm != nil && config.Tel == src {
 		return handleSyncMessage(src, timestamp, sm)
+	} else if cm := content.GetCallMessage(); cm != nil {
+		return handleCallMessage(src, timestamp, cm)
+	} else if rm := content.GetReceiptMessage(); rm != nil {
+		return handleReceiptMessage(src, timestamp, rm)
+	} else if tm := content.GetTypingMessage(); tm != nil {
+		return handleTypingMessage(src, timestamp, tm)
 	}
 
-	log.Errorf("Unknown message content received")
+	//FIXME get the right content
+	// log.Errorf(content)
+	log.Errorf("Unknown message content received", content)
 	return nil
 }
 
@@ -415,7 +440,9 @@ func handleDataMessage(src string, timestamp uint64, dm *signalservice.DataMessa
 	if err != nil {
 		return err
 	}
-
+	if err != nil {
+		return err
+	}
 	msg := &Message{
 		source:      src,
 		message:     dm.GetBody(),
@@ -427,6 +454,45 @@ func handleDataMessage(src string, timestamp uint64, dm *signalservice.DataMessa
 
 	if client.MessageHandler != nil {
 		client.MessageHandler(msg)
+	}
+	return nil
+}
+func handleCallMessage(src string, timestamp uint64, cm *signalservice.CallMessage) error {
+
+	msg := &Message{
+		source:    src,
+		message:   "callMessage",
+		timestamp: timestamp,
+	}
+
+	if client.MessageHandler != nil {
+		client.MessageHandler(msg)
+	}
+	return nil
+}
+func handleTypingMessage(src string, timestamp uint64, cm *signalservice.TypingMessage) error {
+
+	msg := &Message{
+		source:    src,
+		message:   "typingMessage",
+		timestamp: timestamp,
+	}
+
+	if client.MessageHandler != nil {
+		client.TypingMessageHandler(msg)
+	}
+	return nil
+}
+func handleReceiptMessage(src string, timestamp uint64, cm *signalservice.ReceiptMessage) error {
+
+	msg := &Message{
+		source:    src,
+		message:   "receiptMessage",
+		timestamp: timestamp,
+	}
+
+	if client.MessageHandler != nil {
+		client.ReceiptMessageHandler(msg)
 	}
 	return nil
 }
@@ -472,6 +538,9 @@ func handleReceivedMessage(msg []byte) error {
 		return nil
 	case signalservice.Envelope_CIPHERTEXT:
 		msg := env.GetContent()
+		if msg == nil {
+			return errors.New("Legacy messages unsupported")
+		}
 		wm, err := axolotl.LoadWhisperMessage(msg)
 		if err != nil {
 			return err

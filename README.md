@@ -4,18 +4,17 @@ This is a Go package implementing the TextSecure **push data** (i.e. not encrypt
 
 The included sample command line app can send and receive text messages and attachments and supports group chat.
 
-**The API presented by the package is in flux**,  mainly driven by the needs of https://github.com/janimo/textsecure-qml
+**The API presented by the package is in flux**,  mainly driven by the needs of https://github.com/nanu-c/textsecure-qml
 
-Automatically generated documentation can be found on [GoDoc] (https://godoc.org/github.com/janimo/textsecure)
+Automatically generated documentation can be found on [GoDoc](https://godoc.org/github.com/nanu-c/textsecure)
 
 Installation
 ------------
 
 This command will install both the library and the test client.
 
-    go get github.com/janimo/textsecure/cmd/textsecure
+    go get github.com/nanu-c/textsecure/cmd/textsecure
 
-For more details, including setting up Go, check the [wiki] (https://github.com/janimo/textsecure/wiki/Installation)
 
 Configuration
 -------------
@@ -37,4 +36,4 @@ Running the command without arguments will put it in receiving mode, and once it
 Discussions
 -----------
 
-User and developer discussions happen on the [mailing list] (https://groups.google.com/forum/#!forum/textsecure-go)
+User and developer discussions happen on the [mailing list](https://groups.google.com/forum/#!forum/textsecure-go)

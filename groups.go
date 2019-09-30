@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/aebruno/textsecure/protobuf"
+	"github.com/nanu-c/textsecure/protobuf"
 	"gopkg.in/yaml.v2"
 )
 

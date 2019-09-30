@@ -10,8 +10,9 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"time"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 var transport transporter
@@ -58,8 +59,20 @@ func getProxy(req *http.Request) (*url.URL, error) {
 	return http.ProxyFromEnvironment(req)
 }
 
+func newHTTPClient() *http.Client {
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSHandshakeTimeout: 30 * time.Second,
+		},
+		Timeout: 45 * time.Second,
+	}
+
+	return client
+}
+
 func newHTTPTransporter(baseURL, user, pass string) *httpTransporter {
 	client := &http.Client{
+		Timeout: 15 * time.Second,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{RootCAs: rootCA},
 			Proxy:           getProxy,

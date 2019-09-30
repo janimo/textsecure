@@ -4,7 +4,7 @@ import (
 	"crypto/x509"
 	"io/ioutil"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // rootPEM is the PEM formatted signing certificate of the Open Whisper Systems

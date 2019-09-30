@@ -7,7 +7,7 @@ import (
 	"crypto/hmac"
 	"errors"
 
-	protobuf "github.com/aebruno/textsecure/axolotl/protobuf"
+	protobuf "github.com/nanu-c/textsecure/axolotl/protobuf"
 
 	"github.com/golang/protobuf/proto"
 )
@@ -39,6 +39,10 @@ var ErrIncompleteWhisperMessage = errors.New("incomplete WhisperMessage")
 
 // LoadWhisperMessage creates a WhisperMessage from serialized bytes.
 func LoadWhisperMessage(serialized []byte) (*WhisperMessage, error) {
+	if len(serialized) == 0 || len(serialized)-macLength < 1 {
+		return nil, ErrIncompleteWhisperMessage
+	}
+
 	version := highBitsToInt(serialized[0])
 	message := serialized[1 : len(serialized)-macLength]
 

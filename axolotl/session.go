@@ -9,9 +9,9 @@ import (
 	"errors"
 	"fmt"
 
-	protobuf "github.com/aebruno/textsecure/axolotl/protobuf"
-	"github.com/aebruno/textsecure/curve25519sign"
-	"github.com/aebruno/textsecure/protobuf"
+	protobuf "github.com/nanu-c/textsecure/axolotl/protobuf"
+	"github.com/nanu-c/textsecure/curve25519sign"
+	"github.com/nanu-c/textsecure/protobuf"
 	"github.com/golang/protobuf/proto"
 )
 

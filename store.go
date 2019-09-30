@@ -15,10 +15,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/aebruno/textsecure/axolotl"
+	"github.com/nanu-c/textsecure/axolotl"
 	"golang.org/x/crypto/pbkdf2"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // store implements the PreKeyStore, SignedPreKeyStore,

@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/aebruno/textsecure/axolotl"
-	"github.com/aebruno/textsecure/curve25519sign"
+	"github.com/nanu-c/textsecure/axolotl"
+	"github.com/nanu-c/textsecure/curve25519sign"
 )
 
 type preKeyEntity struct {

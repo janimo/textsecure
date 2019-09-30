@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aebruno/textsecure/protobuf"
 	"github.com/golang/protobuf/proto"
 	"github.com/gorilla/websocket"
+	"github.com/nanu-c/textsecure/protobuf"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -50,7 +50,8 @@ func (c *Conn) connect(originURL, user, pass string) error {
 	wsURL := strings.Replace(originURL, "http", "ws", 1) + "?" + params
 	u, _ := url.Parse(wsURL)
 
-	log.Debugf("Websocket Connecting to %s", originURL)
+	log.Debugf("Websocket Connecting to signal-server")
+	// log.Debugf("Websocket Connecting to %s with user %s and pass %s", originURL, user, pass)
 
 	var err error
 	d := &websocket.Dialer{
@@ -126,7 +127,7 @@ func (c *Conn) writeWorker() {
 			}
 		case <-ticker.C:
 			log.Debugf("Sending websocket ping message")
-			if err := c.write(websocket.PingMessage, []byte{}); err != nil {
+			if err := c.write(websocket.PingMessage, nil); err != nil {
 				log.WithFields(log.Fields{
 					"error": err,
 				}).Error("Failed to send websocket ping message")
@@ -144,6 +145,7 @@ func StartListening() error {
 
 	err = wsconn.connect(config.Server+websocketPath, config.Tel, registrationInfo.password)
 	if err != nil {
+		log.Errorf(err.Error())
 		return err
 	}
 
@@ -162,7 +164,7 @@ func StartListening() error {
 	for {
 		_, bmsg, err := wsconn.ws.ReadMessage()
 		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Debugf("Websocket UnexpectedCloseError: %s", err)
 			}
 			return err
@@ -185,12 +187,17 @@ func StartListening() error {
 				log.WithFields(log.Fields{
 					"error": err,
 				}).Error("Failed to handle received message")
-				return err
 			}
 		} else {
-			log.WithFields(log.Fields{
-				"source": wsm.GetRequest().GetId(),
-			}).Warn("Zero byte message received. Ignoring")
+			log.Debugln(wsm.GetRequest())
+			if wsm.GetRequest().GetPath() == "/api/v1/queue/empty" {
+				log.Println("No new messages")
+			} else {
+				log.WithFields(log.Fields{
+					"source": wsm.GetRequest().GetId(),
+				}).Warn("Zero byte message received. Ignoring")
+			}
+
 		}
 
 		err = wsconn.sendAck(wsm.GetRequest().GetId())
