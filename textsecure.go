@@ -408,7 +408,7 @@ func handleMessage(src string, timestamp uint64, b []byte) error {
 
 	//FIXME get the right content
 	// log.Errorf(content)
-	log.Errorf("Unknown message content received", content)
+	log.Errorln("Unknown message content received", content)
 	return nil
 }
 

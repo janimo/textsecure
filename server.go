@@ -73,7 +73,7 @@ var registrationInfo RegistrationInfo
 // Registration
 
 func requestCode(tel, method string) (string, error) {
-	fmt.Println("request verification code for ", tel)
+	log.Infoln("[textsecure] request verification code for ", tel)
 	resp, err := transport.get(fmt.Sprintf(createAccountPath, method, tel, "android"))
 	if err != nil {
 		fmt.Println(err.Error())
@@ -81,7 +81,7 @@ func requestCode(tel, method string) (string, error) {
 	}
 	if resp.isError() {
 		if resp.Status == 402 {
-			fmt.Println(resp.Body)
+			log.Debugln(resp.Body)
 			buf := new(bytes.Buffer)
 			buf.ReadFrom(resp.Body)
 			newStr := buf.String()
@@ -90,16 +90,16 @@ func requestCode(tel, method string) (string, error) {
 
 			return "", errors.New("Need to solve captcha")
 		} else if resp.Status == 413 {
-			fmt.Println(resp.Body)
+			log.Debugln(resp.Body)
 			buf := new(bytes.Buffer)
 			buf.ReadFrom(resp.Body)
 			newStr := buf.String()
-			fmt.Printf(newStr)
+			log.Debugln(newStr)
 			defer resp.Body.Close()
 
 			return "", errors.New("Rate Limit Exeded")
 		} else {
-			fmt.Println(resp.Status)
+			log.Debugln(resp.Status)
 			defer resp.Body.Close()
 
 			return "", errors.New("Error, see logs")
@@ -350,7 +350,8 @@ func GetRegisteredContacts() ([]Contact, error) {
 		return nil, err
 	}
 	resp, err := transport.putJSON(directoryTokensPath, body)
-	if resp.Status == 413 {
+	// // TODO: breaks when there is no internet
+	if resp != nil && resp.Status == 413 {
 		log.Println("Rate limit exceeded while refreshing contacts: 413")
 		return nil, errors.New("Rate limit exceeded: 413")
 	}
