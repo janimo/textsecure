@@ -105,7 +105,7 @@ func (c *Conn) write(mt int, payload []byte) error {
 func (c *Conn) writeWorker() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
-		log.Debugf("Closing writeWorker")
+		log.Debugf("[textsecure] Closing writeWorker")
 		ticker.Stop()
 		c.ws.Close()
 	}()

@@ -24,6 +24,9 @@ var (
 	createAccountPath      = "/v1/accounts/%s/code/%s?client=%s"
 	verifyAccountPath      = "/v1/accounts/code/%s"
 	registerUPSAccountPath = "/v1/accounts/ups/"
+	TURN_SERVER_INFO       = "/v1/accounts/turn"
+	SET_ACCOUNT_ATTRIBUTES = "/v1/accounts/attributes/"
+	PIN_PATH               = "/v1/accounts/pin/"
 
 	prekeyMetadataPath = "/v2/keys/"
 	prekeyPath         = "/v2/keys/%s"
@@ -34,13 +37,23 @@ var (
 	provisioningMessagePath = "/v1/provisioning/%s"
 	devicePath              = "/v1/devices/%s"
 
-	directoryTokensPath    = "/v1/directory/tokens"
-	directoryVerifyPath    = "/v1/directory/%s"
-	messagePath            = "/v1/messages/%s"
-	acknowledgeMessagePath = "/v1/messages/%s/%d"
-	receiptPath            = "/v1/receipt/%s/%d"
-	allocateAttachmentPath = "/v1/attachments/"
-	attachmentPath         = "/v1/attachments/%d"
+	directoryTokensPath      = "/v1/directory/tokens"
+	DIRECTORY_AUTH_PATH      = "/v1/directory/auth"
+	DIRECTORY_FEEDBACK_PATH  = "/v1/directory/feedback-v3/%s"
+	directoryVerifyPath      = "/v1/directory/%s"
+	messagePath              = "/v1/messages/%s"
+	acknowledgeMessagePath   = "/v1/messages/%s/%d"
+	UUID_ACK_MESSAGE_PATH    = "/v1/messages/uuid/%s"
+	receiptPath              = "/v1/receipt/%s/%d"
+	attachmentPath           = "/v1/attachments/%d"
+	ATTACHMENT_DOWNLOAD_PATH = "attachments/%d"
+	ATTACHMENT_UPLOAD_PATH   = "attachments/"
+	ATTACHMENT_PATH          = "/v2/attachments/form/upload"
+	allocateAttachmentPath   = "/v1/attachments/"
+	PROFILE_PATH             = "/v1/profile/%s"
+	SENDER_CERTIFICATE_PATH  = "/v1/certificate/delivery"
+	STICKER_MANIFEST_PATH    = "stickers/%s/manifest.proto"
+	STICKER_PATH             = "stickers/%s/full/%d"
 )
 
 // RegistrationInfo holds the data required to be identified by and
@@ -352,7 +365,7 @@ func GetRegisteredContacts() ([]Contact, error) {
 	resp, err := transport.putJSON(directoryTokensPath, body)
 	// // TODO: breaks when there is no internet
 	if resp != nil && resp.Status == 413 {
-		log.Println("Rate limit exceeded while refreshing contacts: 413")
+		log.Println("[textsecure] Rate limit exceeded while refreshing contacts: 413")
 		return nil, errors.New("Rate limit exceeded: 413")
 	}
 	if err != nil {
