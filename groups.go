@@ -14,7 +14,6 @@ import (
 	"strings"
 
 	"github.com/nanu-c/textsecure/protobuf"
-	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
@@ -49,7 +48,6 @@ func idToPath(hexid string) string {
 
 // saveGroup stores a group's state in a file.
 func saveGroup(hexid string) error {
-	log.Debugln(groups[hexid].Avatar)
 	b, err := yaml.Marshal(groups[hexid])
 	if err != nil {
 		return err
@@ -126,7 +124,6 @@ func updateGroup(gr *signalservice.GroupContext) error {
 		Members: gr.GetMembers(),
 		Avatar:  buf.Bytes(),
 	}
-	log.Debugln(r, groups[hexid])
 	return saveGroup(hexid)
 }
 
@@ -164,7 +161,6 @@ func handleGroups(src string, dm *signalservice.DataMessage) (*Group, error) {
 		return nil, nil
 	}
 	hexid := idToHex(gr.GetId())
-	log.Debugln(gr.GetType(), hexid)
 	switch gr.GetType() {
 	case signalservice.GroupContext_UPDATE:
 		if err := updateGroup(gr); err != nil {
