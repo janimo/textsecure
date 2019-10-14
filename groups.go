@@ -4,6 +4,7 @@
 package textsecure
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -13,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/nanu-c/textsecure/protobuf"
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
@@ -23,7 +25,7 @@ type Group struct {
 	Flags   uint32
 	Name    string
 	Members []string
-	Avatar  io.Reader `yaml:"-"`
+	Avatar  []byte
 }
 
 var (
@@ -47,6 +49,7 @@ func idToPath(hexid string) string {
 
 // saveGroup stores a group's state in a file.
 func saveGroup(hexid string) error {
+	log.Debugln(groups[hexid].Avatar)
 	b, err := yaml.Marshal(groups[hexid])
 	if err != nil {
 		return err
@@ -113,14 +116,17 @@ func updateGroup(gr *signalservice.GroupContext) error {
 		}
 		r = att.R
 	}
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(r)
 
 	groups[hexid] = &Group{
 		ID:      gr.GetId(),
 		Hexid:   hexid,
 		Name:    gr.GetName(),
 		Members: gr.GetMembers(),
-		Avatar:  r,
+		Avatar:  buf.Bytes(),
 	}
+	log.Debugln(r, groups[hexid])
 	return saveGroup(hexid)
 }
 
@@ -158,7 +164,7 @@ func handleGroups(src string, dm *signalservice.DataMessage) (*Group, error) {
 		return nil, nil
 	}
 	hexid := idToHex(gr.GetId())
-
+	log.Debugln(gr.GetType(), hexid)
 	switch gr.GetType() {
 	case signalservice.GroupContext_UPDATE:
 		if err := updateGroup(gr); err != nil {
@@ -167,6 +173,9 @@ func handleGroups(src string, dm *signalservice.DataMessage) (*Group, error) {
 		groups[hexid].Flags = GroupUpdateFlag
 	case signalservice.GroupContext_DELIVER:
 		if _, ok := groups[hexid]; !ok {
+			g, _ := newPartlyGroup(gr.GetId())
+			requestInfo(g)
+			setupGroups()
 			return nil, UnknownGroupIDError{hexid}
 		}
 		groups[hexid].Flags = 0
@@ -235,14 +244,14 @@ func newGroupID() []byte {
 	return id
 }
 
-func newGroup(name string, members []string) (*Group, error) {
-	id := newGroupID()
+func newPartlyGroup(id []byte) (*Group, error) {
 	hexid := idToHex(id)
 	groups[hexid] = &Group{
 		ID:      id,
 		Hexid:   hexid,
-		Name:    name,
-		Members: append(members, config.Tel),
+		Name:    "",
+		Members: nil,
+		Avatar:  nil,
 	}
 	err := saveGroup(hexid)
 	if err != nil {
@@ -274,6 +283,39 @@ func sendUpdate(g *Group) error {
 					name:    g.Name,
 					members: g.Members,
 					typ:     signalservice.GroupContext_UPDATE,
+				},
+			}
+			_, err := sendMessage(omsg)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+func newGroup(name string, members []string) (*Group, error) {
+	id := newGroupID()
+	hexid := idToHex(id)
+	groups[hexid] = &Group{
+		ID:      id,
+		Hexid:   hexid,
+		Name:    name,
+		Members: append(members, config.Tel),
+	}
+	err := saveGroup(hexid)
+	if err != nil {
+		return nil, err
+	}
+	return groups[hexid], nil
+}
+func requestInfo(g *Group) error {
+	for _, m := range g.Members {
+		if m != config.Tel {
+			omsg := &outgoingMessage{
+				tel: m,
+				group: &groupMessage{
+					id:  g.ID,
+					typ: signalservice.GroupContext_REQUEST_INFO,
 				},
 			}
 			_, err := sendMessage(omsg)
