@@ -196,8 +196,6 @@ type groupMessage struct {
 }
 
 func sendGroupHelper(hexid string, msg string, a *att) (uint64, error) {
-	log.Infoln("[textsecure] sendGroupHelper ")
-
 	var ts uint64
 	var err error
 	g, ok := groups[hexid]
@@ -205,7 +203,6 @@ func sendGroupHelper(hexid string, msg string, a *att) (uint64, error) {
 		log.Infoln("[textsecure] sendGroupHelper unknown group id")
 		return 0, UnknownGroupIDError{hexid}
 	}
-	log.Infoln("[textsecure] sendGroupHelper group members", g.Members)
 
 	for _, m := range g.Members {
 		if m != config.Tel {
@@ -223,7 +220,7 @@ func sendGroupHelper(hexid string, msg string, a *att) (uint64, error) {
 				log.Errorln("[textsecure] sendGroupHelper", err, m)
 				return 0, err
 			} else {
-				log.Infoln("[textsecure] sendGroupHelper message to group sent", m)
+				log.Debugln("[textsecure] sendGroupHelper message to group sent", m)
 
 			}
 		}
@@ -233,8 +230,6 @@ func sendGroupHelper(hexid string, msg string, a *att) (uint64, error) {
 
 // SendGroupMessage sends a text message to a given group.
 func SendGroupMessage(hexid string, msg string) (uint64, error) {
-	log.Infoln("[textsecure] SendGroupMessage")
-
 	return sendGroupHelper(hexid, msg, nil)
 }
 
