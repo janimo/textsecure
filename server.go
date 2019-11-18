@@ -648,7 +648,7 @@ func buildAndSendMessage(tel string, paddedMessage []byte, isSync bool) (*sendMe
 	dec.Decode(&smRes)
 	smRes.Timestamp = now
 
-	log.Debugf("SendMessageResponse: %+v\n", smRes)
+	log.Debugf("[textsecure] SendMessageResponse: %+v\n", smRes)
 	return &smRes, nil
 }
 

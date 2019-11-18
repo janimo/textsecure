@@ -13,6 +13,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/nanu-c/textsecure/protobuf"
 	"gopkg.in/yaml.v2"
 )
@@ -103,19 +105,20 @@ func removeMember(tel string, members []string) []string {
 
 // updateGroup updates a group's state based on an incoming message.
 func updateGroup(gr *signalservice.GroupContext) error {
+	log.Debugln("[textsecure] updateGroup ", gr.GetName())
 	hexid := idToHex(gr.GetId())
 
 	var r io.Reader
-
-	if av := gr.GetAvatar(); av != nil {
+	av := gr.GetAvatar()
+	buf := new(bytes.Buffer)
+	if av != nil {
 		att, err := handleSingleAttachment(av)
 		if err != nil {
 			return err
 		}
 		r = att.R
+		buf.ReadFrom(r)
 	}
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(r)
 
 	groups[hexid] = &Group{
 		ID:      gr.GetId(),
@@ -193,12 +196,17 @@ type groupMessage struct {
 }
 
 func sendGroupHelper(hexid string, msg string, a *att) (uint64, error) {
+	log.Infoln("[textsecure] sendGroupHelper ")
+
 	var ts uint64
 	var err error
 	g, ok := groups[hexid]
 	if !ok {
+		log.Infoln("[textsecure] sendGroupHelper unknown group id")
 		return 0, UnknownGroupIDError{hexid}
 	}
+	log.Infoln("[textsecure] sendGroupHelper group members", g.Members)
+
 	for _, m := range g.Members {
 		if m != config.Tel {
 			omsg := &outgoingMessage{
@@ -212,7 +220,11 @@ func sendGroupHelper(hexid string, msg string, a *att) (uint64, error) {
 			}
 			ts, err = sendMessage(omsg)
 			if err != nil {
+				log.Errorln("[textsecure] sendGroupHelper", err, m)
 				return 0, err
+			} else {
+				log.Infoln("[textsecure] sendGroupHelper message to group sent", m)
+
 			}
 		}
 	}
@@ -221,6 +233,8 @@ func sendGroupHelper(hexid string, msg string, a *att) (uint64, error) {
 
 // SendGroupMessage sends a text message to a given group.
 func SendGroupMessage(hexid string, msg string) (uint64, error) {
+	log.Infoln("[textsecure] SendGroupMessage")
+
 	return sendGroupHelper(hexid, msg, nil)
 }
 
