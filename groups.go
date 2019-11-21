@@ -203,7 +203,10 @@ func sendGroupHelper(hexid string, msg string, a *att) (uint64, error) {
 		log.Infoln("[textsecure] sendGroupHelper unknown group id")
 		return 0, UnknownGroupIDError{hexid}
 	}
-
+	// if len is 0 smth is obviously wrong
+	if len(g.Members) == 0 {
+		requestInfo(g)
+	}
 	for _, m := range g.Members {
 		if m != config.Tel {
 			omsg := &outgoingMessage{
