@@ -12,6 +12,12 @@ var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
 
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the proto package it is being compiled against.
+// A compilation error at this line likely means your copy of the
+// proto package needs to be updated.
+const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+
 type WebSocketMessage_Type int32
 
 const (
@@ -47,21 +53,44 @@ func (x *WebSocketMessage_Type) UnmarshalJSON(data []byte) error {
 	*x = WebSocketMessage_Type(value)
 	return nil
 }
-func (WebSocketMessage_Type) EnumDescriptor() ([]byte, []int) { return fileDescriptor3, []int{2, 0} }
-
-type WebSocketRequestMessage struct {
-	Verb             *string  `protobuf:"bytes,1,opt,name=verb" json:"verb,omitempty"`
-	Path             *string  `protobuf:"bytes,2,opt,name=path" json:"path,omitempty"`
-	Body             []byte   `protobuf:"bytes,3,opt,name=body" json:"body,omitempty"`
-	Headers          []string `protobuf:"bytes,5,rep,name=headers" json:"headers,omitempty"`
-	Id               *uint64  `protobuf:"varint,4,opt,name=id" json:"id,omitempty"`
-	XXX_unrecognized []byte   `json:"-"`
+func (WebSocketMessage_Type) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_WebSocketResources_39c2df86603aa621, []int{2, 0}
 }
 
-func (m *WebSocketRequestMessage) Reset()                    { *m = WebSocketRequestMessage{} }
-func (m *WebSocketRequestMessage) String() string            { return proto.CompactTextString(m) }
-func (*WebSocketRequestMessage) ProtoMessage()               {}
-func (*WebSocketRequestMessage) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{0} }
+type WebSocketRequestMessage struct {
+	Verb                 *string  `protobuf:"bytes,1,opt,name=verb" json:"verb,omitempty"`
+	Path                 *string  `protobuf:"bytes,2,opt,name=path" json:"path,omitempty"`
+	Body                 []byte   `protobuf:"bytes,3,opt,name=body" json:"body,omitempty"`
+	Headers              []string `protobuf:"bytes,5,rep,name=headers" json:"headers,omitempty"`
+	Id                   *uint64  `protobuf:"varint,4,opt,name=id" json:"id,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *WebSocketRequestMessage) Reset()         { *m = WebSocketRequestMessage{} }
+func (m *WebSocketRequestMessage) String() string { return proto.CompactTextString(m) }
+func (*WebSocketRequestMessage) ProtoMessage()    {}
+func (*WebSocketRequestMessage) Descriptor() ([]byte, []int) {
+	return fileDescriptor_WebSocketResources_39c2df86603aa621, []int{0}
+}
+func (m *WebSocketRequestMessage) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_WebSocketRequestMessage.Unmarshal(m, b)
+}
+func (m *WebSocketRequestMessage) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_WebSocketRequestMessage.Marshal(b, m, deterministic)
+}
+func (dst *WebSocketRequestMessage) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_WebSocketRequestMessage.Merge(dst, src)
+}
+func (m *WebSocketRequestMessage) XXX_Size() int {
+	return xxx_messageInfo_WebSocketRequestMessage.Size(m)
+}
+func (m *WebSocketRequestMessage) XXX_DiscardUnknown() {
+	xxx_messageInfo_WebSocketRequestMessage.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_WebSocketRequestMessage proto.InternalMessageInfo
 
 func (m *WebSocketRequestMessage) GetVerb() string {
 	if m != nil && m.Verb != nil {
@@ -99,18 +128,39 @@ func (m *WebSocketRequestMessage) GetId() uint64 {
 }
 
 type WebSocketResponseMessage struct {
-	Id               *uint64  `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
-	Status           *uint32  `protobuf:"varint,2,opt,name=status" json:"status,omitempty"`
-	Message          *string  `protobuf:"bytes,3,opt,name=message" json:"message,omitempty"`
-	Headers          []string `protobuf:"bytes,5,rep,name=headers" json:"headers,omitempty"`
-	Body             []byte   `protobuf:"bytes,4,opt,name=body" json:"body,omitempty"`
-	XXX_unrecognized []byte   `json:"-"`
+	Id                   *uint64  `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
+	Status               *uint32  `protobuf:"varint,2,opt,name=status" json:"status,omitempty"`
+	Message              *string  `protobuf:"bytes,3,opt,name=message" json:"message,omitempty"`
+	Headers              []string `protobuf:"bytes,5,rep,name=headers" json:"headers,omitempty"`
+	Body                 []byte   `protobuf:"bytes,4,opt,name=body" json:"body,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *WebSocketResponseMessage) Reset()                    { *m = WebSocketResponseMessage{} }
-func (m *WebSocketResponseMessage) String() string            { return proto.CompactTextString(m) }
-func (*WebSocketResponseMessage) ProtoMessage()               {}
-func (*WebSocketResponseMessage) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{1} }
+func (m *WebSocketResponseMessage) Reset()         { *m = WebSocketResponseMessage{} }
+func (m *WebSocketResponseMessage) String() string { return proto.CompactTextString(m) }
+func (*WebSocketResponseMessage) ProtoMessage()    {}
+func (*WebSocketResponseMessage) Descriptor() ([]byte, []int) {
+	return fileDescriptor_WebSocketResources_39c2df86603aa621, []int{1}
+}
+func (m *WebSocketResponseMessage) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_WebSocketResponseMessage.Unmarshal(m, b)
+}
+func (m *WebSocketResponseMessage) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_WebSocketResponseMessage.Marshal(b, m, deterministic)
+}
+func (dst *WebSocketResponseMessage) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_WebSocketResponseMessage.Merge(dst, src)
+}
+func (m *WebSocketResponseMessage) XXX_Size() int {
+	return xxx_messageInfo_WebSocketResponseMessage.Size(m)
+}
+func (m *WebSocketResponseMessage) XXX_DiscardUnknown() {
+	xxx_messageInfo_WebSocketResponseMessage.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_WebSocketResponseMessage proto.InternalMessageInfo
 
 func (m *WebSocketResponseMessage) GetId() uint64 {
 	if m != nil && m.Id != nil {
@@ -148,16 +198,37 @@ func (m *WebSocketResponseMessage) GetBody() []byte {
 }
 
 type WebSocketMessage struct {
-	Type             *WebSocketMessage_Type    `protobuf:"varint,1,opt,name=type,enum=signalservice.WebSocketMessage_Type" json:"type,omitempty"`
-	Request          *WebSocketRequestMessage  `protobuf:"bytes,2,opt,name=request" json:"request,omitempty"`
-	Response         *WebSocketResponseMessage `protobuf:"bytes,3,opt,name=response" json:"response,omitempty"`
-	XXX_unrecognized []byte                    `json:"-"`
+	Type                 *WebSocketMessage_Type    `protobuf:"varint,1,opt,name=type,enum=signalservice.WebSocketMessage_Type" json:"type,omitempty"`
+	Request              *WebSocketRequestMessage  `protobuf:"bytes,2,opt,name=request" json:"request,omitempty"`
+	Response             *WebSocketResponseMessage `protobuf:"bytes,3,opt,name=response" json:"response,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                  `json:"-"`
+	XXX_unrecognized     []byte                    `json:"-"`
+	XXX_sizecache        int32                     `json:"-"`
 }
 
-func (m *WebSocketMessage) Reset()                    { *m = WebSocketMessage{} }
-func (m *WebSocketMessage) String() string            { return proto.CompactTextString(m) }
-func (*WebSocketMessage) ProtoMessage()               {}
-func (*WebSocketMessage) Descriptor() ([]byte, []int) { return fileDescriptor3, []int{2} }
+func (m *WebSocketMessage) Reset()         { *m = WebSocketMessage{} }
+func (m *WebSocketMessage) String() string { return proto.CompactTextString(m) }
+func (*WebSocketMessage) ProtoMessage()    {}
+func (*WebSocketMessage) Descriptor() ([]byte, []int) {
+	return fileDescriptor_WebSocketResources_39c2df86603aa621, []int{2}
+}
+func (m *WebSocketMessage) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_WebSocketMessage.Unmarshal(m, b)
+}
+func (m *WebSocketMessage) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_WebSocketMessage.Marshal(b, m, deterministic)
+}
+func (dst *WebSocketMessage) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_WebSocketMessage.Merge(dst, src)
+}
+func (m *WebSocketMessage) XXX_Size() int {
+	return xxx_messageInfo_WebSocketMessage.Size(m)
+}
+func (m *WebSocketMessage) XXX_DiscardUnknown() {
+	xxx_messageInfo_WebSocketMessage.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_WebSocketMessage proto.InternalMessageInfo
 
 func (m *WebSocketMessage) GetType() WebSocketMessage_Type {
 	if m != nil && m.Type != nil {
@@ -187,9 +258,11 @@ func init() {
 	proto.RegisterEnum("signalservice.WebSocketMessage_Type", WebSocketMessage_Type_name, WebSocketMessage_Type_value)
 }
 
-func init() { proto.RegisterFile("WebSocketResources.proto", fileDescriptor3) }
+func init() {
+	proto.RegisterFile("WebSocketResources.proto", fileDescriptor_WebSocketResources_39c2df86603aa621)
+}
 
-var fileDescriptor3 = []byte{
+var fileDescriptor_WebSocketResources_39c2df86603aa621 = []byte{
 	// 357 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x92, 0x3f, 0x4f, 0x83, 0x50,
 	0x14, 0xc5, 0x85, 0xa2, 0x6d, 0x5f, 0xff, 0x48, 0xde, 0xa0, 0x8c, 0x84, 0x18, 0x65, 0x62, 0xa8,
