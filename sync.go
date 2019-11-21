@@ -5,23 +5,47 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	log "github.com/sirupsen/logrus"
-	"github.com/nanu-c/textsecure/protobuf"
 	"github.com/golang/protobuf/proto"
+	"github.com/nanu-c/textsecure/protobuf"
+	log "github.com/sirupsen/logrus"
 )
 
 // handleSyncMessage handles an incoming SyncMessage.
 func handleSyncMessage(src string, timestamp uint64, sm *signalservice.SyncMessage) error {
-	log.Debugf("SyncMessage recieved at %d", timestamp)
+	log.Debugf("[textsecure] SyncMessage recieved at %d", timestamp)
 
 	if sm.GetSent() != nil {
 		return handleSyncSent(sm.GetSent(), timestamp)
+	} else if sm.GetContacts() != nil {
+		log.Debugln("[textsecure] SyncMessage contacts")
+		return nil
+	} else if sm.GetGroups() != nil {
+		log.Debugln("[textsecure] SyncMessage groups")
+		return nil
 	} else if sm.GetRequest() != nil {
 		return handleSyncRequest(sm.GetRequest())
 	} else if sm.GetRead() != nil {
 		return handleSyncRead(sm.GetRead())
+	} else if sm.GetBlocked() != nil {
+		log.Debugln("[textsecure] SyncMessage blocked")
+		return nil
+	} else if sm.GetVerified() != nil {
+		log.Debugln("[textsecure] SyncMessage verified")
+		return nil
+	} else if sm.GetConfiguration() != nil {
+		log.Debugln("[textsecure] SyncMessage configuration")
+		return nil
+	} else if sm.GetPadding() != nil {
+		log.Debugln("[textsecure] SyncMessage padding")
+		return nil
+	} else if sm.GetStickerPackOperation() != nil {
+		log.Debugln("[textsecure] SyncMessage GetStickerPackOperation")
+		return nil
+	} else if sm.GetViewOnceOpen() != nil {
+		log.Debugln("[textsecure] SyncMessage GetViewOnceOpen")
+		return nil
 	} else {
-		log.Errorf("SyncMessage contains no known sync types")
+		log.Errorf("[textsecure] SyncMessage contains no known sync types")
 	}
 
 	return nil
@@ -81,7 +105,7 @@ func handleSyncRequest(request *signalservice.SyncMessage_Request) error {
 
 // sendContactUpdate
 func sendContactUpdate() error {
-	log.Debugf("Sending contact SyncMessage")
+	log.Debugf("[textsecure] Sending contact SyncMessage")
 
 	lc, err := GetRegisteredContacts()
 	if err != nil {
@@ -92,8 +116,12 @@ func sendContactUpdate() error {
 
 	for _, c := range lc {
 		cd := &signalservice.ContactDetails{
-			Number: &c.Tel,
-			Name:   &c.Name,
+			Number:      &c.Tel,
+			Name:        &c.Name,
+			Color:       &c.Color,
+			Blocked:     &c.Blocked,
+			ExpireTimer: &c.ExpireTimer,
+
 			// TODO: handle avatars
 		}
 
