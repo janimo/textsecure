@@ -54,7 +54,7 @@ func handleSyncMessage(src string, timestamp uint64, sm *signalservice.SyncMessa
 // handleSyncSent handles sync sent messages
 func handleSyncSent(s *signalservice.SyncMessage_Sent, ts uint64) error {
 	dm := s.GetMessage()
-	dest := s.GetDestination()
+	dest := s.GetDestinationE164()
 	timestamp := s.GetTimestamp()
 
 	if dm == nil {
@@ -75,12 +75,17 @@ func handleSyncSent(s *signalservice.SyncMessage_Sent, ts uint64) error {
 	if err != nil {
 		return err
 	}
+	cs, err := handleContacts(dest, dm)
+	if err != nil {
+		return err
+	}
 
 	msg := &Message{
 		source:      dest,
 		message:     dm.GetBody(),
 		attachments: atts,
 		group:       gr,
+		contact:     cs,
 		timestamp:   timestamp,
 		flags:       flags,
 	}
@@ -162,9 +167,9 @@ func sendGroupUpdate() error {
 
 	for _, g := range groups {
 		gd := &signalservice.GroupDetails{
-			Id:      g.ID,
-			Name:    &g.Name,
-			Members: g.Members,
+			Id:          g.ID,
+			Name:        &g.Name,
+			MembersE164: g.Members,
 			// XXX add support for avatar
 			// XXX add support for active?
 		}
@@ -201,7 +206,7 @@ func sendGroupUpdate() error {
 func handleSyncRead(readMessages []*signalservice.SyncMessage_Read) error {
 	if client.SyncReadHandler != nil {
 		for _, s := range readMessages {
-			client.SyncReadHandler(s.GetSender(), s.GetTimestamp())
+			client.SyncReadHandler(s.GetSenderE164(), s.GetTimestamp())
 		}
 	}
 

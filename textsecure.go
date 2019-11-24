@@ -377,7 +377,7 @@ func registerDevice() error {
 
 func handleReceipt(env *signalservice.Envelope) {
 	if client.ReceiptHandler != nil {
-		client.ReceiptHandler(env.GetSource(), env.GetSourceDevice(), env.GetTimestamp())
+		client.ReceiptHandler(env.GetSourceE164(), env.GetSourceDevice(), env.GetTimestamp())
 	}
 }
 

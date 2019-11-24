@@ -124,7 +124,7 @@ func updateGroup(gr *signalservice.GroupContext) error {
 		ID:      gr.GetId(),
 		Hexid:   hexid,
 		Name:    gr.GetName(),
-		Members: gr.GetMembers(),
+		Members: gr.GetMembersE164(),
 		Avatar:  buf.Bytes(),
 	}
 	return saveGroup(hexid)
@@ -362,6 +362,13 @@ func removeGroup(id []byte) error {
 		return err
 	}
 	return nil
+}
+func GetGroupById(hexId string) (*Group, error) {
+	g, ok := groups[hexId]
+	if !ok {
+		return nil, UnknownGroupIDError{hexId}
+	}
+	return g, nil
 }
 
 // LeaveGroup sends a group quit message to the other members of the given group.

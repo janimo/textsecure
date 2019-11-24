@@ -443,10 +443,10 @@ func createMessage(msg *outgoingMessage) *signalservice.DataMessage {
 	}
 	if msg.group != nil {
 		dm.Group = &signalservice.GroupContext{
-			Id:      msg.group.id,
-			Type:    &msg.group.typ,
-			Name:    &msg.group.name,
-			Members: msg.group.members,
+			Id:          msg.group.id,
+			Type:        &msg.group.typ,
+			Name:        &msg.group.name,
+			MembersE164: msg.group.members,
 		}
 	}
 
@@ -612,7 +612,7 @@ func buildAndSendMessage(tel string, paddedMessage []byte, isSync bool) (*sendMe
 		dec := json.NewDecoder(resp.Body)
 		var j jsonMismatchedDevices
 		dec.Decode(&j)
-		log.Debugf("Mismatched devices: %+v\n", j)
+		log.Debugf("[textsecure] Mismatched devices: %+v\n", j)
 		devs := []uint32{}
 		for _, id := range deviceLists[tel] {
 			in := true
@@ -633,7 +633,7 @@ func buildAndSendMessage(tel string, paddedMessage []byte, isSync bool) (*sendMe
 		dec := json.NewDecoder(resp.Body)
 		var j jsonStaleDevices
 		dec.Decode(&j)
-		log.Debugf("Stale devices: %+v\n", j)
+		log.Debugf("[textsecure] Stale devices: %+v\n", j)
 		for _, id := range j.StaleDevices {
 			textSecureStore.DeleteSession(recID(tel), id)
 		}
@@ -677,9 +677,9 @@ func sendMessage(msg *outgoingMessage) (uint64, error) {
 		log.Debugf("Needs sync. destination: %s", msg.tel)
 		sm := &signalservice.SyncMessage{
 			Sent: &signalservice.SyncMessage_Sent{
-				Destination: &msg.tel,
-				Timestamp:   &resp.Timestamp,
-				Message:     dm,
+				DestinationE164: &msg.tel,
+				Timestamp:       &resp.Timestamp,
+				Message:         dm,
 			},
 		}
 
