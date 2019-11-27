@@ -103,6 +103,8 @@ func handleSyncRequest(request *signalservice.SyncMessage_Request) error {
 		return sendContactUpdate()
 	} else if request.GetType() == signalservice.SyncMessage_Request_GROUPS {
 		return sendGroupUpdate()
+	} else {
+		log.Debugln("[textsecure] handle sync request unhandled type", request.GetType())
 	}
 
 	return nil
@@ -122,6 +124,7 @@ func sendContactUpdate() error {
 	for _, c := range lc {
 		cd := &signalservice.ContactDetails{
 			Number:      &c.Tel,
+			Uuid:        &c.Uuid,
 			Name:        &c.Name,
 			Color:       &c.Color,
 			Blocked:     &c.Blocked,

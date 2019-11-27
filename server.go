@@ -5,10 +5,13 @@ package textsecure
 
 import (
 	"bytes"
+	"crypto/aes"
+	"crypto/cipher"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 	"time"
@@ -54,6 +57,9 @@ var (
 	SENDER_CERTIFICATE_PATH  = "/v1/certificate/delivery"
 	STICKER_MANIFEST_PATH    = "stickers/%s/manifest.proto"
 	STICKER_PATH             = "stickers/%s/full/%d"
+	SERVICE_REFLECTOR_HOST   = "europe-west1-signal-cdn-reflector.cloudfunctions.net"
+	cdn_url                  = "https://www.google.com/cdn"
+	SIGNAL_CDN_URL           = "https://cdn.signal.org"
 )
 
 // RegistrationInfo holds the data required to be identified by and
@@ -236,11 +242,12 @@ type DeviceInfo struct {
 	Created  uint64 `json:"created"`
 	LastSeen uint64 `json:"lastSeen"`
 }
+type jsonDevices struct {
+	DeviceList []DeviceInfo `json:"devices"`
+}
 
 func getLinkedDevices() ([]DeviceInfo, error) {
-	type jsonDevices struct {
-		DeviceList []DeviceInfo `json:"devices"`
-	}
+
 	devices := &jsonDevices{}
 
 	resp, err := transport.get(fmt.Sprintf(devicePath, ""))
@@ -301,6 +308,106 @@ func addNewDevice(ephemeralId, publicKey, verificationCode string) error {
 		return resp
 	}
 	return nil
+}
+
+// profiles
+type Profile struct {
+	IdentityKey                    []byte          `json:"identityKey"`
+	Name                           string          `json:"name"`
+	Avatar                         string          `json:"avatar"`
+	UnidentifiedAccess             string          `json:"unidentifiedAccess"`
+	UnrestrictedUnidentifiedAccess bool            `json:"unrestrictedUnidentifiedAccess"`
+	Capabilities                   ProfileSettings `json:"capabilities"`
+}
+type ProfileSettings struct {
+	Uuid bool `json:"uuid"`
+}
+
+func GetProfile(tel string) (*Profile, error) {
+
+	resp, err := transport.get(fmt.Sprintf(PROFILE_PATH, tel))
+	if err != nil {
+		log.Debugln(err)
+	}
+
+	profile := &Profile{}
+	dec := json.NewDecoder(resp.Body)
+
+	err = dec.Decode(&profile)
+	if err != nil {
+		log.Debugln(err)
+
+	}
+	avatar, _ := GetAvatar(profile.Avatar)
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(avatar)
+
+	c := contacts[tel]
+	c.Avatar = decryptAvatar(buf.Bytes(), profile.IdentityKey)
+	contacts[tel] = c
+	WriteContactsToPath()
+
+	//
+	// return devices.DeviceList, nil
+	return profile, nil
+}
+
+var cdnTransport *httpTransporter
+
+func setupCDNTransporter() {
+	// setupCA()
+	cdnTransport = newHTTPTransporter(SIGNAL_CDN_URL, config.Tel, registrationInfo.password)
+}
+
+func GetAvatar(avatarUrl string) (io.ReadCloser, error) {
+	log.Debugln(SIGNAL_CDN_URL + "/" + avatarUrl)
+	resp, err := cdnTransport.get("/" + avatarUrl)
+	if err != nil {
+		log.Debugln("[textsecure] getAvatar ", err)
+		return nil, err
+	}
+	return resp.Body, nil
+}
+
+func decryptAvatar(avatar []byte, identityKey []byte) []byte {
+	block, err := aes.NewCipher(identityKey[:32])
+	log.Debugln("-0", avatar[:12])
+	if err != nil {
+		log.Debugln("0", err)
+
+		return nil
+	}
+	// nonce := []byte{}
+	aesgcm, err := cipher.NewGCM(block)
+	log.Debugln("-0", aesgcm.NonceSize())
+
+	if err != nil {
+		log.Debugln("1", err)
+	}
+	b, err := aesgcm.Open(nil, avatar[:12], avatar, nil)
+	if err != nil {
+		log.Debugln("3", err)
+	}
+	return b
+}
+func generateNonce(avatar []byte, length int) []byte {
+	var offset int
+	offset = 0
+	offset++
+	buffer := [12]byte{}
+	log.Debugln(buffer)
+	// 	public static void readFully(InputStream in, byte[] buffer) throws IOException {
+	//
+	// 	for (;;) {
+	// 					12							12 bytes b, 0 , 12 -0
+	// 		int read = in.read(buffer, offset, buffer.length - offset);
+	//				12 +0					< 12								0+= 12
+	// 		if (read + offset < buffer.length) offset += read;
+	// 		else                		           return;
+	// 	}
+	// }
+	a := []byte{}
+	return a
 }
 
 // PUT /v2/keys/
@@ -674,7 +781,7 @@ func sendMessage(msg *outgoingMessage) (uint64, error) {
 	}
 
 	if resp.NeedsSync {
-		log.Debugf("Needs sync. destination: %s", msg.tel)
+		log.Debugf("[textsecure] Needs sync. destination: %s", msg.tel)
 		sm := &signalservice.SyncMessage{
 			Sent: &signalservice.SyncMessage_Sent{
 				DestinationE164: &msg.tel,

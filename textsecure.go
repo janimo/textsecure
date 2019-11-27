@@ -264,18 +264,19 @@ func setupLogging() {
 		loglevel = os.Getenv("TEXTSECURE_LOGLEVEL")
 	}
 
-	switch strings.ToUpper(loglevel) {
-	case "DEBUG":
-		log.SetLevel(log.DebugLevel)
-	case "INFO":
-		log.SetLevel(log.InfoLevel)
-	case "WARN":
-		log.SetLevel(log.WarnLevel)
-	case "ERROR":
-		log.SetLevel(log.ErrorLevel)
-	default:
-		log.SetLevel(log.ErrorLevel)
-	}
+	log.SetLevel(log.DebugLevel)
+	// switch strings.ToUpper(loglevel) {
+	// case "DEBUG":
+	// 	log.SetLevel(log.DebugLevel)
+	// case "INFO":
+	// 	log.SetLevel(log.InfoLevel)
+	// case "WARN":
+	// 	log.SetLevel(log.WarnLevel)
+	// case "ERROR":
+	// 	log.SetLevel(log.ErrorLevel)
+	// default:
+	// 	log.SetLevel(log.ErrorLevel)
+	// }
 
 	log.SetFormatter(&log.TextFormatter{
 		FullTimestamp:   true,
@@ -335,6 +336,7 @@ func Setup(c *Client) error {
 	}
 	client.RegistrationDone()
 	setupTransporter()
+	setupCDNTransporter()
 	identityKey, err = textSecureStore.GetIdentityKeyPair()
 	return err
 }
@@ -530,7 +532,7 @@ func handleReceivedMessage(msg []byte) error {
 		return err
 	}
 
-	recid := recID(env.GetSource())
+	recid := recID(env.GetSourceE164())
 	sc := axolotl.NewSessionCipher(textSecureStore, textSecureStore, textSecureStore, textSecureStore, recid, env.GetSourceDevice())
 	switch *env.Type {
 	case signalservice.Envelope_RECEIPT:
@@ -557,7 +559,7 @@ func handleReceivedMessage(msg []byte) error {
 		if err != nil {
 			return err
 		}
-		err = handleMessage(env.GetSource(), env.GetTimestamp(), b)
+		err = handleMessage(env.GetSourceE164(), env.GetTimestamp(), b)
 		if err != nil {
 			return err
 		}
@@ -584,7 +586,7 @@ func handleReceivedMessage(msg []byte) error {
 		if err != nil {
 			return err
 		}
-		err = handleMessage(env.GetSource(), env.GetTimestamp(), b)
+		err = handleMessage(env.GetSourceE164(), env.GetTimestamp(), b)
 		if err != nil {
 			return err
 		}

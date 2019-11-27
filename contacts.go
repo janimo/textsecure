@@ -38,8 +38,12 @@ func loadContacts(contactsYaml *yamlContacts) {
 		contacts[c.Tel] = c
 	}
 }
+
+var filePath string
+
 func ReadContacts(fileName string) ([]Contact, error) {
 	b, err := ioutil.ReadFile(fileName)
+	filePath = fileName
 	if err != nil {
 		return nil, err
 	}
@@ -62,13 +66,13 @@ func WriteContacts(filename string, contacts2 []Contact) error {
 	}
 	return ioutil.WriteFile(filename, b, 0600)
 }
-func WriteContacts2(filename string) error {
+func WriteContactsToPath() error {
 	c := contactsToYaml()
 	b, err := yaml.Marshal(c)
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(filename, b, 0600)
+	return ioutil.WriteFile(filePath, b, 0600)
 }
 func contactsToYaml() *yamlContacts {
 	c := &yamlContacts{}
@@ -77,6 +81,11 @@ func contactsToYaml() *yamlContacts {
 	}
 	return c
 }
+
+// type AvatarDetail struct {
+// 	Length
+// }
+
 func updateContact(c *signalservice.ContactDetails) error {
 	log.Debugln("[textsecure] updateContact ", c.GetName())
 
@@ -101,7 +110,7 @@ func updateContact(c *signalservice.ContactDetails) error {
 		Blocked:     c.GetBlocked(),
 		ExpireTimer: c.GetExpireTimer(),
 	}
-	return WriteContacts2(contactsFile)
+	return WriteContactsToPath()
 }
 func handleContacts(src string, dm *signalservice.DataMessage) ([]*signalservice.DataMessage_Contact, error) {
 	cs := dm.GetContact()
@@ -122,7 +131,7 @@ func handleContacts(src string, dm *signalservice.DataMessage) ([]*signalservice
 	// case signalservice.GroupContext_DELIVER:
 	// 	if _, ok := groups[hexid]; !ok {
 	// 		g, _ := newPartlyGroup(gr.GetId())
-	// 		requestInfo(g)
+	// 		requestGroupInfo(g)
 	// 		setupGroups()
 	// 		return nil, UnknownGroupIDError{hexid}
 	// 	}
@@ -135,4 +144,19 @@ func handleContacts(src string, dm *signalservice.DataMessage) ([]*signalservice
 	// }
 
 	return nil, nil
+}
+func RequestContactInfo() error {
+	var t signalservice.SyncMessage_Request_Type
+	t = 1
+	omsg := &signalservice.SyncMessage{
+		Request: &signalservice.SyncMessage_Request{
+			Type: &t,
+		},
+	}
+	_, err := sendSyncMessage(omsg)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

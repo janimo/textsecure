@@ -173,7 +173,7 @@ func handleGroups(src string, dm *signalservice.DataMessage) (*Group, error) {
 	case signalservice.GroupContext_DELIVER:
 		if _, ok := groups[hexid]; !ok {
 			g, _ := newPartlyGroup(gr.GetId())
-			requestInfo(g)
+			requestGroupInfo(g)
 			setupGroups()
 			return nil, UnknownGroupIDError{hexid}
 		}
@@ -205,7 +205,7 @@ func sendGroupHelper(hexid string, msg string, a *att) (uint64, error) {
 	}
 	// if len is 0 smth is obviously wrong
 	if len(g.Members) == 0 {
-		requestInfo(g)
+		requestGroupInfo(g)
 	}
 	for _, m := range g.Members {
 		if m != config.Tel {
@@ -316,7 +316,7 @@ func newGroup(name string, members []string) (*Group, error) {
 	}
 	return groups[hexid], nil
 }
-func requestInfo(g *Group) error {
+func requestGroupInfo(g *Group) error {
 	for _, m := range g.Members {
 		if m != config.Tel {
 			omsg := &outgoingMessage{
