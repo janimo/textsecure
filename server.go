@@ -769,7 +769,6 @@ func sendMessage(msg *outgoingMessage) (uint64, error) {
 	content := &signalservice.Content{
 		DataMessage: dm,
 	}
-
 	b, err := proto.Marshal(content)
 	if err != nil {
 		return 0, err

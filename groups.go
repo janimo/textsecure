@@ -73,6 +73,14 @@ func loadGroup(path string) error {
 	groups[hexid] = group
 	return nil
 }
+func RemoveGroupKey(hexid string) error {
+	err := os.Remove(config.StorageDir + "/groups/" + hexid)
+	if err != nil {
+		return err
+	}
+	return nil
+
+}
 
 // setupGroups reads all groups' state from storage.
 func setupGroups() error {
@@ -164,6 +172,7 @@ func handleGroups(src string, dm *signalservice.DataMessage) (*Group, error) {
 		return nil, nil
 	}
 	hexid := idToHex(gr.GetId())
+	log.Debugln("[textsecure] handle group", hexid, gr.GetType())
 	switch gr.GetType() {
 	case signalservice.GroupContext_UPDATE:
 		if err := updateGroup(gr); err != nil {
@@ -171,9 +180,13 @@ func handleGroups(src string, dm *signalservice.DataMessage) (*Group, error) {
 		}
 		groups[hexid].Flags = GroupUpdateFlag
 	case signalservice.GroupContext_DELIVER:
-		if _, ok := groups[hexid]; !ok {
+		eGr, ok := groups[hexid]
+		setupGroups()
+		if !ok || len(eGr.Members) == 0 || hexid == eGr.Name {
+			log.Debugln("[textsecure] request update group", hexid)
 			g, _ := newPartlyGroup(gr.GetId())
-			requestGroupInfo(g)
+			g.Members = []string{src}
+			RequestGroupInfo(g)
 			setupGroups()
 			return nil, UnknownGroupIDError{hexid}
 		}
@@ -205,7 +218,14 @@ func sendGroupHelper(hexid string, msg string, a *att) (uint64, error) {
 	}
 	// if len is 0 smth is obviously wrong
 	if len(g.Members) == 0 {
-		requestGroupInfo(g)
+		err := RemoveGroupKey(hexid)
+		if err != nil {
+			log.Errorln("[textsecure] sendGroupHelper", err)
+		}
+		setupGroups()
+		log.Infoln("[textsecure] sendGroupHelper", g)
+		RequestGroupInfo(g)
+		return 0, fmt.Errorf("[textsecure] sendGroupHelper: need someone in the group to send you a message")
 	}
 	for _, m := range g.Members {
 		if m != config.Tel {
@@ -316,9 +336,11 @@ func newGroup(name string, members []string) (*Group, error) {
 	}
 	return groups[hexid], nil
 }
-func requestGroupInfo(g *Group) error {
+func RequestGroupInfo(g *Group) error {
+	log.Debugln("[textsecure] request group update", g.Hexid)
 	for _, m := range g.Members {
 		if m != config.Tel {
+			log.Debugln(m)
 			omsg := &outgoingMessage{
 				tel: m,
 				group: &groupMessage{
@@ -330,6 +352,19 @@ func requestGroupInfo(g *Group) error {
 			if err != nil {
 				return err
 			}
+		}
+	}
+	if len(g.Members) == 0 {
+		omsg := &outgoingMessage{
+			tel: config.Tel,
+			group: &groupMessage{
+				id:  g.ID,
+				typ: signalservice.GroupContext_REQUEST_INFO,
+			},
+		}
+		_, err := sendMessage(omsg)
+		if err != nil {
+			return err
 		}
 	}
 	return nil

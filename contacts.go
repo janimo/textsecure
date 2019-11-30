@@ -131,7 +131,7 @@ func handleContacts(src string, dm *signalservice.DataMessage) ([]*signalservice
 	// case signalservice.GroupContext_DELIVER:
 	// 	if _, ok := groups[hexid]; !ok {
 	// 		g, _ := newPartlyGroup(gr.GetId())
-	// 		requestGroupInfo(g)
+	// 		RequestGroupInfo(g)
 	// 		setupGroups()
 	// 		return nil, UnknownGroupIDError{hexid}
 	// 	}

@@ -437,7 +437,7 @@ func handleDataMessage(src string, timestamp uint64, dm *signalservice.DataMessa
 	if err != nil {
 		return err
 	}
-
+	log.Debugln("[textsecure] handleDataMessage")
 	gr, err := handleGroups(src, dm)
 	if err != nil {
 		return err
@@ -521,7 +521,6 @@ func handleReceivedMessage(msg []byte) error {
 		return ErrInvalidMACForMessage
 	}
 	ciphertext := msg[1:macpos]
-
 	plaintext, err := axolotl.Decrypt(aesKey, ciphertext)
 	if err != nil {
 		return err
@@ -531,7 +530,6 @@ func handleReceivedMessage(msg []byte) error {
 	if err != nil {
 		return err
 	}
-
 	recid := recID(env.GetSourceE164())
 	sc := axolotl.NewSessionCipher(textSecureStore, textSecureStore, textSecureStore, textSecureStore, recid, env.GetSourceDevice())
 	switch *env.Type {
