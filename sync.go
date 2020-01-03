@@ -5,23 +5,47 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	log "github.com/sirupsen/logrus"
-	"github.com/nanu-c/textsecure/protobuf"
 	"github.com/golang/protobuf/proto"
+	"github.com/nanu-c/textsecure/protobuf"
+	log "github.com/sirupsen/logrus"
 )
 
 // handleSyncMessage handles an incoming SyncMessage.
 func handleSyncMessage(src string, timestamp uint64, sm *signalservice.SyncMessage) error {
-	log.Debugf("SyncMessage recieved at %d", timestamp)
+	log.Debugf("[textsecure] SyncMessage recieved at %d", timestamp)
 
 	if sm.GetSent() != nil {
 		return handleSyncSent(sm.GetSent(), timestamp)
+	} else if sm.GetContacts() != nil {
+		log.Debugln("[textsecure] SyncMessage contacts")
+		return nil
+	} else if sm.GetGroups() != nil {
+		log.Debugln("[textsecure] SyncMessage groups")
+		return nil
 	} else if sm.GetRequest() != nil {
 		return handleSyncRequest(sm.GetRequest())
 	} else if sm.GetRead() != nil {
 		return handleSyncRead(sm.GetRead())
+	} else if sm.GetBlocked() != nil {
+		log.Debugln("[textsecure] SyncMessage blocked")
+		return nil
+	} else if sm.GetVerified() != nil {
+		log.Debugln("[textsecure] SyncMessage verified")
+		return nil
+	} else if sm.GetConfiguration() != nil {
+		log.Debugln("[textsecure] SyncMessage configuration")
+		return nil
+	} else if sm.GetPadding() != nil {
+		log.Debugln("[textsecure] SyncMessage padding")
+		return nil
+	} else if sm.GetStickerPackOperation() != nil {
+		log.Debugln("[textsecure] SyncMessage GetStickerPackOperation")
+		return nil
+	} else if sm.GetViewOnceOpen() != nil {
+		log.Debugln("[textsecure] SyncMessage GetViewOnceOpen")
+		return nil
 	} else {
-		log.Errorf("SyncMessage contains no known sync types")
+		log.Errorf("[textsecure] SyncMessage contains no known sync types")
 	}
 
 	return nil
@@ -30,7 +54,7 @@ func handleSyncMessage(src string, timestamp uint64, sm *signalservice.SyncMessa
 // handleSyncSent handles sync sent messages
 func handleSyncSent(s *signalservice.SyncMessage_Sent, ts uint64) error {
 	dm := s.GetMessage()
-	dest := s.GetDestination()
+	dest := s.GetDestinationE164()
 	timestamp := s.GetTimestamp()
 
 	if dm == nil {
@@ -51,12 +75,17 @@ func handleSyncSent(s *signalservice.SyncMessage_Sent, ts uint64) error {
 	if err != nil {
 		return err
 	}
+	cs, err := handleContacts(dest, dm)
+	if err != nil {
+		return err
+	}
 
 	msg := &Message{
 		source:      dest,
 		message:     dm.GetBody(),
 		attachments: atts,
 		group:       gr,
+		contact:     cs,
 		timestamp:   timestamp,
 		flags:       flags,
 	}
@@ -74,6 +103,8 @@ func handleSyncRequest(request *signalservice.SyncMessage_Request) error {
 		return sendContactUpdate()
 	} else if request.GetType() == signalservice.SyncMessage_Request_GROUPS {
 		return sendGroupUpdate()
+	} else {
+		log.Debugln("[textsecure] handle sync request unhandled type", request.GetType())
 	}
 
 	return nil
@@ -81,7 +112,7 @@ func handleSyncRequest(request *signalservice.SyncMessage_Request) error {
 
 // sendContactUpdate
 func sendContactUpdate() error {
-	log.Debugf("Sending contact SyncMessage")
+	log.Debugf("[textsecure] Sending contact SyncMessage")
 
 	lc, err := GetRegisteredContacts()
 	if err != nil {
@@ -92,8 +123,13 @@ func sendContactUpdate() error {
 
 	for _, c := range lc {
 		cd := &signalservice.ContactDetails{
-			Number: &c.Tel,
-			Name:   &c.Name,
+			Number:      &c.Tel,
+			Uuid:        &c.Uuid,
+			Name:        &c.Name,
+			Color:       &c.Color,
+			Blocked:     &c.Blocked,
+			ExpireTimer: &c.ExpireTimer,
+
 			// TODO: handle avatars
 		}
 
@@ -134,9 +170,9 @@ func sendGroupUpdate() error {
 
 	for _, g := range groups {
 		gd := &signalservice.GroupDetails{
-			Id:      g.ID,
-			Name:    &g.Name,
-			Members: g.Members,
+			Id:          g.ID,
+			Name:        &g.Name,
+			MembersE164: g.Members,
 			// XXX add support for avatar
 			// XXX add support for active?
 		}
@@ -173,7 +209,7 @@ func sendGroupUpdate() error {
 func handleSyncRead(readMessages []*signalservice.SyncMessage_Read) error {
 	if client.SyncReadHandler != nil {
 		for _, s := range readMessages {
-			client.SyncReadHandler(s.GetSender(), s.GetTimestamp())
+			client.SyncReadHandler(s.GetSenderE164(), s.GetTimestamp())
 		}
 	}
 

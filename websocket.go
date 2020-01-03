@@ -50,7 +50,7 @@ func (c *Conn) connect(originURL, user, pass string) error {
 	wsURL := strings.Replace(originURL, "http", "ws", 1) + "?" + params
 	u, _ := url.Parse(wsURL)
 
-	log.Debugf("Websocket Connecting to signal-server")
+	log.Debugf("[textsecure] Websocket Connecting to signal-server")
 	// log.Debugf("Websocket Connecting to %s with user %s and pass %s", originURL, user, pass)
 
 	var err error
@@ -66,7 +66,7 @@ func (c *Conn) connect(originURL, user, pass string) error {
 		return err
 	}
 
-	log.Debugf("Websocket Connected successfully")
+	log.Debugf("[textsecure] Websocket Connected successfully")
 
 	return nil
 }
@@ -105,7 +105,7 @@ func (c *Conn) write(mt int, payload []byte) error {
 func (c *Conn) writeWorker() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
-		log.Debugf("Closing writeWorker")
+		log.Debugf("[textsecure] Closing writeWorker")
 		ticker.Stop()
 		c.ws.Close()
 	}()
@@ -113,24 +113,24 @@ func (c *Conn) writeWorker() {
 		select {
 		case message, ok := <-c.send:
 			if !ok {
-				log.Errorf("Failed to read message from channel")
+				log.Errorf("[textsecure] Failed to read message from channel")
 				c.write(websocket.CloseMessage, []byte{})
 				return
 			}
 
-			log.Debugf("Websocket sending message")
+			log.Debugf("[textsecure] Websocket sending message")
 			if err := c.write(websocket.BinaryMessage, message); err != nil {
 				log.WithFields(log.Fields{
 					"error": err,
-				}).Error("Failed to send websocket message")
+				}).Error("[textsecure] Failed to send websocket message")
 				return
 			}
 		case <-ticker.C:
-			log.Debugf("Sending websocket ping message")
+			log.Debugf("[textsecure] Sending websocket ping message")
 			if err := c.write(websocket.PingMessage, nil); err != nil {
 				log.WithFields(log.Fields{
 					"error": err,
-				}).Error("Failed to send websocket ping message")
+				}).Error("[textsecure] Failed to send websocket ping message")
 				return
 			}
 		}
@@ -156,7 +156,7 @@ func StartListening() error {
 
 	wsconn.ws.SetReadDeadline(time.Now().Add(pongWait))
 	wsconn.ws.SetPongHandler(func(string) error {
-		log.Debugf("Received websocket pong message")
+		log.Debugf("[textsecure] Received websocket pong message")
 		wsconn.ws.SetReadDeadline(time.Now().Add(pongWait))
 		return nil
 	})
@@ -165,7 +165,7 @@ func StartListening() error {
 		_, bmsg, err := wsconn.ws.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Debugf("Websocket UnexpectedCloseError: %s", err)
+				log.Debugf("[textsecure] Websocket UnexpectedCloseError: %s", err)
 			}
 			return err
 		}
@@ -175,7 +175,7 @@ func StartListening() error {
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error": err,
-			}).Error("Failed to unmarshal websocket message")
+			}).Error("[textsecure] Failed to unmarshal websocket message")
 			return err
 		}
 
@@ -186,16 +186,16 @@ func StartListening() error {
 			if err != nil {
 				log.WithFields(log.Fields{
 					"error": err,
-				}).Error("Failed to handle received message")
+				}).Error("[textsecure] Failed to handle received message")
 			}
 		} else {
 			log.Debugln(wsm.GetRequest())
 			if wsm.GetRequest().GetPath() == "/api/v1/queue/empty" {
-				log.Println("No new messages")
+				log.Println("[textsecure] No new messages")
 			} else {
 				log.WithFields(log.Fields{
 					"source": wsm.GetRequest().GetId(),
-				}).Warn("Zero byte message received. Ignoring")
+				}).Warn("[textsecure] Zero byte message received. Ignoring")
 			}
 
 		}
@@ -204,18 +204,18 @@ func StartListening() error {
 		if err != nil {
 			log.WithFields(log.Fields{
 				"error": err,
-			}).Error("Failed to send ack")
+			}).Error("[textsecure] Failed to send ack")
 			return err
 		}
 
 	}
 
-	return fmt.Errorf("Connection closed")
+	return fmt.Errorf("[textsecure] Connection closed")
 }
 
 // ErrNotListening is returned when trying to stop listening when there's no
 // valid listening connection set up
-var ErrNotListening = errors.New("there is no listening connection to stop")
+var ErrNotListening = errors.New("[textsecure] there is no listening connection to stop")
 
 // StopListening disables the receiving of messages.
 func StopListening() error {

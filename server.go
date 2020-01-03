@@ -5,10 +5,13 @@ package textsecure
 
 import (
 	"bytes"
+	"crypto/aes"
+	"crypto/cipher"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 	"time"
@@ -24,6 +27,9 @@ var (
 	createAccountPath      = "/v1/accounts/%s/code/%s?client=%s"
 	verifyAccountPath      = "/v1/accounts/code/%s"
 	registerUPSAccountPath = "/v1/accounts/ups/"
+	TURN_SERVER_INFO       = "/v1/accounts/turn"
+	SET_ACCOUNT_ATTRIBUTES = "/v1/accounts/attributes/"
+	PIN_PATH               = "/v1/accounts/pin/"
 
 	prekeyMetadataPath = "/v2/keys/"
 	prekeyPath         = "/v2/keys/%s"
@@ -34,13 +40,26 @@ var (
 	provisioningMessagePath = "/v1/provisioning/%s"
 	devicePath              = "/v1/devices/%s"
 
-	directoryTokensPath    = "/v1/directory/tokens"
-	directoryVerifyPath    = "/v1/directory/%s"
-	messagePath            = "/v1/messages/%s"
-	acknowledgeMessagePath = "/v1/messages/%s/%d"
-	receiptPath            = "/v1/receipt/%s/%d"
-	allocateAttachmentPath = "/v1/attachments/"
-	attachmentPath         = "/v1/attachments/%d"
+	directoryTokensPath      = "/v1/directory/tokens"
+	DIRECTORY_AUTH_PATH      = "/v1/directory/auth"
+	DIRECTORY_FEEDBACK_PATH  = "/v1/directory/feedback-v3/%s"
+	directoryVerifyPath      = "/v1/directory/%s"
+	messagePath              = "/v1/messages/%s"
+	acknowledgeMessagePath   = "/v1/messages/%s/%d"
+	UUID_ACK_MESSAGE_PATH    = "/v1/messages/uuid/%s"
+	receiptPath              = "/v1/receipt/%s/%d"
+	attachmentPath           = "/v1/attachments/%d"
+	ATTACHMENT_DOWNLOAD_PATH = "attachments/%d"
+	ATTACHMENT_UPLOAD_PATH   = "attachments/"
+	ATTACHMENT_PATH          = "/v2/attachments/form/upload"
+	allocateAttachmentPath   = "/v1/attachments/"
+	PROFILE_PATH             = "/v1/profile/%s"
+	SENDER_CERTIFICATE_PATH  = "/v1/certificate/delivery"
+	STICKER_MANIFEST_PATH    = "stickers/%s/manifest.proto"
+	STICKER_PATH             = "stickers/%s/full/%d"
+	SERVICE_REFLECTOR_HOST   = "europe-west1-signal-cdn-reflector.cloudfunctions.net"
+	cdn_url                  = "https://www.google.com/cdn"
+	SIGNAL_CDN_URL           = "https://cdn.signal.org"
 )
 
 // RegistrationInfo holds the data required to be identified by and
@@ -73,7 +92,7 @@ var registrationInfo RegistrationInfo
 // Registration
 
 func requestCode(tel, method string) (string, error) {
-	fmt.Println("request verification code for ", tel)
+	log.Infoln("[textsecure] request verification code for ", tel)
 	resp, err := transport.get(fmt.Sprintf(createAccountPath, method, tel, "android"))
 	if err != nil {
 		fmt.Println(err.Error())
@@ -81,7 +100,7 @@ func requestCode(tel, method string) (string, error) {
 	}
 	if resp.isError() {
 		if resp.Status == 402 {
-			fmt.Println(resp.Body)
+			log.Debugln(resp.Body)
 			buf := new(bytes.Buffer)
 			buf.ReadFrom(resp.Body)
 			newStr := buf.String()
@@ -90,16 +109,16 @@ func requestCode(tel, method string) (string, error) {
 
 			return "", errors.New("Need to solve captcha")
 		} else if resp.Status == 413 {
-			fmt.Println(resp.Body)
+			log.Debugln(resp.Body)
 			buf := new(bytes.Buffer)
 			buf.ReadFrom(resp.Body)
 			newStr := buf.String()
-			fmt.Printf(newStr)
+			log.Debugln(newStr)
 			defer resp.Body.Close()
 
 			return "", errors.New("Rate Limit Exeded")
 		} else {
-			fmt.Println(resp.Status)
+			log.Debugln(resp.Status)
 			defer resp.Body.Close()
 
 			return "", errors.New("Error, see logs")
@@ -223,11 +242,12 @@ type DeviceInfo struct {
 	Created  uint64 `json:"created"`
 	LastSeen uint64 `json:"lastSeen"`
 }
+type jsonDevices struct {
+	DeviceList []DeviceInfo `json:"devices"`
+}
 
 func getLinkedDevices() ([]DeviceInfo, error) {
-	type jsonDevices struct {
-		DeviceList []DeviceInfo `json:"devices"`
-	}
+
 	devices := &jsonDevices{}
 
 	resp, err := transport.get(fmt.Sprintf(devicePath, ""))
@@ -290,6 +310,106 @@ func addNewDevice(ephemeralId, publicKey, verificationCode string) error {
 	return nil
 }
 
+// profiles
+type Profile struct {
+	IdentityKey                    []byte          `json:"identityKey"`
+	Name                           string          `json:"name"`
+	Avatar                         string          `json:"avatar"`
+	UnidentifiedAccess             string          `json:"unidentifiedAccess"`
+	UnrestrictedUnidentifiedAccess bool            `json:"unrestrictedUnidentifiedAccess"`
+	Capabilities                   ProfileSettings `json:"capabilities"`
+}
+type ProfileSettings struct {
+	Uuid bool `json:"uuid"`
+}
+
+func GetProfile(tel string) (*Profile, error) {
+
+	resp, err := transport.get(fmt.Sprintf(PROFILE_PATH, tel))
+	if err != nil {
+		log.Debugln(err)
+	}
+
+	profile := &Profile{}
+	dec := json.NewDecoder(resp.Body)
+
+	err = dec.Decode(&profile)
+	if err != nil {
+		log.Debugln(err)
+
+	}
+	avatar, _ := GetAvatar(profile.Avatar)
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(avatar)
+
+	c := contacts[tel]
+	c.Avatar = decryptAvatar(buf.Bytes(), profile.IdentityKey)
+	contacts[tel] = c
+	WriteContactsToPath()
+
+	//
+	// return devices.DeviceList, nil
+	return profile, nil
+}
+
+var cdnTransport *httpTransporter
+
+func setupCDNTransporter() {
+	// setupCA()
+	cdnTransport = newHTTPTransporter(SIGNAL_CDN_URL, config.Tel, registrationInfo.password)
+}
+
+func GetAvatar(avatarUrl string) (io.ReadCloser, error) {
+	log.Debugln(SIGNAL_CDN_URL + "/" + avatarUrl)
+	resp, err := cdnTransport.get("/" + avatarUrl)
+	if err != nil {
+		log.Debugln("[textsecure] getAvatar ", err)
+		return nil, err
+	}
+	return resp.Body, nil
+}
+
+func decryptAvatar(avatar []byte, identityKey []byte) []byte {
+	block, err := aes.NewCipher(identityKey[:32])
+	log.Debugln("-0", avatar[:12])
+	if err != nil {
+		log.Debugln("0", err)
+
+		return nil
+	}
+	// nonce := []byte{}
+	aesgcm, err := cipher.NewGCM(block)
+	log.Debugln("-0", aesgcm.NonceSize())
+
+	if err != nil {
+		log.Debugln("1", err)
+	}
+	b, err := aesgcm.Open(nil, avatar[:12], avatar, nil)
+	if err != nil {
+		log.Debugln("3", err)
+	}
+	return b
+}
+func generateNonce(avatar []byte, length int) []byte {
+	var offset int
+	offset = 0
+	offset++
+	buffer := [12]byte{}
+	log.Debugln(buffer)
+	// 	public static void readFully(InputStream in, byte[] buffer) throws IOException {
+	//
+	// 	for (;;) {
+	// 					12							12 bytes b, 0 , 12 -0
+	// 		int read = in.read(buffer, offset, buffer.length - offset);
+	//				12 +0					< 12								0+= 12
+	// 		if (read + offset < buffer.length) offset += read;
+	// 		else                		           return;
+	// 	}
+	// }
+	a := []byte{}
+	return a
+}
+
 // PUT /v2/keys/
 func registerPreKeys() error {
 	body, err := json.MarshalIndent(preKeys, "", "")
@@ -350,8 +470,9 @@ func GetRegisteredContacts() ([]Contact, error) {
 		return nil, err
 	}
 	resp, err := transport.putJSON(directoryTokensPath, body)
-	if resp.Status == 413 {
-		log.Println("Rate limit exceeded while refreshing contacts: 413")
+	// // TODO: breaks when there is no internet
+	if resp != nil && resp.Status == 413 {
+		log.Println("[textsecure] Rate limit exceeded while refreshing contacts: 413")
 		return nil, errors.New("Rate limit exceeded: 413")
 	}
 	if err != nil {
@@ -429,10 +550,10 @@ func createMessage(msg *outgoingMessage) *signalservice.DataMessage {
 	}
 	if msg.group != nil {
 		dm.Group = &signalservice.GroupContext{
-			Id:      msg.group.id,
-			Type:    &msg.group.typ,
-			Name:    &msg.group.name,
-			Members: msg.group.members,
+			Id:          msg.group.id,
+			Type:        &msg.group.typ,
+			Name:        &msg.group.name,
+			MembersE164: msg.group.members,
 		}
 	}
 
@@ -598,7 +719,7 @@ func buildAndSendMessage(tel string, paddedMessage []byte, isSync bool) (*sendMe
 		dec := json.NewDecoder(resp.Body)
 		var j jsonMismatchedDevices
 		dec.Decode(&j)
-		log.Debugf("Mismatched devices: %+v\n", j)
+		log.Debugf("[textsecure] Mismatched devices: %+v\n", j)
 		devs := []uint32{}
 		for _, id := range deviceLists[tel] {
 			in := true
@@ -619,7 +740,7 @@ func buildAndSendMessage(tel string, paddedMessage []byte, isSync bool) (*sendMe
 		dec := json.NewDecoder(resp.Body)
 		var j jsonStaleDevices
 		dec.Decode(&j)
-		log.Debugf("Stale devices: %+v\n", j)
+		log.Debugf("[textsecure] Stale devices: %+v\n", j)
 		for _, id := range j.StaleDevices {
 			textSecureStore.DeleteSession(recID(tel), id)
 		}
@@ -634,7 +755,7 @@ func buildAndSendMessage(tel string, paddedMessage []byte, isSync bool) (*sendMe
 	dec.Decode(&smRes)
 	smRes.Timestamp = now
 
-	log.Debugf("SendMessageResponse: %+v\n", smRes)
+	log.Debugf("[textsecure] SendMessageResponse: %+v\n", smRes)
 	return &smRes, nil
 }
 
@@ -648,7 +769,6 @@ func sendMessage(msg *outgoingMessage) (uint64, error) {
 	content := &signalservice.Content{
 		DataMessage: dm,
 	}
-
 	b, err := proto.Marshal(content)
 	if err != nil {
 		return 0, err
@@ -660,12 +780,12 @@ func sendMessage(msg *outgoingMessage) (uint64, error) {
 	}
 
 	if resp.NeedsSync {
-		log.Debugf("Needs sync. destination: %s", msg.tel)
+		log.Debugf("[textsecure] Needs sync. destination: %s", msg.tel)
 		sm := &signalservice.SyncMessage{
 			Sent: &signalservice.SyncMessage_Sent{
-				Destination: &msg.tel,
-				Timestamp:   &resp.Timestamp,
-				Message:     dm,
+				DestinationE164: &msg.tel,
+				Timestamp:       &resp.Timestamp,
+				Message:         dm,
 			},
 		}
 

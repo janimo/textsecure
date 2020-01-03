@@ -151,7 +151,7 @@ func (ht *httpTransporter) put(url string, body []byte, ct string) (*response, e
 		r.Body = resp.Body
 	}
 
-	log.Debugf("PUT %s %d\n", url, r.Status)
+	log.Debugf("[textsecure] PUT %s %d\n", url, r.Status)
 
 	return r, err
 }
