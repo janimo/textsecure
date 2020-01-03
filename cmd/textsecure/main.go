@@ -18,8 +18,8 @@ import (
 	"time"
 	"gopkg.in/yaml.v2"
 
-	"github.com/nanu-c/textsecure"
-	"github.com/nanu-c/textsecure/axolotl"
+	"github.com/morph027/textsecure"
+	"github.com/morph027/textsecure/axolotl"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -153,6 +153,9 @@ func conversationLoop(isGroup bool) {
 			log.Println(err)
 		}
 	}
+}
+
+func receiptMessageHandler(msg *textsecure.Message) {
 }
 
 func messageHandler(msg *textsecure.Message) {
@@ -441,12 +444,13 @@ func main() {
 	flag.Parse()
 	log.SetFlags(0)
 	client := &textsecure.Client{
-		GetConfig:           getConfig,
-		GetLocalContacts:    getLocalContacts,
-		GetVerificationCode: getVerificationCode,
-		GetStoragePassword:  getStoragePassword,
-		MessageHandler:      messageHandler,
-		RegistrationDone:    registrationDone,
+		GetConfig:             getConfig,
+		GetLocalContacts:      getLocalContacts,
+		GetVerificationCode:   getVerificationCode,
+		GetStoragePassword:    getStoragePassword,
+		MessageHandler:        messageHandler,
+		ReceiptMessageHandler: receiptMessageHandler,
+		RegistrationDone:      registrationDone,
 	}
 	err := textsecure.Setup(client)
 	if err != nil {
@@ -454,6 +458,7 @@ func main() {
 	}
 
 	if gateway {
+		go textsecure.StartListening()
 		http.HandleFunc("/", GatewayHandler)
 		http.HandleFunc("/groups", GroupsHandler)
 		http.HandleFunc("/rekey/", RekeyHandler)
